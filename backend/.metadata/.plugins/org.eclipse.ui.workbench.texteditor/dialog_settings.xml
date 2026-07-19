@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<item key="hasShownOverlayPopupBefore" value="true"/>
+	<section name="java.lang.Class">
+		<list key="findhistory">
+			<item value="spring-security-web"/>
+			<item value="FilterRegistrationBean cannot be resolved to a type"/>
+			<item value="spring-security-"/>
+			<item value="name"/>
+			<item value="unable to "/>
+			<item value="findby"/>
+			<item value="fi"/>
+			<item value="s"/>
+			<item value="springframework"/>
+			<item value="fujitsu"/>
+			<item value="spring"/>
+			<item value="lpu"/>
+			<item value="datasource"/>
+			<item value="hikari"/>
+			<item value=" &lt;artifactId&gt;spring-boot-starter&lt;/artifactId&gt;"/>
+		</list>
+		<list key="replacehistory">
+			<item value="resource_name"/>
+		</list>
+	</section>
+</section>

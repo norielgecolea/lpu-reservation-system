@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.apiresponse.PopulateUsersResponse"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.services.JWTService"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.repository.UserRepository"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.services.TestService"/>
+    <fullyQualifiedTypeName name="jakarta.transaction.Transactional"/>
+    <fullyQualifiedTypeName name="java.time.DateTimeException"/>
+    <fullyQualifiedTypeName name="java.time.LocalDateTime"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.apiresponse.CreateAccountResponse"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.dto.PopulateUserList"/>
+    <fullyQualifiedTypeName name="org.apache.logging.log4j.core.Logger"/>
+    <fullyQualifiedTypeName name="org.apache.logging.log4j.LogManager"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.apiresponse.AccountStatementResponse"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.apiresponse.PopulateEquipmentResponse"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.services.AuthenticationService"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.repository.FacilityRepository"/>
+    <fullyQualifiedTypeName name="org.springframework.beans.factory.annotation.Autowired"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.services.Facility"/>
+    <fullyQualifiedTypeName name="org.springframework.web.bind.annotation.GetMapping"/>
+    <fullyQualifiedTypeName name="org.springframework.web.bind.annotation.PostMapping"/>
+    <fullyQualifiedTypeName name="org.springframework.web.bind.annotation.RequestBody"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.data.Equipment"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.services.FacilityService"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.data.Facility"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.dto.CreateEquipmentRequest"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.repository.EquipmentRepository"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.dto.UpdateEquipmentRequest"/>
+    <fullyQualifiedTypeName name="org.springframework.web.bind.annotation.PutMapping"/>
+    <fullyQualifiedTypeName name="jakarta.persistence.Table"/>
+    <fullyQualifiedTypeName name="org.springframework.stereotype.Repository"/>
+    <fullyQualifiedTypeName name="java.util.List"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.apiresponse.EquipmentResponse"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.model.dto.PopulateEquipmentList"/>
+    <fullyQualifiedTypeName name="jakarta.persistence.criteria.Path"/>
+    <fullyQualifiedTypeName name="java.nio.file.Path"/>
+    <fullyQualifiedTypeName name="org.hibernate.validator.constraints.UUID"/>
+    <fullyQualifiedTypeName name="java.nio.file.Files"/>
+    <fullyQualifiedTypeName name="java.io.File"/>
+    <fullyQualifiedTypeName name="java.util.UUID"/>
+    <fullyQualifiedTypeName name="jakarta.ws.rs.core.MediaType"/>
+    <fullyQualifiedTypeName name="org.springframework.http.MediaType"/>
+    <fullyQualifiedTypeName name="java.util.Base64"/>
+    <fullyQualifiedTypeName name="java.io.IOException"/>
+    <fullyQualifiedTypeName name="org.springframework.transaction.annotation.Transactional"/>
+    <fullyQualifiedTypeName name="org.lpu.dev.codes.services.VehicleImageService"/>
+</qualifiedTypeNameHistroy>

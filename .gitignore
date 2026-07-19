@@ -30,6 +30,11 @@ data/tomcat/logs/**
 .classpath
 .settings/
 .metadata/
+!backend/.metadata/
+!backend/.metadata/**
+# Machine-local Eclipse lock files (don't share across clones)
+backend/.metadata/.lock
+backend/.metadata/.lock_info
 *.swp
 *~
 
