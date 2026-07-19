@@ -1,0 +1,115 @@
+<section class="animate-rise flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
+    <ui-input-search class="flex-1" [value]="search()" (valueChange)="onSearch($event)" />
+    <ui-segmented
+      [options]="serviceFilters"
+      [value]="activeService()"
+      (valueChange)="selectService($any($event))"
+    />
+    <a uiButton [routerLink]="newPath" class="w-full sm:w-auto">
+      <ui-icon name="add" [size]="20" />
+      <span>ADD EQUIPMENT</span>
+    </a>
+  </section>
+
+  <section class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
+    <div class="min-h-0 flex-1 overflow-auto">
+      <table class="w-full min-w-150 border-collapse text-left text-sm">
+        <thead class="sticky top-0 z-10">
+          <tr class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+           <th
+  class="px-5 py-4 cursor-pointer"
+  (click)="sortBy('name')"
+>
+  Name
+</th>
+
+<th
+  class="px-4 py-3 cursor-pointer"
+  (click)="sortBy('facilityName')"
+>
+  Service
+</th>
+
+<th
+  class="px-4 py-3 text-center cursor-pointer"
+  (click)="sortBy('status')"
+>
+  Status
+</th>
+            <th class="px-4 py-3 text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (loading()) {
+            <tr>
+              <td colspan="4" class="px-4 py-10 text-center text-gray-500">
+                Loading equipments...
+              </td>
+            </tr>
+          } @else if (error()) {
+            <tr>
+              <td colspan="4" class="px-4 py-8 text-center text-red-600">{{ error() }}</td>
+            </tr>
+          } @else if (filtered().length === 0) {
+            <tr>
+              <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                No equipments found.
+              </td>
+            </tr>
+          } @else {
+            @for (equipment of filtered(); track equipment.id) {
+              <tr
+                class="border-b border-gray-100 odd:bg-white even:bg-gray-50/70 hover:bg-secondary/5"
+              >
+                <td class="px-5 py-4 text-black">{{ equipment.name ?? '—' }}</td>
+                <td class="px-4 py-3 text-black">
+                  {{ equipment.facilityName ?? '—' }}
+                </td>
+                <td class="px-4 py-3 text-center">
+                  <ui-status-badge [status]="equipment.status" />
+                </td>
+                <td class="px-4 py-3">
+                  <div
+                    class="flex items-center justify-center gap-2 text-gray-500"
+                  >
+                    <a
+                      title="Edit"
+                      [routerLink]="editPath(equipment.id)"
+                      class="cursor-pointer rounded-lg p-1.5 hover:text-primary"
+                    >
+                      <ui-icon name="edit_square" class="text-xl" />
+                    </a>
+                    <button
+                      type="button"
+                      (click)="toggleStatus(equipment)"
+                      class="cursor-pointer rounded-lg p-1.5 hover:text-primary"
+                    >
+                      <ui-icon
+                        [name]="isActive(equipment.status) ? 'pause_circle' : 'play_circle'"
+                        class="text-xl"
+                      />
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete"
+                      (click)="remove(equipment)"
+                      class="cursor-pointer rounded-lg p-1.5 hover:text-red-600"
+                    >
+                      <ui-icon name="delete" class="text-xl" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <ui-toast
+    class="contents"
+    [show]="showToast()"
+    [success]="toastSuccess()"
+    [message]="toastMessage()"
+  />

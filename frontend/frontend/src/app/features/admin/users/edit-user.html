@@ -1,0 +1,114 @@
+<form
+    [formGroup]="form"
+    (ngSubmit)="save()"
+    autocomplete="off"
+    class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl"
+  >
+    <div class="mx-5 border-b border-primary/30 py-3.5 sm:mx-7">
+      <div class="flex items-center gap-3 text-primary">
+        <ui-icon name="edit_square" class="text-2xl" />
+        <h2 class="text-xl font-black">UPDATE USER</h2>
+      </div>
+    </div>
+
+    <ui-form-feedback
+      [saving]="saving()"
+      savingText="Saving changes..."
+      [error]="error()"
+      (dismissed)="error.set(null)"
+    />
+
+    <div class="flex-1 overflow-y-auto p-5 lg:p-7">
+      @if (loading()) {
+        <div class="py-10 text-center text-sm text-gray-500">
+          Loading user...
+        </div>
+      } @else if (ready()) {
+        <div class="grid content-start gap-5 sm:grid-cols-2">
+          <div class="flex flex-col gap-1.5 sm:col-span-2">
+            <label
+              for="edit-user-fullname"
+              class="text-sm font-bold text-gray-800"
+            >
+              Full Name
+            </label>
+            <input
+              uiInput
+              id="edit-user-fullname"
+              name="editUserFullname"
+              type="text"
+              formControlName="fullname"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="edit-user-employee-id"
+              class="text-sm font-bold text-gray-800"
+            >
+              Employee ID
+            </label>
+            <input
+              uiInput
+              id="edit-user-employee-id"
+              name="editUserEmployeeId"
+              type="text"
+              formControlName="employeeId"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="edit-user-email" class="text-sm font-bold text-gray-800"
+              >Email</label
+            >
+            <input
+              uiInput
+              id="edit-user-email"
+              name="editUserEmail"
+              type="email"
+              formControlName="email"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="edit-user-username"
+              class="text-sm font-bold text-gray-800"
+            >
+              Username
+            </label>
+            <input
+              uiInput
+              id="edit-user-username"
+              name="editUserUsername"
+              type="text"
+              formControlName="username"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-gray-800">Password</label>
+            <button uiButton type="button">RESET PASSWORD</button>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-gray-800">User Role</label>
+            <ui-select formControlName="role" placeholder="Select a role" [options]="roles()" />
+          </div>
+        </div>
+      }
+    </div>
+
+    <div
+      class="mx-5 mt-auto flex flex-col-reverse gap-3 border-t border-primary/30 py-3 sm:mx-7 sm:flex-row sm:justify-end"
+    >
+      <a uiButton variant="secondary" routerLink="/users"> CANCEL </a>
+      <button uiButton type="submit" [disabled]="loading() || saving() || !ready()">
+        <span>SAVE</span>
+      </button>
+    </div>
+  </form>

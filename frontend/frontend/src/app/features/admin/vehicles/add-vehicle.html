@@ -1,0 +1,138 @@
+<form
+    [formGroup]="form"
+    (ngSubmit)="save()"
+    autocomplete="off"
+    class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl"
+  >
+    <div class="mx-5 border-b border-primary/30 py-3.5 sm:mx-7">
+      <div class="flex items-center gap-3 text-primary">
+        <ui-icon name="directions_car" class="text-2xl" />
+        <h2 class="text-xl font-black">ADD VEHICLE</h2>
+      </div>
+    </div>
+
+    <ui-form-feedback
+      [saving]="saving()"
+      savingText="Saving vehicle..."
+      [error]="error()"
+      (dismissed)="error.set(null)"
+    />
+
+    <div class="min-h-0 flex-1 overflow-y-auto p-5 lg:p-7">
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div class="grid content-start gap-5 sm:grid-cols-2">
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="add-vehicle-brand"
+              class="text-sm font-bold text-gray-800"
+            >
+              Brand
+            </label>
+            <input
+              uiInput
+              id="add-vehicle-brand"
+              name="addVehicleBrand"
+              type="text"
+              formControlName="brand"
+              autocomplete="off"
+              placeholder="Toyota"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="add-vehicle-plate"
+              class="text-sm font-bold text-gray-800"
+            >
+              Plate Number
+            </label>
+            <input
+              uiInput
+              id="add-vehicle-plate"
+              name="addVehiclePlate"
+              type="text"
+              formControlName="plate_num"
+              autocomplete="off"
+              placeholder="ABC 1234"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="add-vehicle-capacity"
+              class="text-sm font-bold text-gray-800"
+            >
+              Capacity
+            </label>
+            <input
+              uiInput
+              id="add-vehicle-capacity"
+              name="addVehicleCapacity"
+              type="number"
+              min="1"
+              formControlName="capacity"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-bold text-gray-800">Status</label>
+            <ui-select formControlName="status" placeholder="Select status" [options]="statuses" />
+          </div>
+
+          <div class="flex flex-col gap-1.5 sm:col-span-2">
+            <label
+              for="add-vehicle-description"
+              class="text-sm font-bold text-gray-800"
+            >
+              Description
+            </label>
+            <input
+              uiInput
+              id="add-vehicle-description"
+              name="addVehicleDescription"
+              type="text"
+              formControlName="vehicleDescription"
+              autocomplete="off"
+              placeholder="Passenger van for campus transport"
+            />
+          </div>
+        </div>
+
+        <aside class="flex flex-col gap-3">
+          <span class="text-sm font-bold text-gray-800">Vehicle Image</span>
+          <label
+            class="border border-zinc-950/15 bg-white/70 backdrop-blur-md backdrop-saturate-150 ring-1 ring-inset ring-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),inset_0_-1px_0_rgba(24,24,27,0.05),0_2px_8px_-3px_rgba(24,24,27,0.2)] group flex aspect-[4/3] min-h-56 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl text-center text-gray-500 transition-all duration-200 hover:border-secondary/45 hover:ring-secondary/25"
+          >
+            @if (imagePreview()) {
+              <img [src]="imagePreview()" alt="Vehicle image" class="h-full w-full object-cover" />
+            } @else {
+              <div class="flex flex-col items-center gap-3 px-5">
+                <span
+                  class="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary transition group-hover:bg-secondary/10"
+                >
+                  <ui-icon name="add_photo_alternate" class="text-3xl" />
+                </span>
+                <span class="text-sm font-bold text-gray-700">
+                  Upload vehicle photo
+                </span>
+                <span class="text-xs leading-snug text-gray-500">
+                  Choose a clear image for easier identification.
+                </span>
+              </div>
+            }
+            <input type="file" accept="image/*" class="sr-only" (change)="onImageSelected($event)" />
+          </label>
+        </aside>
+      </div>
+    </div>
+
+    <div
+      class="mx-5 mt-auto flex flex-col-reverse gap-3 border-t border-primary/30 py-3 sm:mx-7 sm:flex-row sm:justify-end"
+    >
+      <a uiButton variant="secondary"  [routerLink]="listPath"> CANCEL </a>
+      <button uiButton type="submit" [disabled]="saving()">
+        <span>SAVE</span>
+      </button>
+    </div>
+  </form>

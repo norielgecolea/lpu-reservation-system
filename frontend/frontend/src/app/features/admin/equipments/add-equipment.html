@@ -1,0 +1,61 @@
+<form
+    [formGroup]="form"
+    (ngSubmit)="save()"
+    autocomplete="off"
+    class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl"
+  >
+    <div class="mx-5 border-b border-primary/30 py-3.5 sm:mx-7">
+      <div class="flex items-center gap-3 text-primary">
+        <ui-icon name="inventory_2" class="text-2xl" />
+        <h2 class="text-xl font-black">ADD EQUIPMENT</h2>
+      </div>
+    </div>
+
+    <ui-form-feedback
+      [saving]="saving()"
+      savingText="Saving equipment..."
+      [error]="error()"
+      (dismissed)="error.set(null)"
+    />
+
+    <div class="flex-1 overflow-y-auto p-5 lg:p-7">
+      <div class="grid content-start gap-5 sm:grid-cols-2">
+        <div class="flex flex-col gap-1.5 sm:col-span-2">
+          <label for="add-equipment-name" class="text-sm font-bold text-gray-800">
+            Name
+          </label>
+          <input
+            uiInput
+            id="add-equipment-name"
+            name="addEquipmentName"
+            type="text"
+            formControlName="name"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-sm font-bold text-gray-800">Service</label>
+          <ui-select
+            formControlName="facilityId"
+            placeholder="Select service"
+            [options]="facilities()"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-sm font-bold text-gray-800">Status</label>
+          <ui-select formControlName="status" placeholder="Select status" [options]="statuses" />
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="mx-5 mt-auto flex flex-col-reverse gap-3 border-t border-primary/30 py-3 sm:mx-7 sm:flex-row sm:justify-end"
+    >
+      <a uiButton variant="secondary" [routerLink]="listPath"> CANCEL </a>
+      <button uiButton type="submit" [disabled]="saving()">
+        <span>SAVE</span>
+      </button>
+    </div>
+  </form>

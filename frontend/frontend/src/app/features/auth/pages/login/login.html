@@ -1,0 +1,191 @@
+<div
+  class="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-[#f6f7fb] p-4 sm:p-6"
+>
+  <div
+    class="absolute inset-0 scale-105 bg-slate-200 bg-cover bg-center"
+    style="background-image: url('/background.webp')"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(141,37,70,0.28),transparent_30%),linear-gradient(120deg,rgba(255,255,255,0.92),rgba(255,255,255,0.68))]"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="animate-float absolute -left-20 top-16 h-56 w-56 rounded-full bg-primary/15 blur-3xl"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="animate-float absolute -right-24 bottom-8 h-72 w-72 rounded-full bg-amber-300/20 blur-3xl [animation-delay:1.2s]"
+    aria-hidden="true"
+  ></div>
+
+  <div
+    class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise relative z-10 grid w-full max-w-5xl overflow-hidden rounded-3xl md:grid-cols-[1.05fr_0.95fr]"
+  >
+    <div class="relative hidden min-h-155 overflow-hidden bg-slate-200 md:block">
+      @for (image of heroImages; track image.src; let i = $index) {
+        <img
+          [src]="image.src"
+          [alt]="image.alt"
+          class="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out"
+          [class.opacity-100]="activeImage() === i"
+          [class.opacity-0]="activeImage() !== i"
+        />
+      }
+      <div
+        class="absolute inset-0 bg-linear-to-tr from-primary/75 via-primary/25 to-transparent"
+      ></div>
+      <div class="absolute bottom-0 left-0 right-0 p-8 text-white">
+        <div
+          class="mb-5 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] backdrop-blur"
+        >
+          <span
+            class="h-2 w-2 rounded-full"
+            [class.bg-emerald-300]="backendStatus() === 'online'"
+            [class.bg-red-300]="backendStatus() === 'offline'"
+            [class.bg-amber-300]="backendStatus() === 'checking'"
+          ></span>
+          {{ backendStatusLabel() }}
+        </div>
+        <h2 class="max-w-sm text-4xl font-black leading-tight">
+          Learn Different. <br />Live Different.
+        </h2>
+      </div>
+    </div>
+
+    <div class="relative flex flex-col justify-center gap-8 px-6 py-10 sm:px-10 md:py-14">
+      <img
+        src="/logo.svg"
+        alt=""
+        aria-hidden="true"
+        class="pointer-events-none absolute right-5 top-5 h-28 w-28 object-contain opacity-[0.08] grayscale sm:h-36 sm:w-36"
+      />
+
+      <header class="relative flex flex-col gap-3">
+        <div class="flex items-center gap-3 md:hidden">
+          <img src="/logo.svg" alt="LPU Laguna" class="h-12 w-12 object-contain" />
+          <span class="text-sm font-bold uppercase tracking-[0.18em] text-primary">LPU Laguna</span>
+        </div>
+        <p class="hidden text-sm font-bold uppercase tracking-[0.22em] text-secondary md:block">
+          Welcome back
+        </p>
+        <h1 class="text-3xl font-black leading-tight text-gray-950 sm:text-4xl">
+          LPU - Laguna<br />Reservation System
+        </h1>
+      </header>
+
+      <form
+        [formGroup]="form"
+        (ngSubmit)="submit()"
+        class="relative flex flex-col gap-5"
+        novalidate
+      >
+        <div class="flex flex-col gap-1.5">
+          <label uiLabel for="username">Username</label>
+          <input
+            uiInput
+            id="username"
+            type="text"
+            autocomplete="username"
+            formControlName="username"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label uiLabel for="password">Password</label>
+          <div class="relative">
+            <input
+              uiInput
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="current-password"
+              formControlName="password"
+              class="pr-10"
+            />
+            <button
+              type="button"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showPassword()"
+              class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition-colors duration-200 hover:text-secondary focus-visible:text-primary focus-visible:outline-none"
+            >
+              <ui-icon [name]="showPassword() ? 'visibility_off' : 'visibility'" class="text-xl" />
+            </button>
+          </div>
+        </div>
+
+        @if (error()) {
+          <p
+            class="animate-rise rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-600"
+          >
+            {{ error() }}
+          </p>
+        }
+
+        <div class="flex items-center justify-between gap-4">
+          <label uiLabel class="flex items-center gap-2">
+            <input type="checkbox" uiCheckbox formControlName="remember" />
+            <span>Remember me</span>
+          </label>
+
+          <a
+            (click)="openForgotPassword()"
+            class="text-sm font-semibold text-secondary transition-colors duration-200 hover:text-primary"
+          >
+            Forgot Password
+          </a>
+        </div>
+
+        <button uiButton type="submit" class="w-full py-3" [disabled]="loading()">
+          {{ loading() ? 'Signing in...' : 'Login' }}
+        </button>
+
+        <div class="text-center">
+          <a routerLink="/customer" uiButton variant="link" class="w-full">Make a Reservation</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+@if (forgotOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5">
+      <div class="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-black text-gray-900">Forgot Password</h2>
+          <p class="text-xs text-gray-500">Enter your email to receive a reset link.</p>
+        </div>
+        <button type="button" (click)="closeForgotPassword()" class="rounded-full p-1 text-gray-500 hover:bg-gray-100">
+          <ui-icon name="close" class="text-lg" />
+        </button>
+      </div>
+
+      <form [formGroup]="forgotForm" (ngSubmit)="submitForgotPassword()" class="flex flex-col gap-3">
+        <div class="flex flex-col gap-1.5">
+          <label uiLabel for="forgotEmail">Email address</label>
+          <input uiInput id="forgotEmail" type="email" autocomplete="email" formControlName="email" />
+        </div>
+
+        @if (forgotError()) {
+          <p class="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {{ forgotError() }}
+          </p>
+        }
+
+        @if (forgotSuccess()) {
+          <p class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {{ forgotSuccess() }}
+          </p>
+        }
+
+        <div class="mt-2 flex justify-end gap-2">
+          <button uiButton type="button" variant="secondary" (click)="closeForgotPassword()">Cancel</button>
+          <button uiButton type="submit" [disabled]="forgotLoading()">
+            {{ forgotLoading() ? 'Sending...' : 'Send reset link' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

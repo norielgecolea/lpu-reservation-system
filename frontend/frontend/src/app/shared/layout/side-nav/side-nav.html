@@ -1,0 +1,133 @@
+<aside
+  class="bg-primary bg-[linear-gradient(158deg,#7a2342,#5f1830_42%,#8d2546)] ring-1 ring-inset ring-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_-1px_0_0_rgba(255,255,255,0.08),0_20px_50px_-22px_rgba(95,24,48,0.6)] z-30 flex shrink-0 flex-col text-white ring-0 shadow-none lg:h-dvh lg:w-64"
+>
+  <div class="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2.5 lg:hidden">
+    <div class="flex min-w-0 flex-1 items-center gap-2">
+      <img src="/logo.svg" alt="LPU Laguna" class="h-9 w-9 shrink-0 object-contain" />
+      <div class="min-w-0">
+        <p class="truncate text-xs font-black uppercase tracking-wide">LPU Laguna</p>
+        <p class="truncate text-[11px] text-white/65">{{ user()?.fullname ?? 'Account' }}</p>
+      </div>
+    </div>
+
+    <div class="flex shrink-0 items-center gap-1.5">
+      <button
+        type="button"
+        (click)="toggleMobileNav()"
+        [attr.aria-label]="mobileNavOpen() ? 'Close menu' : 'Open menu'"
+        [attr.aria-expanded]="mobileNavOpen()"
+        class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+      >
+        <ui-icon [name]="mobileNavOpen() ? 'close' : 'menu'" class="text-xl" />
+      </button>
+      <button
+        type="button"
+        (click)="openProfile()"
+        aria-label="My account"
+        title="My account"
+        class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+      >
+        <ui-icon name="account_circle" class="text-xl" />
+      </button>
+      <button
+        type="button"
+        (click)="logout()"
+        aria-label="Logout"
+        title="Logout"
+        class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+      >
+        <ui-icon name="logout" class="text-xl" />
+      </button>
+    </div>
+  </div>
+
+  <div class="hidden items-center gap-3 px-5 py-6 lg:flex">
+    <img src="/logo.svg" alt="LPU Laguna" class="h-14 w-14 object-contain" />
+    <div class="min-w-0">
+      <p class="truncate text-sm font-black uppercase tracking-wide">LPU Laguna</p>
+      <p class="text-xs text-white/60">Reservation System</p>
+    </div>
+  </div>
+
+  <nav
+    class="flex-col gap-0.5 overflow-y-auto border-white/10 px-3 py-2 lg:flex lg:flex-1 lg:border-t-0 lg:py-0"
+    [class.hidden]="!mobileNavOpen()"
+    [class.flex]="mobileNavOpen()"
+    [class.max-h-[min(60dvh,28rem)]]="mobileNavOpen()"
+    [class.border-t]="mobileNavOpen()"
+    style="scrollbar-width: thin"
+  >
+    @for (item of nav(); track item.label) {
+      @if (!item.children) {
+        <a
+          [routerLink]="item.link"
+          routerLinkActive="bg-secondary text-white shadow-lg"
+          #rla="routerLinkActive"
+          class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/80"
+          [class.hover:bg-white/10]="!rla.isActive"
+        >
+          <ui-icon [name]="item.icon" class="text-xl shrink-0" />
+          <span class="truncate">{{ item.label }}</span>
+        </a>
+      } @else {
+        <div class="flex flex-col">
+          <button
+            type="button"
+            (click)="toggleGroup(item.label)"
+            class="flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10"
+            [class.bg-white/10]="isChildActive(item.children)"
+            [class.text-white]="isChildActive(item.children)"
+          >
+            <ui-icon [name]="item.icon" class="text-xl shrink-0" />
+            <span class="flex-1 truncate text-left">{{ item.label }}</span>
+            <ui-icon
+              name="expand_more"
+              class="shrink-0 text-base transition-transform duration-200"
+              [class.rotate-180]="isGroupOpen(item.label)"
+            />
+          </button>
+
+          @if (isGroupOpen(item.label)) {
+            <div class="ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-white/20 pl-2">
+              @for (child of item.children; track child.label) {
+                <a
+                  [routerLink]="child.link"
+                  routerLinkActive="bg-secondary text-white shadow-md"
+                  #crla="routerLinkActive"
+                  class="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-white/75"
+                  [class.hover:bg-white/10]="!crla.isActive"
+                >
+                  <ui-icon [name]="child.icon" class="text-lg shrink-0" />
+                  <span class="truncate">{{ child.label }}</span>
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+  </nav>
+
+  <div class="mt-auto hidden border-t border-white/15 px-3 py-4 lg:block">
+    <button
+      type="button"
+      (click)="openProfile()"
+      class="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10"
+    >
+      <ui-icon name="account_circle" class="text-xl" />
+      <span>{{ user()?.fullname ?? 'Account' }}</span>
+    </button>
+    <button
+      type="button"
+      (click)="logout()"
+      class="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10"
+    >
+      <ui-icon name="logout" class="text-xl" />
+      <span>Logout</span>
+    </button>
+  </div>
+
+  @if (profileOpen()) {
+    <app-account-profile-modal (closed)="closeProfile()" />
+  }
+</aside>

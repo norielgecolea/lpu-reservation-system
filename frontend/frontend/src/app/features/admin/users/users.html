@@ -1,0 +1,146 @@
+<section class="animate-rise flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
+    <ui-input-search class="flex-1" [value]="search()" (valueChange)="onSearch($event)" />
+    <a uiButton routerLink="/users/new" class="w-full sm:w-auto">
+      <ui-icon name="add" [size]="20" />
+      <span>ADD USER</span>
+    </a>
+  </section>
+
+  <section class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
+    <div class="min-h-0 flex-1 overflow-auto">
+      <table class="w-full min-w-215 border-collapse text-left text-sm">
+        <thead class="sticky top-0 z-10">
+          <tr class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+            <th class="px-5 py-4">Employee ID</th>
+            <th class="px-4 py-3">Username</th>
+            <th class="px-4 py-3">Full Name</th>
+            <th class="px-4 py-3">Role</th>
+            <th class="px-4 py-3">Email</th>
+            <th class="px-4 py-3 text-center">Status</th>
+            <th class="px-4 py-3 text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (loading()) {
+           @if (loading()) {
+  @for (row of [1,2,3,4,5,6,7,8]; track row) {
+    <tr class="border-b border-gray-100">
+      <td class="px-5 py-4">
+        <div class="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+      </td>
+
+      <td class="px-4 py-3">
+        <div class="h-4 w-28 animate-pulse rounded bg-gray-200"></div>
+      </td>
+
+      <td class="px-4 py-3">
+        <div class="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
+      </td>
+
+      <td class="px-4 py-3">
+        <div class="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+      </td>
+
+      <td class="px-4 py-3">
+        <div class="h-4 w-48 animate-pulse rounded bg-gray-200"></div>
+      </td>
+
+      <td class="px-4 py-3">
+        <div
+          class="mx-auto h-6 w-20 animate-pulse rounded-full bg-gray-200"
+        ></div>
+      </td>
+
+      <td class="px-4 py-3">
+        <div class="flex justify-center gap-2">
+          <div class="h-8 w-8 animate-pulse rounded-lg bg-gray-200"></div>
+          <div class="h-8 w-8 animate-pulse rounded-lg bg-gray-200"></div>
+          <div class="h-8 w-8 animate-pulse rounded-lg bg-gray-200"></div>
+        </div>
+      </td>
+    </tr>
+  }
+}
+          } @else if (error()) {
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-red-600">{{ error() }}</td>
+            </tr>
+          } @else if (filtered().length === 0) {
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                No users found.
+              </td>
+            </tr>
+          } @else {
+            @for (u of filtered(); track u.employeeId) {
+              <tr
+                class="border-b border-gray-100 odd:bg-white even:bg-gray-50/70 hover:bg-secondary/5"
+              >
+                <td class="px-5 py-4 text-black">{{ u.employeeId }}</td>
+                <td class="px-4 py-3 text-black">{{ u.username }}</td>
+                <td class="px-4 py-3 text-black">{{ u.fullname }}</td>
+                <td class="px-4 py-3 text-black">{{ u.role }}</td>
+                <td class="px-4 py-3 text-black">{{ u.email }}</td>
+                <td class="px-4 py-3 text-center">
+                  <ui-status-badge [status]="u.status" />
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center justify-center gap-2 text-gray-500">
+                    <a
+                      title="Edit"
+                      [routerLink]="['/users', u.employeeId, 'edit']"
+                      class="cursor-pointer rounded-lg p-1.5 hover:text-primary"
+                    >
+                      <ui-icon name="edit_square" class="text-xl" />
+                    </a>
+                    <button
+                      type="button"
+                      (click)="toggleStatus(u)"
+                      class="cursor-pointer rounded-lg p-1.5 hover:text-primary"
+                    >
+                      <ui-icon
+                        [name]="isActive(u.status) ? 'pause_circle' : 'play_circle'"
+                        class="text-xl"
+                      />
+                    </button>
+                    <button
+                      type="button"
+                      title="Reset password"
+                      (click)="openResetPassword(u)"
+                      class="cursor-pointer rounded-lg p-1.5 hover:text-primary"
+                    >
+                      <ui-icon name="lock_reset" class="text-xl" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete"
+                      (click)="remove(u)"
+                      class="cursor-pointer rounded-lg p-1.5 hover:text-red-600"
+                    >
+                      <ui-icon name="delete" class="text-xl" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <ui-toast
+    class="contents"
+    [show]="showToast()"
+    [success]="toastSuccess()"
+    [message]="toastMessage()"
+  />
+
+  @if (resetTarget(); as target) {
+    <app-reset-password-modal
+      [employeeId]="target.employeeId"
+      [username]="target.username"
+      (closed)="closeResetPassword()"
+      (confirmed)="confirmResetPassword($event)"
+    />
+  }
