@@ -12,8 +12,14 @@ Desktop.ini
 *.log
 logs/
 
-# Docker / local runtime data (DB, Tomcat WARs, nginx, tunnel)
-data/
+# Docker / local runtime data (DB, nginx, tunnel, etc.)
+data/*
+!data/tomcat/
+!data/tomcat/**
+
+# Tomcat logs (keep folder, skip log files)
+data/tomcat/logs/**
+!data/tomcat/logs/.gitkeep
 
 # IDE / Eclipse
 .idea/
@@ -36,6 +42,7 @@ data/
 *.class
 *.jar
 *.war
+!data/tomcat/**/*.war
 *.ear
 hs_err_pid*
 replay_pid*
