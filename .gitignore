@@ -16,6 +16,9 @@ logs/
 data/*
 !data/tomcat/
 !data/tomcat/**
+!data/web/
+!data/web/templates/
+!data/web/templates/**
 
 # Tomcat logs (keep folder, skip log files)
 data/tomcat/logs/**
