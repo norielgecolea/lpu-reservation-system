@@ -1,5 +1,7 @@
 package org.lpu.dev.codes.controller;
 
+import java.time.YearMonth;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.apiresponse.AdminAuditLogResponse;
@@ -56,8 +58,21 @@ public class AdminAuditController {
             int safeSize = Math.min(Math.max(size, 1), 100);
             int safePage = Math.max(page, 0);
 
-            res.setLogs(auditService.getLogs(service, actionType, search, fromDate, toDate, safePage, safeSize));
-            res.setTotalCount(auditService.getTotalCount(service, actionType, search, fromDate, toDate));
+            String effectiveFrom = fromDate;
+            String effectiveTo = toDate;
+            boolean missingRange =
+                    (effectiveFrom == null || effectiveFrom.isBlank())
+                            && (effectiveTo == null || effectiveTo.isBlank());
+            if (missingRange) {
+                YearMonth ym = YearMonth.now();
+                effectiveFrom = ym.atDay(1).toString();
+                effectiveTo = ym.atEndOfMonth().toString();
+            }
+
+            res.setLogs(auditService.getLogs(
+                    service, actionType, search, effectiveFrom, effectiveTo, safePage, safeSize));
+            res.setTotalCount(auditService.getTotalCount(
+                    service, actionType, search, effectiveFrom, effectiveTo));
             res.setSuccess(true);
             res.setMessage("Audit logs fetched successfully");
             return ResponseEntity.ok(res);

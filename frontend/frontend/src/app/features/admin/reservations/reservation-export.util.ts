@@ -5,12 +5,12 @@ import {
   formatTimeRange,
 } from '../dashboard/dashboard-events.util';
 
-export type ExportScope = 'all' | 'range';
+export type ExportScope = 'range';
 
 export interface ExportDateRange {
   scope: ExportScope;
-  startDate?: string;
-  endDate?: string;
+  startDate: string;
+  endDate: string;
 }
 
 function parseSlots(json: string): Array<{ date?: string }> {
@@ -25,15 +25,13 @@ function dateInRange(date: string, start: string, end: string): boolean {
   return date >= start && date <= end;
 }
 
-/** True when any reserved slot or coordination date falls within [start, end]. */
+/** True when any reserved slot, coordination date, or created_at falls within [start, end]. */
 export function reservationMatchesExportRange(
   reservedDatesJson: string,
   coordinationDate: string | null,
   createdAt: string,
   range: ExportDateRange,
 ): boolean {
-  if (range.scope === 'all') return true;
-
   const start = range.startDate ?? '';
   const end = range.endDate ?? '';
   if (!start || !end) return false;
@@ -161,7 +159,7 @@ export function exportFltReservationsCsv(
     formatReadableDateTime(r.approvedAt),
     r.approvedBy ?? '',
   ]);
-  const suffix = range.scope === 'all' ? 'all' : `${range.startDate}_to_${range.endDate}`;
+  const suffix = `${range.startDate}_to_${range.endDate}`;
   downloadCsv(`flt-reservations-${suffix}.csv`, headers, rows);
 }
 
@@ -216,7 +214,7 @@ export function exportGymReservationsCsv(
     formatReadableDateTime(r.approvedAt),
     r.approvedBy ?? '',
   ]);
-  const suffix = range.scope === 'all' ? 'all' : `${range.startDate}_to_${range.endDate}`;
+  const suffix = `${range.startDate}_to_${range.endDate}`;
   downloadCsv(`gymnasium-reservations-${suffix}.csv`, headers, rows);
 }
 
@@ -271,6 +269,6 @@ export function exportVanReservationsCsv(
     formatReadableDateTime(r.approvedAt),
     r.approvedBy ?? '',
   ]);
-  const suffix = range.scope === 'all' ? 'all' : `${range.startDate}_to_${range.endDate}`;
+  const suffix = `${range.startDate}_to_${range.endDate}`;
   downloadCsv(`van-reservations-${suffix}.csv`, headers, rows);
 }

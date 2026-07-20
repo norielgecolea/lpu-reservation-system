@@ -9,6 +9,7 @@ import { UiInput } from '../input/input';
 export interface UiSelectOption {
   value: string;
   label: string;
+  disabled?: boolean;
 }
 
 /**
@@ -76,10 +77,11 @@ export interface UiSelectOption {
               <button
                 brnButton
                 type="button"
-                class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-[13px] text-gray-700 transition-colors duration-150 hover:bg-secondary/10 hover:text-primary sm:text-sm"
+                [disabled]="!!opt.disabled"
+                class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-[13px] text-gray-700 transition-colors duration-150 hover:bg-secondary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-gray-700 sm:text-sm"
                 [class.font-semibold]="value() === opt.value"
                 [class.text-primary]="value() === opt.value"
-                (click)="selectOption(opt.value, selectPopover)"
+                (click)="!opt.disabled && selectOption(opt.value, selectPopover)"
               >
                 <span class="truncate">{{ opt.label }}</span>
                 @if (value() === opt.value) {

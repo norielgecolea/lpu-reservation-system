@@ -186,13 +186,13 @@ public class VanReservationService {
     }
 
     @Transactional(readOnly = true)
-    public List<VanReservationAdminDto> getAllReservations() {
-        return getAllReservations(null);
+    public List<VanReservationAdminDto> getAllReservations(String month) {
+        return getAllReservations(month, null, null);
     }
 
     @Transactional(readOnly = true)
-    public List<VanReservationAdminDto> getAllReservations(String month) {
-        List<Object[]> rows = vanRepository.findAllNative(month);
+    public List<VanReservationAdminDto> getAllReservations(String month, String fromDate, String toDate) {
+        List<Object[]> rows = vanRepository.findAllNative(month, fromDate, toDate);
         List<VanReservationAdminDto> result = new ArrayList<>();
         for (Object[] row : rows) {
             VanReservationAdminDto dto = new VanReservationAdminDto();

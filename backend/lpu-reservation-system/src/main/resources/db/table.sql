@@ -206,3 +206,15 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
 
 CREATE INDEX IF NOT EXISTS idx_audit_service_time
     ON admin_audit_logs (service, performed_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_audit_service_action
+    ON admin_audit_logs (service, action_type);
+
+CREATE INDEX IF NOT EXISTS idx_flt_reservations_created_at
+    ON flt_reservations (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_gymnasium_reservations_created_at
+    ON gymnasium_reservations (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_van_reservations_created_at
+    ON van_reservations (created_at DESC);

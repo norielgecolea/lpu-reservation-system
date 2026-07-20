@@ -89,13 +89,13 @@ public class GymnasiumReservationService {
     // ── Admin list ────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<GymnasiumReservationAdminDto> getAllReservations() {
-        return getAllReservations(null);
+    public List<GymnasiumReservationAdminDto> getAllReservations(String month) {
+        return getAllReservations(month, null, null);
     }
 
     @Transactional(readOnly = true)
-    public List<GymnasiumReservationAdminDto> getAllReservations(String month) {
-        List<Object[]> rows = gymRepository.findAllNative(month);
+    public List<GymnasiumReservationAdminDto> getAllReservations(String month, String fromDate, String toDate) {
+        List<Object[]> rows = gymRepository.findAllNative(month, fromDate, toDate);
         List<GymnasiumReservationAdminDto> result = new ArrayList<>();
         for (Object[] row : rows) {
             GymnasiumReservationAdminDto dto = new GymnasiumReservationAdminDto();

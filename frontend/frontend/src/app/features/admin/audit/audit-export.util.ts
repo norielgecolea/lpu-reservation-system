@@ -4,7 +4,6 @@ import { downloadCsv, ExportDateRange } from '../reservations/reservation-export
 import { AuditLogRow } from './audit-logs.models';
 
 function matchesDateRange(performedAt: string, range: ExportDateRange): boolean {
-  if (range.scope === 'all') return true;
   const start = range.startDate ?? '';
   const end = range.endDate ?? '';
   if (!start || !end) return false;
@@ -47,8 +46,7 @@ export function exportAuditLogsCsv(
     r.details ?? '',
   ]);
 
-  const suffix = range.scope === 'all' ? 'all' : `${range.startDate}_to_${range.endDate}`;
+  const suffix = `${range.startDate}_to_${range.endDate}`;
   const slug = serviceLabel.toLowerCase().replace(/\s+/g, '-');
   downloadCsv(`audit-${slug}-${suffix}.csv`, headers, rows);
 }
-

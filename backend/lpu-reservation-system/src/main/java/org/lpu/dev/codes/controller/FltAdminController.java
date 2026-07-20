@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.lpu.dev.codes.model.apiresponse.EquipmentResponse;
+import org.lpu.dev.codes.util.ReservationListQuery;
 
 @RestController
 @RequestMapping("/api/admin/flt")
@@ -46,7 +47,9 @@ public class FltAdminController {
     @GetMapping("/reservations")
     public FltReservationResponse getAllReservations(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam(required = false) String month) {
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate) {
         FltReservationResponse res = new FltReservationResponse();
         String token = authHeader.replace("LpuL ", "");
 
@@ -64,7 +67,9 @@ public class FltAdminController {
         }
 
         try {
-            List<FltReservationAdminDto> reservations = fltReservationService.getAllReservations(month);
+            ReservationListQuery query = ReservationListQuery.of(month, fromDate, toDate);
+            List<FltReservationAdminDto> reservations = fltReservationService.getAllReservations(
+                    query.month(), query.fromDate(), query.toDate());
             res.setSuccess(true);
             res.setMessage("Reservations fetched successfully");
             res.setReservations(reservations);

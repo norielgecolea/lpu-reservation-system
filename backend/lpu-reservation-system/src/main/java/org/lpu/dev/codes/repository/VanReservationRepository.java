@@ -31,17 +31,12 @@ public class VanReservationRepository {
                 .getResultList();
     }
 
-    @SuppressWarnings("unchecked")
-    public List<Object[]> findAllNative() {
-        return findAllNative(null);
-    }
-
     /**
-     * @param month YYYY-MM prefix, or null/blank for all rows.
-     * Matches frontend logic: any reserved_dates slot or created_at in that month.
+     * List admin rows scoped by month (YYYY-MM) or inclusive date span (fromDate/toDate).
+     * Range takes precedence. If neither is provided, returns an empty list (never SELECT all).
      */
     @SuppressWarnings("unchecked")
-    public List<Object[]> findAllNative(String month) {
+    public List<Object[]> findAllNative(String month, String fromDate, String toDate) {
         StringBuilder sql = new StringBuilder(
                 "SELECT r.id, r.department, r.organization, r.travel_destination, r.passenger_names, " +
                 "r.number_of_passengers, r.return_time, r.contact_person, r.contact_email, r.contact_number, " +
@@ -52,8 +47,21 @@ public class VanReservationRepository {
                 "LEFT JOIN vehicle v ON r.vehicle_id = v.id " +
                 "LEFT JOIN driver d ON r.driver_id = d.id");
 
-        boolean filterMonth = month != null && !month.isBlank();
-        if (filterMonth) {
+        boolean useRange = isPresent(fromDate) && isPresent(toDate);
+        boolean useMonth = !useRange && isPresent(month);
+
+        if (!useRange && !useMonth) {
+            return List.of();
+        }
+
+        if (useRange) {
+            sql.append(" WHERE (")
+                    .append(" EXISTS (SELECT 1 FROM jsonb_array_elements(r.reserved_dates) e")
+                    .append(" WHERE (e->>'date') >= :fromDate AND (e->>'date') <= :toDate)")
+                    .append(" OR (r.created_at::date >= CAST(:fromDate AS date)")
+                    .append(" AND r.created_at::date <= CAST(:toDate AS date))")
+                    .append(")");
+        } else {
             sql.append(" WHERE (")
                     .append(" EXISTS (SELECT 1 FROM jsonb_array_elements(r.reserved_dates) e")
                     .append(" WHERE (e->>'date') LIKE :monthPattern)")
@@ -66,12 +74,19 @@ public class VanReservationRepository {
                 .append("r.created_at DESC");
 
         var query = entityManager.createNativeQuery(sql.toString());
-        if (filterMonth) {
+        if (useRange) {
+            query.setParameter("fromDate", fromDate.trim());
+            query.setParameter("toDate", toDate.trim());
+        } else {
             String trimmed = month.trim();
             query.setParameter("month", trimmed);
             query.setParameter("monthPattern", trimmed + "%");
         }
         return query.getResultList();
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.isBlank();
     }
 
     public List<VanReservation> findApprovedByVehicleId(Long vehicleId) {

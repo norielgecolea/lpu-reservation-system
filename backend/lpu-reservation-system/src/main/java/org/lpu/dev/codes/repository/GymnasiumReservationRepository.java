@@ -31,17 +31,12 @@ public class GymnasiumReservationRepository {
         return Optional.ofNullable(result);
     }
 
-    @SuppressWarnings("unchecked")
-    public List<Object[]> findAllNative() {
-        return findAllNative(null);
-    }
-
     /**
-     * @param month YYYY-MM prefix, or null/blank for all rows.
-     * Matches frontend logic: any reserved_dates slot, coordination_date, or created_at in that month.
+     * List admin rows scoped by month (YYYY-MM) or inclusive date span (fromDate/toDate).
+     * Range takes precedence. If neither is provided, returns an empty list (never SELECT all).
      */
     @SuppressWarnings("unchecked")
-    public List<Object[]> findAllNative(String month) {
+    public List<Object[]> findAllNative(String month, String fromDate, String toDate) {
         StringBuilder sql = new StringBuilder(
                 "SELECT id, event_title, department, organization, number_of_attendees, " +
                 "contact_person, contact_email, contact_number, " +
@@ -51,8 +46,23 @@ public class GymnasiumReservationRepository {
                 "satisfaction_rating, additional_instructions, approved_at, approved_by " +
                 "FROM gymnasium_reservations");
 
-        boolean filterMonth = month != null && !month.isBlank();
-        if (filterMonth) {
+        boolean useRange = isPresent(fromDate) && isPresent(toDate);
+        boolean useMonth = !useRange && isPresent(month);
+
+        if (!useRange && !useMonth) {
+            return List.of();
+        }
+
+        if (useRange) {
+            sql.append(" WHERE (")
+                    .append(" EXISTS (SELECT 1 FROM jsonb_array_elements(reserved_dates) e")
+                    .append(" WHERE (e->>'date') >= :fromDate AND (e->>'date') <= :toDate)")
+                    .append(" OR (coordination_date IS NOT NULL")
+                    .append(" AND coordination_date >= :fromDate AND coordination_date <= :toDate)")
+                    .append(" OR (created_at::date >= CAST(:fromDate AS date)")
+                    .append(" AND created_at::date <= CAST(:toDate AS date))")
+                    .append(")");
+        } else {
             sql.append(" WHERE (")
                     .append(" EXISTS (SELECT 1 FROM jsonb_array_elements(reserved_dates) e")
                     .append(" WHERE (e->>'date') LIKE :monthPattern)")
@@ -67,12 +77,19 @@ public class GymnasiumReservationRepository {
                 .append("created_at DESC");
 
         var query = entityManager.createNativeQuery(sql.toString());
-        if (filterMonth) {
+        if (useRange) {
+            query.setParameter("fromDate", fromDate.trim());
+            query.setParameter("toDate", toDate.trim());
+        } else {
             String trimmed = month.trim();
             query.setParameter("month", trimmed);
             query.setParameter("monthPattern", trimmed + "%");
         }
         return query.getResultList();
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.isBlank();
     }
 
     public List<GymnasiumReservation> findAllForConflictCheck() {

@@ -256,6 +256,11 @@ const facilitiesRoutes: Routes = [
 
 export const routes: Routes = [
   {
+    path: '',
+    pathMatch: 'full',
+    redirectTo: 'customer',
+  },
+  {
     path: 'facilities',
     canActivate: [facilitiesGuard],
     loadComponent: adminLayout,
@@ -277,5 +282,5 @@ export const routes: Routes = [
     loadComponent: adminLayout,
     children: superAdminRoutes,
   },
-  { path: '**', redirectTo: 'login' },
+  { path: '**', redirectTo: 'customer' },
 ];

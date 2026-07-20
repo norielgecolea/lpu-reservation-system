@@ -131,6 +131,38 @@ const MIN_CALENDAR_ROWS = 5;
 
 export const IMPLEMENTED_SERVICES = new Set<DashboardService>(['FLT', 'Gymnasium', 'VAN']);
 
+export const DASHBOARD_SERVICE_FILTER_ORDER: DashboardService[] = [
+  'FLT',
+  'VAN',
+  'Gymnasium',
+  'Boardroom',
+  'Nexus',
+  'Conference',
+];
+
+export interface DashboardServiceFilterOption {
+  value: DashboardService;
+  label: string;
+  badge?: string;
+  disabled?: boolean;
+}
+
+/** Segmented / dropdown options with Coming soon for unimplemented services. */
+export function dashboardServiceFilterOptions(
+  services: readonly DashboardService[] = DASHBOARD_SERVICE_FILTER_ORDER,
+): DashboardServiceFilterOption[] {
+  return services.map((service) => {
+    const comingSoon = !isServiceImplemented(service);
+    return {
+      value: service,
+      label: comingSoon ? `${service} ` : service,
+      badge: comingSoon ? 'Coming Soon' : undefined,
+      // Keep selectable so the calendar can show the Coming soon empty state.
+      disabled: false,
+    };
+  });
+}
+
 export const MAINTENANCE_API_FACILITY: Partial<Record<DashboardService, string>> = {
   FLT: 'FLT',
   Gymnasium: 'GYMNASIUM',

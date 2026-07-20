@@ -50,8 +50,18 @@
       class="mb-4 flex shrink-0 flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between"
     >
       <ui-date-selector [value]="activeDate()" (valueChange)="selectDate($event)" />
+      <!-- Mobile: dropdown -->
+      <ui-select
+        class="w-full sm:hidden"
+        placeholder="Select service"
+        [options]="facilitySelectOptions"
+        [value]="activeFacility()"
+        (valueChange)="selectFacility($any($event))"
+      />
+      <!-- Desktop: segmented -->
       <ui-segmented
-        [options]="facilityOptions"
+        class="hidden sm:block"
+        [options]="facilityFilterOptions"
         [value]="activeFacility()"
         (valueChange)="selectFacility($any($event))"
       />

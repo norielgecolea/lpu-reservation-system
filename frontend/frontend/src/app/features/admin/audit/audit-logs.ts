@@ -374,9 +374,10 @@ export class AuditLogs implements OnInit {
     this.exporting.set(true);
     try {
       const service = this.serviceCode();
-      const pageSize = 500;
-      const fromDate = range.scope === 'range' ? range.startDate : undefined;
-      const toDate = range.scope === 'range' ? range.endDate : undefined;
+      // Backend caps page size at 100 — must match so pagination loop completes.
+      const pageSize = 100;
+      const fromDate = range.startDate;
+      const toDate = range.endDate;
 
       const all: AuditLogRow[] = [];
       let page = 0;
@@ -398,10 +399,11 @@ export class AuditLogs implements OnInit {
           throw new Error(res?.message ?? 'Failed to fetch audit logs for export');
         }
 
-        all.push(...(res.logs ?? []));
+        const batch = res.logs ?? [];
+        all.push(...batch);
 
         const total = res.totalCount ?? 0;
-        if (all.length >= total || (res.logs?.length ?? 0) < pageSize) break;
+        if (all.length >= total || batch.length < pageSize) break;
         page++;
       }
 

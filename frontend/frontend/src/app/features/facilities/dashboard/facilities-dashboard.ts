@@ -14,7 +14,8 @@ import { SlicePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
-import { UiIcon, UiSegmented, UiDateSelector } from '../../../shared/ui';
+import { UiIcon, UiSegmented, UiDateSelector, UiSelect } from '../../../shared/ui';
+import type { UiSelectOption } from '../../../shared/ui';
 import { MaintenanceBlock, MaintenanceService } from '../../admin/maintenance/maintenance.service';
 import { FltReservationsService } from '../../admin/reservations/flt/flt-reservations.service';
 import { FltReservationRecord } from '../../admin/reservations/flt/flt-reservations.models';
@@ -36,6 +37,7 @@ import {
   buildServiceCalendarEvents,
   createCalendarDays,
   dashboardApproverRoute,
+  dashboardServiceFilterOptions,
   dashboardStatCardBg,
   formatEventDay,
   formatEventMonth,
@@ -65,6 +67,7 @@ const DAYS_PER_WEEK = 7;
   imports: [
     UiIcon,
     UiSegmented,
+    UiSelect,
     UiDateSelector,
     SlicePipe,
     RouterLink,
@@ -89,7 +92,12 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   protected readonly activeDate = signal(getCurrentYearMonth());
   protected readonly activeFacility = signal<DashboardService>('FLT');
 
-  protected readonly facilityOptions: DashboardService[] = ['FLT', 'Gymnasium', 'VAN'];
+  protected readonly facilityFilterOptions = dashboardServiceFilterOptions();
+  protected readonly facilitySelectOptions: UiSelectOption[] = this.facilityFilterOptions.map((o) => ({
+    value: o.value,
+    label: o.label,
+    disabled: o.disabled,
+  }));
   protected readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   protected readonly isComingSoon = computed(
@@ -210,7 +218,11 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected selectDate(value: string): void {
+    const previous = this.activeDate();
     this.activeDate.set(value);
+    if (previous !== value) {
+      this.loadDashboardData();
+    }
   }
 
   protected selectFacility(value: DashboardService): void {
@@ -245,10 +257,16 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.loadDashboardData();
+  }
+
+  private loadDashboardData(): void {
+    this.loading.set(true);
+    const month = this.activeDate();
     forkJoin({
-      flt: this.fltSvc.getAll(),
-      gym: this.gymSvc.getAll(),
-      van: this.vanSvc.getAll(),
+      flt: this.fltSvc.getAll({ month }),
+      gym: this.gymSvc.getAll({ month }),
+      van: this.vanSvc.getAll({ month }),
       fltMaint: this.maintSvc.getBlocks('FLT'),
       gymMaint: this.maintSvc.getBlocks('GYMNASIUM'),
     }).subscribe({

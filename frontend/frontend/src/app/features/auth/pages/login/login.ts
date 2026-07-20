@@ -89,9 +89,9 @@ export class Login implements OnDestroy {
 
   private checkBackendStatus(): void {
     this.http
-      .get(environment.apiUrl, {
+      .get(`${environment.apiUrl}/health`, {
         observe: 'response',
-        responseType: 'text',
+        responseType: 'json',
       })
       .subscribe({
         next: () => this.backendStatus.set('online'),

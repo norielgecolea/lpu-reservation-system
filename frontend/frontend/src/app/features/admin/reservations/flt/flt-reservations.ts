@@ -93,22 +93,7 @@ interface ConfirmState {
           placeholder="Filter by status"
           [options]="statusFilterOptions"
         />
-        @if (!allMonths()) {
-          <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
-        }
-        <button
-          type="button"
-          (click)="toggleAllMonths()"
-          class="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold transition-colors cursor-pointer"
-          [class.border-primary]="allMonths()"
-          [class.bg-primary]="allMonths()"
-          [class.text-white]="allMonths()"
-          [class.border-gray-200]="!allMonths()"
-          [class.text-gray-600]="!allMonths()"
-        >
-          <ui-icon name="calendar_month" class="text-sm" />
-          {{ allMonths() ? 'Filter by month' : 'All months' }}
-        </button>
+        <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
         <ui-input-search
           placeholder="Search by event, department, contact..."
           (valueChange)="search.set($event)"
@@ -629,7 +614,6 @@ export class FltReservations implements OnInit, OnDestroy {
   readonly search = signal('');
   readonly statusFilter = signal<StatusFilter>('PENDING');
   readonly activeMonth = signal(getCurrentYearMonth());
-  readonly allMonths = signal(false);
   readonly acting = signal<number | null>(null);
   readonly confirm = signal<ConfirmState | null>(null);
   readonly detailsTarget = signal<FltReservationRecord | null>(null);
@@ -803,7 +787,6 @@ export class FltReservations implements OnInit, OnDestroy {
     const month = params.get('month');
     if (month && /^\d{4}-\d{2}$/.test(month)) {
       this.activeMonth.set(month);
-      this.allMonths.set(false);
     }
   }
 
@@ -816,20 +799,10 @@ export class FltReservations implements OnInit, OnDestroy {
     this.load();
   }
 
-  toggleAllMonths(): void {
-    this.allMonths.update((v) => !v);
-    this.load();
-  }
-
-  /** Month query for list fetch; omitted when "All months" is on. */
-  private listMonthParam(): string | undefined {
-    return this.allMonths() ? undefined : this.activeMonth();
-  }
-
   load(): void {
     this.loading.set(true);
     this.apiError.set(false);
-    this.svc.getAll(this.listMonthParam()).subscribe({
+    this.svc.getAll({ month: this.activeMonth() }).subscribe({
       next: (res) => {
         if (res.success) {
           this.reservations.set(res.reservations ?? []);
@@ -846,8 +819,7 @@ export class FltReservations implements OnInit, OnDestroy {
   }
 
   runExport(range: ExportDateRange): void {
-    // Export may cover more than the viewed month — fetch unfiltered, then apply range.
-    this.svc.getAll().subscribe({
+    this.svc.getAll({ fromDate: range.startDate, toDate: range.endDate }).subscribe({
       next: (res) => {
         exportFltReservationsCsv(res.reservations ?? [], range);
         this.exportOpen.set(false);

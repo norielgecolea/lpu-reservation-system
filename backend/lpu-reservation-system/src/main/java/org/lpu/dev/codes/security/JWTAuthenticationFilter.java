@@ -29,7 +29,10 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.startsWith("/api/auth/")
+        return path.equals("/api")
+                || path.equals("/api/")
+                || path.equals("/api/health")
+                || path.startsWith("/api/auth/")
                 || path.startsWith("/api/flt/survey")
                 || path.startsWith("/ws");
     }
@@ -42,7 +45,11 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
     	String path = request.getServletPath();
 
-    	if (path.startsWith("/api/auth/") || path.startsWith("/api/flt/survey")) {
+    	if (path.equals("/api")
+    			|| path.equals("/api/")
+    			|| path.equals("/api/health")
+    			|| path.startsWith("/api/auth/")
+    			|| path.startsWith("/api/flt/survey")) {
     	    filterChain.doFilter(request, response);
     	    return;
     	}

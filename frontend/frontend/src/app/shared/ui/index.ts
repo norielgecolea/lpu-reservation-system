@@ -5,7 +5,7 @@ export { UiSelect, type UiSelectOption } from './select/select';
 export { UiInputSearch } from './input-search/input-search';
 export { UiCheckbox } from './checkbox/checkbox';
 export { UiLabel } from './label/label';
-export { UiSegmented } from './segmented/segmented';
+export { UiSegmented, type UiSegmentedOption } from './segmented/segmented';
 export { UiDateSelector } from './date-selector/date-selector';
 export { UiStatusBadge } from './status-badge/status-badge';
 export { UiToast } from './toast/toast';

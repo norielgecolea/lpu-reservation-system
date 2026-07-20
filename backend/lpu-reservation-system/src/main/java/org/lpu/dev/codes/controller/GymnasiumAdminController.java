@@ -12,6 +12,7 @@ import org.lpu.dev.codes.model.dto.GymnasiumReservationAdminDto;
 import org.lpu.dev.codes.services.AuthenticationService;
 import org.lpu.dev.codes.services.GymnasiumReservationService;
 import org.lpu.dev.codes.services.JWTService;
+import org.lpu.dev.codes.util.ReservationListQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,7 +48,9 @@ public class GymnasiumAdminController {
     @GetMapping("/reservations")
     public GymnasiumReservationResponse getAllReservations(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam(required = false) String month) {
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate) {
         GymnasiumReservationResponse res = new GymnasiumReservationResponse();
         String token = tok(authHeader);
         if (!auth.userActive(jwtService.getUsername(token))) {
@@ -57,7 +60,9 @@ public class GymnasiumAdminController {
             res.setSuccess(false); res.setMessage("Access denied"); return res;
         }
         try {
-            List<GymnasiumReservationAdminDto> reservations = gymService.getAllReservations(month);
+            ReservationListQuery query = ReservationListQuery.of(month, fromDate, toDate);
+            List<GymnasiumReservationAdminDto> reservations = gymService.getAllReservations(
+                    query.month(), query.fromDate(), query.toDate());
             res.setSuccess(true);
             res.setMessage("Reservations fetched successfully");
             res.setReservations(reservations);

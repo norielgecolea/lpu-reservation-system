@@ -124,13 +124,13 @@ public class FltReservationService {
     }
 
     @Transactional(readOnly = true)
-    public List<FltReservationAdminDto> getAllReservations() {
-        return getAllReservations(null);
+    public List<FltReservationAdminDto> getAllReservations(String month) {
+        return getAllReservations(month, null, null);
     }
 
     @Transactional(readOnly = true)
-    public List<FltReservationAdminDto> getAllReservations(String month) {
-        List<Object[]> rows = fltReservationRepository.findAllNative(month);
+    public List<FltReservationAdminDto> getAllReservations(String month, String fromDate, String toDate) {
+        List<Object[]> rows = fltReservationRepository.findAllNative(month, fromDate, toDate);
         List<FltReservationAdminDto> result = new ArrayList<>();
         for (Object[] row : rows) {
             FltReservationAdminDto dto = new FltReservationAdminDto();
