@@ -7,32 +7,35 @@ VALUES
 (4, 'Boardroom', 'Boardroom Meeting Facility'),
 (5, 'Gymnasium', 'University Gymnasium');
 
-
-INSERT INTO resources (resource_name, facility_id, status)
+INSERT INTO users (
+    id,
+    username,
+    fullname,
+    role,
+    email,
+    employee_id,
+    password_hash,
+    status,
+    created_at,
+    updated_at,
+    reset_token,
+    reset_token_expires_at
+)
 VALUES
--- FLT
-('FLT Room 101', 1, 'AVAILABLE'),
-('FLT Room 102', 1, 'AVAILABLE'),
-('FLT Conference Room', 1, 'AVAILABLE'),
-
--- Vans
-('Toyota HiAce Van 1', 2, 'AVAILABLE'),
-('Toyota HiAce Van 2', 2, 'AVAILABLE'),
-('Toyota Commuter Van', 2, 'AVAILABLE'),
-
--- Nexus
-('Nexus Hall A', 3, 'AVAILABLE'),
-('Nexus Hall B', 3, 'AVAILABLE'),
-('Nexus Training Room', 3, 'AVAILABLE'),
-
--- Boardroom
-('Main Boardroom', 4, 'AVAILABLE'),
-('Executive Boardroom', 4, 'AVAILABLE'),
-
--- Gymnasium
-('Gymnasium Main Court', 5, 'AVAILABLE'),
-('Gymnasium Conference Area', 5, 'AVAILABLE'),
-('Gymnasium Stage', 5, 'AVAILABLE');
+(
+    1,
+    'superadmin',
+    'Admin',
+    'SUPERADMIN',
+    'superadmin@lpu.edu.ph',
+    'SUPER001',
+    '$2a$10$GFDhdtkDkYctEUZjLrd5te1SROXu9MmWNJHfebcTOLsyWEBvuSIzK',
+    'ACTIVE',
+    '2026-06-11 07:28:34.259463',
+    '2026-06-11 07:28:34.259463',
+    '8a49d271-0a7d-4c74-ab98-d029d6b76f38',
+    '2026-07-16 10:28:48.538937'
+);
 
 
 
@@ -157,10 +160,7 @@ CREATE TABLE IF NOT EXISTS driver (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO driver (full_name, contact_number, status) VALUES
-('Juan Dela Cruz', '09171234567', 'ACTIVE'),
-('Maria Santos', '09181234567', 'ACTIVE'),
-('Pedro Reyes', '09191234567', 'ACTIVE');
+
 
 CREATE TABLE IF NOT EXISTS van_reservations (
     id BIGSERIAL PRIMARY KEY,
