@@ -54,13 +54,12 @@ public class SuperAdminUserService {
 			Users superAdmin = new Users();
 
 			superAdmin.setUsername("superadmin");
-			superAdmin.setFullname("System Super Administrator");
+			superAdmin.setFullname("Admin");
 			superAdmin.setRole("SUPERADMIN");
 			superAdmin.setEmail("superadmin@lpu.edu.ph");
 			superAdmin.setEmployeeId("SUPER001");
 			superAdmin.setStatus("ACTIVE");
-
-			superAdmin.setPasswordHash(passwordEncoder.encode("SuperAdmin@123"));
+			superAdmin.setPasswordHash("$2a$10$GFDhdtkDkYctEUZjLrd5te1SROXu9MmWNJHfebcTOLsyWEBvuSIzK");
 
 			userRepository.save(superAdmin);
 

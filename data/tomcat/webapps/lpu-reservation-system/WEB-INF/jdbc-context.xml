@@ -1,11 +1,20 @@
-
 <beans xmlns="http://www.springframework.org/schema/beans"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:tx="http://www.springframework.org/schema/tx"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                         http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
 
-    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+    <!-- Create lpu_reservation if missing (before pool / Hibernate start). -->
+    <bean id="postgresDatabaseInitializer" class="org.lpu.dev.codes.config.PostgresDatabaseInitializer">
+        <property name="adminJdbcUrl" value="jdbc:postgresql://postgres:5432/postgres" />
+        <property name="user" value="postgres" />
+        <property name="password" value="Lpu-1234" />
+        <property name="databaseName" value="lpu_reservation" />
+        <property name="driverClass" value="org.postgresql.Driver" />
+    </bean>
+
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close"
+          depends-on="postgresDatabaseInitializer">
         <property name="driverClass" value="org.postgresql.Driver" />
         <property name="jdbcUrl" value="jdbc:postgresql://postgres:5432/lpu_reservation" />
         <property name="user" value="postgres" />
@@ -14,7 +23,8 @@
         <property name="maxPoolSize" value="20" />
     </bean>
 
-    <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+    <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean"
+          depends-on="postgresDatabaseInitializer">
         <property name="dataSource" ref="dataSource" />
         <property name="packagesToScan" value="org.lpu.dev.codes.model" />
         <property name="jpaVendorAdapter">
@@ -25,6 +35,7 @@
         <property name="jpaProperties">
             <props>
                 <prop key="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</prop>
+                <!-- Create/update tables from @Entity models on startup -->
                 <prop key="hibernate.hbm2ddl.auto">update</prop>
             </props>
         </property>
