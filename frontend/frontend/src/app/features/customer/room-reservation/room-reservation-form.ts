@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, Input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButton, UiCalendar, UiInput, UiLabel, UiIcon } from '../../../shared/ui';
+import { AllowedEmailsService } from '../../admin/allowed-emails/allowed-emails.service';
+import { LPU_LAGUNA_EMAIL_DOMAIN, isLpuLagunaEmail } from '../../../shared/constants/lpu-email';
+import { ReservationOtpModal } from '../reservation-otp-modal';
 import type { RoomReservationFacility, RoomReservationFeature } from './room-reservation.models';
 
 const DEFAULT_OCCUPIED_DATES = ['2026-06-25', '2026-06-28'];
@@ -13,7 +16,7 @@ const DEFAULT_FEATURES: RoomReservationFeature[] = [
 
 @Component({
   selector: 'app-room-reservation-form',
-  imports: [ReactiveFormsModule, RouterLink, UiButton, UiInput, UiLabel, UiCalendar, UiIcon],
+  imports: [ReactiveFormsModule, RouterLink, UiButton, UiInput, UiLabel, UiCalendar, UiIcon, ReservationOtpModal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'flex flex-col min-h-screen md:h-screen md:min-h-0 bg-gray-100',
@@ -77,7 +80,14 @@ const DEFAULT_FEATURES: RoomReservationFeature[] = [
               </div>
               <div class="flex flex-col gap-2">
                 <label uiLabel for="contactEmail">Contact Email</label>
-                <input uiInput id="contactEmail" type="email" formControlName="contactEmail" />
+                <input uiInput id="contactEmail" type="email" formControlName="contactEmail" placeholder="name@lpulaguna.edu.ph" />
+                @if (form.get('contactEmail')?.invalid && form.get('contactEmail')?.touched) {
+                  <p class="text-xs text-red-500">
+                    @if (form.get('contactEmail')?.errors?.['required']) { Email is required. }
+                    @if (form.get('contactEmail')?.errors?.['email']) { Please enter a valid email address. }
+                    @if (form.get('contactEmail')?.errors?.['lpuDomain']) { Only {{ lpuEmailDomain }} addresses are allowed. }
+                  </p>
+                }
               </div>
             </div>
 
@@ -134,6 +144,13 @@ const DEFAULT_FEATURES: RoomReservationFeature[] = [
                 class="w-full rounded-lg border border-zinc-950/15 bg-white/70 backdrop-blur-md backdrop-saturate-150 ring-1 ring-inset ring-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),inset_0_-1px_0_rgba(24,24,27,0.05),0_2px_8px_-3px_rgba(24,24,27,0.2)] px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 transition-all duration-200 hover:border-secondary/45 hover:ring-secondary/25 focus:border-primary/55 focus:ring-2 focus:ring-primary/35 focus:outline-none resize-none"
               ></textarea>
             </div>
+
+            @if (submitError()) {
+              <div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <ui-icon name="error_outline" class="shrink-0 text-base" />
+                {{ submitError() }}
+              </div>
+            }
           </div>
 
           <div
@@ -153,7 +170,7 @@ const DEFAULT_FEATURES: RoomReservationFeature[] = [
               variant="primary"
               type="submit"
               class="flex-1"
-              [disabled]="form.invalid"
+              [disabled]="form.invalid || submitting()"
             >
               SUBMIT
             </button>
@@ -161,9 +178,27 @@ const DEFAULT_FEATURES: RoomReservationFeature[] = [
         </form>
       </div>
     </div>
+
+    @if (otpOpen()) {
+      <app-reservation-otp-modal
+        [email]="otpEmail()"
+        [contactPerson]="otpContactPerson()"
+        (verified)="onOtpVerified($event)"
+        (cancelled)="onOtpCancelled()"
+      />
+    }
   `,
 })
 export class RoomReservationForm {
+  private readonly allowedEmailsService = inject(AllowedEmailsService);
+
+  protected readonly lpuEmailDomain = LPU_LAGUNA_EMAIL_DOMAIN;
+  protected readonly submitting = signal(false);
+  protected readonly submitError = signal('');
+  protected readonly otpOpen = signal(false);
+  protected readonly otpEmail = signal('');
+  protected readonly otpContactPerson = signal('');
+
   @Input({ required: true }) facility: RoomReservationFacility = {
     title: 'Boardroom',
     occupiedDates: DEFAULT_OCCUPIED_DATES,
@@ -189,7 +224,11 @@ export class RoomReservationForm {
     eventName: new FormControl('', Validators.required),
     headcount: new FormControl('', Validators.required),
     contactPerson: new FormControl('', Validators.required),
-    contactEmail: new FormControl('', [Validators.required, Validators.email]),
+    contactEmail: new FormControl('', [
+      Validators.required,
+      Validators.email,
+      (control) => (isLpuLagunaEmail(control.value ?? '') ? null : { lpuDomain: true }),
+    ]),
     startDate: new FormControl('', Validators.required),
     startTime: new FormControl('', Validators.required),
     endDate: new FormControl('', Validators.required),
@@ -222,16 +261,52 @@ export class RoomReservationForm {
   }
 
   submit(): void {
+    this.form.markAllAsTouched();
     if (this.form.invalid) return;
+
+    const email = this.form.value.contactEmail!.trim().toLowerCase();
+    const contactPerson = this.form.value.contactPerson!;
+    this.submitting.set(true);
+    this.submitError.set('');
+
+    this.allowedEmailsService.checkEmail(email).subscribe({
+      next: (check) => {
+        this.submitting.set(false);
+        if (!check.allowed) {
+          this.submitError.set(check.message || 'This email is not authorized to make reservations.');
+          return;
+        }
+
+        this.otpEmail.set(email);
+        this.otpContactPerson.set(contactPerson);
+        this.otpOpen.set(true);
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.submitError.set('Unable to verify email. Please try again.');
+      },
+    });
+  }
+
+  onOtpVerified(_otpToken: string): void {
+    this.otpOpen.set(false);
+    this.submitting.set(false);
 
     const payload = {
       facility: this.facility.title,
       ...this.form.value,
+      contactEmail: this.otpEmail(),
       equipment: this.selectedEquipment(),
+      otpToken: _otpToken,
     };
 
     console.log('Submitted Reservation:', payload);
     // TODO: implement API call
     alert('Reservation submitted successfully!');
+  }
+
+  onOtpCancelled(): void {
+    this.otpOpen.set(false);
+    this.submitting.set(false);
   }
 }

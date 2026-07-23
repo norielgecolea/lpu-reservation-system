@@ -8,8 +8,6 @@ import {
   signal,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FltRescheduleCalendar, RescheduleEvent } from './flt-reschedule-calendar';
 import { CoordinationSlot, FltCoordinationCalendar } from './flt-coordination-calendar';
@@ -26,7 +24,10 @@ import {
   SetCoordinationRequest,
 } from './flt-reservations.models';
 import { FltReservationsService } from './flt-reservations.service';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { isFltTech } from '../../../../core/auth/roles';
 import { ReservationRealtimeService, ReservationWsEvent } from '../reservation-realtime.service';
+import { ReservationAlertService } from '../reservation-alert.service';
 import { applyRevertedIds, applyReservationWsEvent } from '../reservation-ws.util';
 import { MaintenanceBlock, MaintenanceService } from '../../../admin/maintenance/maintenance.service';
 import { countUpcomingMaintenanceBlocks } from '../../../admin/maintenance/maintenance.util';
@@ -39,6 +40,7 @@ import { ReservationApproverTableSkeleton } from '../reservation-approver-table-
 import { ReservationApproverMobileSkeleton } from '../reservation-approver-mobile-skeleton';
 
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
+const FLT_TECH_STATUS_FILTERS = ['All', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 interface ConfirmState {
@@ -60,10 +62,12 @@ interface ConfirmState {
           <p class="text-sm text-gray-500 mt-0.5">Review and manage all FLT reservation requests</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <a uiButton [routerLink]="addReservationPath">
-            <ui-icon name="add" class="text-base" />
-            <span class="hidden sm:inline">Add Reservation</span>
-          </a>
+          @if (!isFltTechRole()) {
+            <a uiButton [routerLink]="addReservationPath">
+              <ui-icon name="add" class="text-base" />
+              <span class="hidden sm:inline">Add Reservation</span>
+            </a>
+          }
           <button type="button" (click)="exportOpen.set(true)"
             class="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
             <ui-icon name="download" class="text-base" />
@@ -172,7 +176,7 @@ interface ConfirmState {
                     }
                   </div>
                   <div class="mt-3 flex flex-wrap gap-1.5">
-                    @if (row.status === 'PENDING') {
+                    @if (!isFltTechRole() && row.status === 'PENDING') {
                       <button
                         type="button"
                         (click)="requestConfirm(row, 'APPROVED')"
@@ -191,7 +195,7 @@ interface ConfirmState {
                         <ui-icon name="cancel" class="text-sm" />
                         <span class="hidden sm:inline">Reject</span>
                       </button>
-                    } @else if (row.status === 'CONFLICT') {
+                    } @else if (!isFltTechRole() && row.status === 'CONFLICT') {
                       <button
                         type="button"
                         (click)="requestConfirm(row, 'REJECTED')"
@@ -377,7 +381,7 @@ interface ConfirmState {
 
                   <!-- Actions -->
                   <td class="px-4 py-3 text-right">
-                    @if (row.status === 'PENDING') {
+                    @if (!isFltTechRole() && row.status === 'PENDING') {
                       <div class="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
@@ -398,7 +402,7 @@ interface ConfirmState {
                           <span class="hidden sm:inline">Reject</span>
                         </button>
                       </div>
-                    } @else if (row.status === 'CONFLICT') {
+                    } @else if (!isFltTechRole() && row.status === 'CONFLICT') {
                       <div class="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
@@ -599,20 +603,26 @@ interface ConfirmState {
 })
 export class FltReservations implements OnInit, OnDestroy {
   private readonly svc  = inject(FltReservationsService);
-  private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly maintSvc = inject(MaintenanceService);
   private readonly realtime = inject(ReservationRealtimeService);
+  private readonly alerts = inject(ReservationAlertService);
+  private readonly auth = inject(AuthService);
+
+  protected readonly isFltTechRole = computed(() => isFltTech(this.auth.user()?.role));
 
   protected readonly addReservationPath = adminAddReservationPath('flt', this.router.url);
   private wsSub?: Subscription;
+  private pollSub?: Subscription;
 
   readonly loading = signal(true);
   readonly apiError = signal(false);
   readonly reservations = signal<FltReservationRecord[]>([]);
   readonly search = signal('');
-  readonly statusFilter = signal<StatusFilter>('PENDING');
+  readonly statusFilter = signal<StatusFilter>(
+    isFltTech(this.auth.user()?.role) ? 'APPROVED' : 'PENDING',
+  );
   readonly activeMonth = signal(getCurrentYearMonth());
   readonly acting = signal<number | null>(null);
   readonly confirm = signal<ConfirmState | null>(null);
@@ -751,12 +761,17 @@ export class FltReservations implements OnInit, OnDestroy {
     return { date: row.coordinationDate, startTime: row.coordinationStartTime, endTime: row.coordinationEndTime };
   });
 
-  readonly statusFilterOptions: UiSelectOption[] = STATUS_FILTERS.map((s) => ({ value: s, label: s }));
+  readonly statusFilterOptions: UiSelectOption[] = (
+    isFltTech(this.auth.user()?.role) ? FLT_TECH_STATUS_FILTERS : STATUS_FILTERS
+  ).map((s) => ({ value: s, label: s }));
 
   readonly filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = this.search().toLowerCase().trim();
     const status = this.statusFilter();
     const rows = this.reservations().filter(r => {
+      if (this.isFltTechRole() && (r.status === 'PENDING' || r.status === 'CONFLICT')) {
+        return false;
+      }
       const matchStatus = reservationMatchesStatusFilter(status, r.status);
       const matchSearch =
         !q ||
@@ -778,12 +793,18 @@ export class FltReservations implements OnInit, OnDestroy {
     this.loadMaintenance();
     this.realtime.ensureConnected();
     this.wsSub = this.realtime.fltUpdates$.subscribe(ev => this.handleWsEvent(ev));
+    this.pollSub = this.realtime.refreshTicks$.subscribe(() => this.load({ quiet: true }));
   }
 
   private applyDashboardQueryParams(): void {
     const params = this.route.snapshot.queryParamMap;
-    const status = parseStatusFilterParam(params.get('status'), STATUS_FILTERS);
-    if (status) this.statusFilter.set(status as StatusFilter);
+    const allowed = this.isFltTechRole() ? FLT_TECH_STATUS_FILTERS : STATUS_FILTERS;
+    const status = parseStatusFilterParam(params.get('status'), allowed);
+    if (status) {
+      this.statusFilter.set(status as StatusFilter);
+    } else if (this.isFltTechRole()) {
+      this.statusFilter.set('APPROVED');
+    }
     const month = params.get('month');
     if (month && /^\d{4}-\d{2}$/.test(month)) {
       this.activeMonth.set(month);
@@ -792,6 +813,7 @@ export class FltReservations implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.wsSub?.unsubscribe();
+    this.pollSub?.unsubscribe();
   }
 
   onMonthChange(month: string): void {
@@ -799,13 +821,15 @@ export class FltReservations implements OnInit, OnDestroy {
     this.load();
   }
 
-  load(): void {
-    this.loading.set(true);
+  load(opts?: { quiet?: boolean }): void {
+    if (!opts?.quiet) this.loading.set(true);
     this.apiError.set(false);
     this.svc.getAll({ month: this.activeMonth() }).subscribe({
       next: (res) => {
         if (res.success) {
-          this.reservations.set(res.reservations ?? []);
+          const rows = res.reservations ?? [];
+          this.reservations.set(rows);
+          this.alerts.watchPending('FLT', rows);
         } else {
           this.apiError.set(true);
         }
@@ -832,6 +856,10 @@ export class FltReservations implements OnInit, OnDestroy {
   }
 
   requestConfirm(row: FltReservationRecord, action: ReservationStatus): void {
+    if (this.isFltTechRole() && (action === 'APPROVED' || action === 'REJECTED')) {
+      this.toast.set('FLT Tech cannot approve or reject pending reservations.');
+      return;
+    }
     this.confirm.set({ id: row.id, action, eventTitle: row.eventTitle });
   }
 
@@ -1008,7 +1036,7 @@ export class FltReservations implements OnInit, OnDestroy {
   handleWsEvent(ev: ReservationWsEvent): void {
     const { updated, needsReload } = applyReservationWsEvent(this.reservations(), ev);
     if (needsReload) {
-      this.load();
+      this.load({ quiet: true });
       return;
     }
     this.reservations.set(updated);
@@ -1067,62 +1095,66 @@ export class FltReservations implements OnInit, OnDestroy {
       return;
     }
 
-    const slots      = this.parseDates(row.reservedDates);
-    const equipment  = this.parseEquipment(row.requestedEquipment).map(e => e.name).join(', ') || '–';
-    const slotDates  = slots.map(s => `${s.date}`).join(', ')                                   || '–';
-    const slotTimes  = slots.map(s => `${formatTime12(s.startTime)} – ${formatTime12(s.endTime)}`).join(', ')               || '–';
-    const room       = row.roomType ? this.getRoomTypeLabel(row.roomType) : '–';
+    const slots = this.parseDates(row.reservedDates);
+    const equipment = this.parseEquipment(row.requestedEquipment).map(e => e.name).join(', ') || '–';
+    const slotDates = slots.map(s => `${s.date}`).join(', ') || '–';
+    const slotTimes = slots.map(s => `${formatTime12(s.startTime)} – ${formatTime12(s.endTime)}`).join(', ') || '–';
+    const room = row.roomType ? this.getRoomTypeLabel(row.roomType) : '–';
+
     try {
-      // Dynamic imports so these large libs are only loaded when needed
-      const [PizZip, Docxtemplater] = await Promise.all([
-        import('pizzip').then(m => m.default),
-        import('docxtemplater').then(m => m.default)]);
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const marginX = 48;
+      let y = 52;
+      const line = (label: string, value: string) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text(label, marginX, y);
+        doc.setFont('helvetica', 'normal');
+        const wrapped = doc.splitTextToSize(String(value ?? '–'), 340);
+        doc.text(wrapped, marginX + 160, y);
+        y += Math.max(18, wrapped.length * 14);
+      };
 
-      const templateBuf = await firstValueFrom(
-        this.http.get('/flt-reservation-template.docx', { responseType: 'arraybuffer' })
-      );
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('FLT Theater Reservation Form', marginX, y);
+      y += 22;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('Lyceum of the Philippines University – Laguna', marginX, y);
+      y += 18;
+      doc.setDrawColor(120);
+      doc.line(marginX, y, 547, y);
+      y += 20;
 
-      const zip = new PizZip(templateBuf);
-      const templateDoc = new Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-      });
+      line('Event Title:', String(row.eventTitle ?? ''));
+      line('Event Type:', String(row.eventType ?? ''));
+      line('Room:', room);
+      line('Expected Attendees:', String(row.expectedAttendees ?? ''));
+      line('Event Date(s):', slotDates);
+      line('Event Time(s):', slotTimes);
+      line('Organization / Dept:', `${row.organization ?? ''} / ${row.department ?? ''}`);
+      line('Contact Person:', String(row.contactPerson ?? ''));
+      line('Contact Number:', String(row.contactNumber ?? ''));
+      line('Contact Email:', String(row.contactEmail ?? ''));
+      line('Equipment:', equipment);
+      line('Additional Instructions:', String(row.additionalInstructions ?? ''));
+      line('Coordination Date:', String(row.coordinationDate ?? ''));
+      line('Coordination Time:', `${row.coordinationStartTime ?? ''} - ${row.coordinationEndTime ?? ''}`);
 
-      templateDoc.render({
-        eventTitle:              String(row.eventTitle           ?? ''),
-        eventType:               String(row.eventType            ?? ''),
-        expectedAttendees:       String(row.expectedAttendees    ?? ''),
-        eventDate:               slotDates,
-        eventTime:               slotTimes,
-        organizationDept:        `${row.organization ?? ''} / ${row.department ?? ''}`,
-        contactPerson:           String(row.contactPerson        ?? ''),
-        contactNumber:           String(row.contactNumber        ?? ''),
-        contactEmail:            String(row.contactEmail         ?? ''),
-        equipment:               equipment,
-        additionalInstructions:  String(row.additionalInstructions ?? ''),
-        coordinationDate:        String(row.coordinationDate       ?? ''),
-        coordinationTime:        `${row.coordinationStartTime ?? ''} - ${row.coordinationEndTime ?? ''}`,
-      });
+      y += 12;
+      doc.setDrawColor(120);
+      doc.line(marginX, y, 547, y);
+      y += 24;
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.text('Generated from LPU Laguna Reservation System', marginX, y);
 
-      const out  = templateDoc.getZip().generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-      const url  = URL.createObjectURL(out);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = `FLT-Reservation-Form-${row.id}.docx`;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      this.toast.set('Reservation form downloaded.');
+      doc.save(`FLT-Reservation-Form-${row.id}.pdf`);
+      this.toast.set('Reservation form downloaded as PDF.');
     } catch (err: any) {
-      // docxtemplater wraps template errors in err.properties.errors
-      const inner = err?.properties?.errors;
-      if (inner?.length) {
-        inner.forEach((e: any) => console.error('docxtemplater:', e.message, e.properties));
-      } else {
-        console.error('downloadReservationForm error', err);
-      }
+      console.error('downloadReservationForm error', err);
       this.toast.set('Failed to generate form: ' + (err?.message ?? 'unknown error'));
     }
   }

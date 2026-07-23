@@ -13,15 +13,19 @@ import {
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButton, UiInput, UiLabel, UiIcon, UiSelect } from '../../../shared/ui';
-import { DEPARTMENT_SELECT_OPTIONS } from '../../../shared/constants/department-options';
+import { VAN_DEPARTMENT_SELECT_OPTIONS } from '../../../shared/constants/van-department-options';
+import { VAN_SCHOOL_OPTIONS } from '../../../shared/constants/van-school-options';
+import { LPU_LAGUNA_EMAIL_DOMAIN, isLpuLagunaEmail } from '../../../shared/constants/lpu-email';
+import { AllowedEmailsService } from '../../admin/allowed-emails/allowed-emails.service';
 import { VanReservationPayload, ReservedDateSlot } from './van-reservation.models';
 import { VanReservationService } from './van-reservation.service';
 import { ReservationSubmittedModal } from '../reservation-submitted-modal';
+import { ReservationOtpModal } from '../reservation-otp-modal';
 import { formatTime12 } from '../../../shared/utils/datetime.util';
 
 @Component({
   selector: 'app-van-stepper',
-  imports: [ReactiveFormsModule, RouterLink, UiButton, UiInput, UiLabel, UiIcon, UiSelect, ReservationSubmittedModal],
+  imports: [ReactiveFormsModule, RouterLink, UiButton, UiInput, UiLabel, UiIcon, UiSelect, ReservationSubmittedModal, ReservationOtpModal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'flex flex-col',
@@ -146,11 +150,24 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
         <div class="flex flex-col gap-4 animate-fade-in">
           <div>
             <h2 class="text-lg font-bold text-gray-900">Trip Details</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Fill in the trip information for your van reservation.</p>
+            <p class="text-sm text-gray-500 mt-0.5">Fill in the Vehicle Reservation Form (VRF) details for your trip.</p>
           </div>
 
           <div [formGroup]="detailsForm" class="flex flex-col gap-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-2">
+                <label uiLabel for="school">School <span class="text-red-500">*</span></label>
+                <ui-select
+                  id="school"
+                  formControlName="school"
+                  placeholder="Select school"
+                  [options]="schoolOptions"
+                />
+                @if (detailsForm.get('school')?.invalid && detailsForm.get('school')?.touched) {
+                  <p class="text-xs text-red-500">School is required.</p>
+                }
+              </div>
+
               <div class="flex flex-col gap-2">
                 <label uiLabel for="department">Department <span class="text-red-500">*</span></label>
                 <ui-select
@@ -174,10 +191,10 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
               </div>
 
               <div class="sm:col-span-2 flex flex-col gap-2">
-                <label uiLabel for="travelDestination">Travel Destination <span class="text-red-500">*</span></label>
+                <label uiLabel for="travelDestination">Destination <span class="text-red-500">*</span></label>
                 <input uiInput id="travelDestination" formControlName="travelDestination" placeholder="e.g. Manila City Hall" />
                 @if (detailsForm.get('travelDestination')?.invalid && detailsForm.get('travelDestination')?.touched) {
-                  <p class="text-xs text-red-500">Travel destination is required.</p>
+                  <p class="text-xs text-red-500">Destination is required.</p>
                 }
               </div>
 
@@ -197,8 +214,8 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
               </div>
 
               <div class="sm:col-span-2 flex flex-col gap-2">
-                <label uiLabel for="passengerNames">Passenger Names <span class="text-red-500">*</span></label>
-                <p class="text-xs text-gray-500 -mt-1">List all passengers, one per line.</p>
+                <label uiLabel for="passengerNames">Name of Passenger(s) <span class="text-red-500">*</span></label>
+                <p class="text-xs text-gray-500 -mt-1">List all passengers, one per line. Only listed passengers may ride.</p>
                 <textarea
                   id="passengerNames"
                   formControlName="passengerNames"
@@ -212,18 +229,28 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
               </div>
 
               <div class="sm:col-span-2 flex flex-col gap-2">
-                <label uiLabel for="additionalRemarks">Additional Remarks <span class="text-xs font-normal text-gray-400">(optional)</span></label>
+                <label uiLabel for="requestedVehicleType">Requested Vehicle Type <span class="text-xs font-normal text-gray-400">(optional)</span></label>
+                <input
+                  uiInput
+                  id="requestedVehicleType"
+                  formControlName="requestedVehicleType"
+                  placeholder="e.g. Van, Coaster, SUV"
+                />
+              </div>
+
+              <div class="sm:col-span-2 flex flex-col gap-2">
+                <label uiLabel for="additionalRemarks">Remarks <span class="text-xs font-normal text-gray-400">(optional)</span></label>
                 <textarea
                   id="additionalRemarks"
                   formControlName="additionalRemarks"
                   rows="3"
-                  placeholder="Any special requests or notes for the van office..."
+                  placeholder="Any special requests or notes for the FMO..."
                   class="w-full rounded-lg border border-zinc-950/15 bg-white/70 backdrop-blur-md backdrop-saturate-150 ring-1 ring-inset ring-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),inset_0_-1px_0_rgba(24,24,27,0.05),0_2px_8px_-3px_rgba(24,24,27,0.2)] px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary/55 transition-all duration-200 resize-none"
                 ></textarea>
               </div>
 
               <div class="sm:col-span-2 flex flex-col gap-2">
-                <label uiLabel for="returnTime">Return Time</label>
+                <label uiLabel for="returnTime">Date and Time of Return</label>
                 <input
                   uiInput
                   id="returnTime"
@@ -231,7 +258,7 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
                   readonly
                   class="bg-gray-50 cursor-not-allowed"
                 />
-                <p class="text-xs text-gray-400">Set from your selected return time on the calendar.</p>
+                <p class="text-xs text-gray-400">Taken from your selected return time on the calendar.</p>
               </div>
             </div>
           </div>
@@ -256,11 +283,12 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
             </div>
             <div class="flex flex-col gap-2">
               <label uiLabel for="contactEmail">Contact Email <span class="text-red-500">*</span></label>
-              <input uiInput id="contactEmail" type="email" formControlName="contactEmail" placeholder="you@example.com" />
+              <input uiInput id="contactEmail" type="email" formControlName="contactEmail" placeholder="name@lpulaguna.edu.ph" />
               @if (contactForm.get('contactEmail')?.invalid && contactForm.get('contactEmail')?.touched) {
                 <p class="text-xs text-red-500">
                   @if (contactForm.get('contactEmail')?.errors?.['required']) { Email is required. }
                   @if (contactForm.get('contactEmail')?.errors?.['email']) { Please enter a valid email address. }
+                  @if (contactForm.get('contactEmail')?.errors?.['lpuDomain']) { Only {{ lpuEmailDomain }} addresses are allowed. }
                 </p>
               }
             </div>
@@ -280,6 +308,7 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
               Reservation Summary
             </h3>
             <div class="flex flex-col gap-1.5 text-sm text-gray-600">
+              <div class="flex gap-2"><span class="font-medium text-gray-800 min-w-28">School:</span> {{ detailsForm.get('school')?.value || '—' }}</div>
               <div class="flex gap-2"><span class="font-medium text-gray-800 min-w-28">Destination:</span> {{ detailsForm.get('travelDestination')?.value || '—' }}</div>
               <div class="flex gap-2"><span class="font-medium text-gray-800 min-w-28">Department:</span> {{ detailsForm.get('department')?.value || '—' }}</div>
               <div class="flex gap-2"><span class="font-medium text-gray-800 min-w-28">Organization:</span> {{ detailsForm.get('organization')?.value || '—' }}</div>
@@ -298,6 +327,9 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
                   <span class="font-medium text-gray-800 min-w-28">Names:</span>
                   <span class="whitespace-pre-line">{{ detailsForm.get('passengerNames')?.value }}</span>
                 </div>
+              }
+              @if (detailsForm.get('requestedVehicleType')?.value) {
+                <div class="flex gap-2"><span class="font-medium text-gray-800 min-w-28">Vehicle Type:</span> {{ detailsForm.get('requestedVehicleType')?.value }}</div>
               }
               @if (detailsForm.get('additionalRemarks')?.value) {
                 <div class="flex gap-2 flex-wrap">
@@ -345,6 +377,15 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
           message="Your University Van reservation request has been sent. You will be notified once it's confirmed."
           [returnPath]="returnPath"
           [returnLabel]="returnLabel"
+        />
+      }
+
+      @if (otpOpen()) {
+        <app-reservation-otp-modal
+          [email]="otpEmail()"
+          [contactPerson]="otpContactPerson()"
+          (verified)="onOtpVerified($event)"
+          (cancelled)="onOtpCancelled()"
         />
       }
     </div>
@@ -408,6 +449,9 @@ export class VanStepper implements OnChanges {
   }
 
   private readonly reservationService = inject(VanReservationService);
+  private readonly allowedEmailsService = inject(AllowedEmailsService);
+
+  readonly lpuEmailDomain = LPU_LAGUNA_EMAIL_DOMAIN;
 
   readonly steps = [
     { id: 1, label: 'DATES & TIMES' },
@@ -415,29 +459,39 @@ export class VanStepper implements OnChanges {
     { id: 3, label: 'CONTACT INFO' },
   ];
 
-  readonly departmentOptions = DEPARTMENT_SELECT_OPTIONS;
+  readonly departmentOptions = VAN_DEPARTMENT_SELECT_OPTIONS;
+  readonly schoolOptions = [...VAN_SCHOOL_OPTIONS];
 
   readonly currentStep = signal(1);
   readonly submitted = signal(false);
   readonly submitting = signal(false);
   readonly submitError = signal('');
+  readonly otpOpen = signal(false);
+  readonly otpEmail = signal('');
+  readonly otpContactPerson = signal('');
   readonly termsAccepted = signal(false);
 
   readonly dateSlots = signal<ReservedDateSlot[]>([]);
 
   readonly detailsForm = new FormGroup({
+    school: new FormControl('LPU-L', Validators.required),
     department: new FormControl('', Validators.required),
     organization: new FormControl('', Validators.required),
     travelDestination: new FormControl('', Validators.required),
     passengerNames: new FormControl('', Validators.required),
     numberOfPassengers: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
+    requestedVehicleType: new FormControl(''),
     returnTime: new FormControl({ value: '', disabled: true }),
     additionalRemarks: new FormControl(''),
   });
 
   readonly contactForm = new FormGroup({
     contactPerson: new FormControl('', Validators.required),
-    contactEmail: new FormControl('', [Validators.required, Validators.email]),
+    contactEmail: new FormControl('', [
+      Validators.required,
+      Validators.email,
+      (control) => (isLpuLagunaEmail(control.value ?? '') ? null : { lpuDomain: true }),
+    ]),
     contactNumber: new FormControl('', Validators.required),
   });
 
@@ -506,6 +560,45 @@ export class VanStepper implements OnChanges {
     this.contactForm.markAllAsTouched();
     if (!this.canSubmit()) return;
 
+    const email = this.contactForm.value.contactEmail!.trim().toLowerCase();
+    const contactPerson = this.contactForm.value.contactPerson!;
+    this.submitError.set('');
+
+    if (this.adminMode) {
+      this.submitReservation(email);
+      return;
+    }
+
+    this.submitting.set(true);
+    this.allowedEmailsService.checkEmail(email).subscribe({
+      next: (check) => {
+        this.submitting.set(false);
+        if (!check.allowed) {
+          this.submitError.set(check.message || 'This email is not authorized to make reservations.');
+          return;
+        }
+        this.otpEmail.set(email);
+        this.otpContactPerson.set(contactPerson);
+        this.otpOpen.set(true);
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.submitError.set('Unable to verify email. Please try again.');
+      },
+    });
+  }
+
+  onOtpVerified(otpToken: string): void {
+    this.otpOpen.set(false);
+    this.submitReservation(this.otpEmail(), otpToken);
+  }
+
+  onOtpCancelled(): void {
+    this.otpOpen.set(false);
+    this.submitting.set(false);
+  }
+
+  private submitReservation(email: string, otpToken?: string): void {
     this.submitting.set(true);
     this.submitError.set('');
 
@@ -513,6 +606,7 @@ export class VanStepper implements OnChanges {
     const returnTimeRaw = slots.length > 0 ? slots[0].endTime : '';
 
     const payload: VanReservationPayload = {
+      school: this.detailsForm.get('school')!.value!,
       department: this.detailsForm.get('department')!.value!,
       organization: this.detailsForm.get('organization')!.value!,
       travelDestination: this.detailsForm.get('travelDestination')!.value!,
@@ -520,10 +614,12 @@ export class VanStepper implements OnChanges {
       numberOfPassengers: Number(this.detailsForm.get('numberOfPassengers')!.value),
       returnTime: returnTimeRaw,
       contactPerson: this.contactForm.value.contactPerson!,
-      contactEmail: this.contactForm.value.contactEmail!,
+      contactEmail: email,
       contactNumber: this.contactForm.value.contactNumber!,
       reservedDates: this.dateSlots(),
       additionalRemarks: this.detailsForm.value.additionalRemarks || undefined,
+      requestedVehicleType: this.detailsForm.value.requestedVehicleType || undefined,
+      otpToken,
     };
 
     this.reservationService.submitReservation(payload).subscribe({
@@ -535,9 +631,9 @@ export class VanStepper implements OnChanges {
           this.submitError.set(res.message || 'Failed to submit reservation. Please try again.');
         }
       },
-      error: () => {
+      error: (err) => {
         this.submitting.set(false);
-        this.submitError.set('A server error occurred. Please try again later.');
+        this.submitError.set(err?.error?.message || 'A server error occurred. Please try again later.');
       },
     });
   }

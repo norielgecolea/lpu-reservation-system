@@ -81,9 +81,16 @@ public class VanReservation {
     @Column(name = "additional_remarks", columnDefinition = "TEXT")
     private String additionalRemarks;
 
+    @Column(length = 20)
+    private String school;
+
+    @Column(name = "requested_vehicle_type", length = 150)
+    private String requestedVehicleType;
+
     @PrePersist
     protected void onCreate() {
         if (status == null) status = "PENDING";
+        if (school == null || school.isBlank()) school = "LPU-L";
         createdAt = LocalDateTime.now();
     }
 
@@ -143,4 +150,10 @@ public class VanReservation {
 
     public String getAdditionalRemarks() { return additionalRemarks; }
     public void setAdditionalRemarks(String additionalRemarks) { this.additionalRemarks = additionalRemarks; }
+
+    public String getSchool() { return school; }
+    public void setSchool(String school) { this.school = school; }
+
+    public String getRequestedVehicleType() { return requestedVehicleType; }
+    public void setRequestedVehicleType(String requestedVehicleType) { this.requestedVehicleType = requestedVehicleType; }
 }

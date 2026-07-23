@@ -8,6 +8,7 @@ export interface ReservedDateSlot {
 
 export interface VanReservationRow {
   id: number;
+  school?: string | null;
   department: string;
   organization: string;
   travelDestination: string;
@@ -28,6 +29,7 @@ export interface VanReservationRow {
   approvedAt: string | null;
   approvedBy: string | null;
   additionalRemarks?: string | null;
+  requestedVehicleType?: string | null;
 }
 
 export interface VanVehicleItem {

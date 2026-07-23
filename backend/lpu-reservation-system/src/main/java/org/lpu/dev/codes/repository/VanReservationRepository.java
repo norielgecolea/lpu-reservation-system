@@ -42,7 +42,8 @@ public class VanReservationRepository {
                 "r.number_of_passengers, r.return_time, r.contact_person, r.contact_email, r.contact_number, " +
                 "r.reserved_dates::text, r.status, r.created_at, " +
                 "r.satisfaction_rating, r.vehicle_id, r.driver_id, " +
-                "v.brand, v.plate_num, d.full_name, r.approved_at, r.approved_by, r.additional_remarks " +
+                "v.brand, v.plate_num, d.full_name, r.approved_at, r.approved_by, r.additional_remarks, " +
+                "r.school, r.requested_vehicle_type " +
                 "FROM van_reservations r " +
                 "LEFT JOIN vehicle v ON r.vehicle_id = v.id " +
                 "LEFT JOIN driver d ON r.driver_id = d.id");

@@ -26,7 +26,7 @@
               }
             ],
             "styles": ["src/styles.css"],
-            "allowedCommonJsDependencies": ["sockjs-client", "pizzip", "docxtemplater"],
+            "allowedCommonJsDependencies": ["sockjs-client", "pizzip", "docxtemplater", "jspdf"],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "security": {

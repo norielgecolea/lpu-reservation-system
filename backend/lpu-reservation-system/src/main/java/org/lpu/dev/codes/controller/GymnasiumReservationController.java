@@ -10,11 +10,13 @@ import org.lpu.dev.codes.model.dto.GymnasiumApprovedEventDto;
 import org.lpu.dev.codes.model.dto.GymnasiumReservationRequest;
 import org.lpu.dev.codes.model.dto.PopulateEquipmentList;
 import org.lpu.dev.codes.services.GymnasiumReservationService;
+import org.lpu.dev.codes.services.ReservationOtpService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,6 +29,9 @@ public class GymnasiumReservationController {
 
     @Autowired
     private GymnasiumReservationService gymService;
+
+    @Autowired
+    private ReservationOtpService reservationOtpService;
 
     @GetMapping("/equipment")
     public GymnasiumReservationResponse getEquipment() {
@@ -61,9 +66,16 @@ public class GymnasiumReservationController {
     }
 
     @PostMapping("/reserve")
-    public EquipmentResponse submitReservation(@RequestBody GymnasiumReservationRequest request) {
+    public EquipmentResponse submitReservation(
+            @RequestBody GymnasiumReservationRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         EquipmentResponse res = new EquipmentResponse();
         try {
+            if (!reservationOtpService.requireOtpOrStaff(authHeader, request.getOtpToken(), request.getContactEmail())) {
+                res.setSuccess(false);
+                res.setMessage("Email verification required. Please verify the code sent to your contact email.");
+                return res;
+            }
             boolean created = gymService.createReservation(request);
             res.setSuccess(created);
             res.setMessage(created ? "Reservation submitted successfully" : "Failed to submit reservation");

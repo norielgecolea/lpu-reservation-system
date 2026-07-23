@@ -16,6 +16,7 @@ public class FltReservationRequest {
     private String additionalInstructions;
     private List<ReservedDateSlot> reservedDates;
     private List<RequestedEquipmentItem> requestedEquipment;
+    private String otpToken;
 
     public String getEventTitle() { return eventTitle; }
     public void setEventTitle(String eventTitle) { this.eventTitle = eventTitle; }
@@ -52,6 +53,9 @@ public class FltReservationRequest {
 
     public List<RequestedEquipmentItem> getRequestedEquipment() { return requestedEquipment; }
     public void setRequestedEquipment(List<RequestedEquipmentItem> requestedEquipment) { this.requestedEquipment = requestedEquipment; }
+
+    public String getOtpToken() { return otpToken; }
+    public void setOtpToken(String otpToken) { this.otpToken = otpToken; }
 
     public static class ReservedDateSlot {
         private String date;

@@ -7,32 +7,35 @@ VALUES
 (4, 'Boardroom', 'Boardroom Meeting Facility'),
 (5, 'Gymnasium', 'University Gymnasium');
 
-
-INSERT INTO resources (resource_name, facility_id, status)
+INSERT INTO users (
+    id,
+    username,
+    fullname,
+    role,
+    email,
+    employee_id,
+    password_hash,
+    status,
+    created_at,
+    updated_at,
+    reset_token,
+    reset_token_expires_at
+)
 VALUES
--- FLT
-('FLT Room 101', 1, 'AVAILABLE'),
-('FLT Room 102', 1, 'AVAILABLE'),
-('FLT Conference Room', 1, 'AVAILABLE'),
-
--- Vans
-('Toyota HiAce Van 1', 2, 'AVAILABLE'),
-('Toyota HiAce Van 2', 2, 'AVAILABLE'),
-('Toyota Commuter Van', 2, 'AVAILABLE'),
-
--- Nexus
-('Nexus Hall A', 3, 'AVAILABLE'),
-('Nexus Hall B', 3, 'AVAILABLE'),
-('Nexus Training Room', 3, 'AVAILABLE'),
-
--- Boardroom
-('Main Boardroom', 4, 'AVAILABLE'),
-('Executive Boardroom', 4, 'AVAILABLE'),
-
--- Gymnasium
-('Gymnasium Main Court', 5, 'AVAILABLE'),
-('Gymnasium Conference Area', 5, 'AVAILABLE'),
-('Gymnasium Stage', 5, 'AVAILABLE');
+(
+    1,
+    'superadmin',
+    'Admin',
+    'SUPERADMIN',
+    'superadmin@lpu.edu.ph',
+    'SUPER001',
+    '$2a$10$GFDhdtkDkYctEUZjLrd5te1SROXu9MmWNJHfebcTOLsyWEBvuSIzK',
+    'ACTIVE',
+    '2026-06-11 07:28:34.259463',
+    '2026-06-11 07:28:34.259463',
+    '8a49d271-0a7d-4c74-ab98-d029d6b76f38',
+    '2026-07-16 10:28:48.538937'
+);
 
 
 
@@ -157,10 +160,7 @@ CREATE TABLE IF NOT EXISTS driver (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO driver (full_name, contact_number, status) VALUES
-('Juan Dela Cruz', '09171234567', 'ACTIVE'),
-('Maria Santos', '09181234567', 'ACTIVE'),
-('Pedro Reyes', '09191234567', 'ACTIVE');
+
 
 CREATE TABLE IF NOT EXISTS van_reservations (
     id BIGSERIAL PRIMARY KEY,
@@ -190,6 +190,8 @@ ALTER TABLE gymnasium_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS additional_remarks TEXT;
+ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS school VARCHAR(20);
+ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS requested_vehicle_type VARCHAR(150);
 
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
     id              BIGSERIAL PRIMARY KEY,
@@ -206,3 +208,26 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
 
 CREATE INDEX IF NOT EXISTS idx_audit_service_time
     ON admin_audit_logs (service, performed_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_audit_service_action
+    ON admin_audit_logs (service, action_type);
+
+CREATE INDEX IF NOT EXISTS idx_flt_reservations_created_at
+    ON flt_reservations (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_gymnasium_reservations_created_at
+    ON gymnasium_reservations (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_van_reservations_created_at
+    ON van_reservations (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS allowed_reservation_emails (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50)
+);
+
+CREATE INDEX IF NOT EXISTS idx_allowed_reservation_emails_status
+    ON allowed_reservation_emails (status);

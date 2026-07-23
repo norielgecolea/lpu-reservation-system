@@ -1,0 +1,158 @@
+<section class="animate-rise flex shrink-0 flex-col gap-3">
+  <div class="rounded-xl bg-white/45 p-4 ring-1 ring-inset ring-white/60 backdrop-blur-xl">
+    <h1 class="text-xl font-black text-primary">Allowed Reservation Emails</h1>
+    <p class="mt-1 text-sm text-gray-700">
+      Manage @lpulaguna.edu.ph addresses authorized to reserve the University Van, Boardroom, Nexus Room, and Conference Room.
+    </p>
+  </div>
+
+  <div
+    class="flex flex-col gap-3 rounded-xl bg-white/45 p-4 ring-1 ring-inset ring-white/60 backdrop-blur-xl sm:flex-row sm:items-end"
+  >
+    <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+      <label for="allowed-email-input" class="text-sm font-bold text-gray-800">
+        Add email ({{ domain }})
+      </label>
+      <input
+        uiInput
+        id="allowed-email-input"
+        type="email"
+        [formControl]="emailControl"
+        placeholder="name@lpulaguna.edu.ph"
+        autocomplete="off"
+      />
+      @if (emailControl.touched && emailControl.hasError('required')) {
+        <p class="text-xs text-red-600">Email is required.</p>
+      } @else if (emailControl.touched && emailControl.hasError('email')) {
+        <p class="text-xs text-red-600">Enter a valid email address.</p>
+      } @else if (emailControl.touched && emailControl.hasError('lpuDomain')) {
+        <p class="text-xs text-red-600">Only {{ domain }} addresses can be added.</p>
+      }
+    </div>
+    <button
+      uiButton
+      type="button"
+      class="w-full shrink-0 sm:w-auto"
+      [disabled]="saving() || emailControl.invalid"
+      (click)="addEmail()"
+    >
+      <ui-icon name="add" [size]="20" />
+      <span>ADD EMAIL</span>
+    </button>
+    <button
+      uiButton
+      variant="secondary"
+      type="button"
+      class="w-full shrink-0 sm:w-auto"
+      [disabled]="importing()"
+      (click)="triggerCsvImport(csvFileInput)"
+    >
+      <ui-icon name="upload_file" [size]="20" />
+      <span>{{ importing() ? 'IMPORTING...' : 'IMPORT CSV (REPLACE ALL)' }}</span>
+    </button>
+    <input
+      #csvFileInput
+      type="file"
+      accept=".csv,text/csv"
+      class="hidden"
+      (change)="onCsvSelected($event)"
+    />
+  </div>
+
+  <ui-input-search class="w-full" [value]="search()" (valueChange)="onSearch($event)" />
+</section>
+
+<section
+  class="animate-rise flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] ring-1 ring-inset ring-white/60 backdrop-blur-xl backdrop-saturate-150"
+>
+  <div class="min-h-0 flex-1 overflow-auto">
+    <table class="w-full min-w-150 border-collapse text-left text-sm">
+      <thead class="sticky top-0 z-10">
+        <tr class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+          <th class="px-5 py-4">Email</th>
+          <th class="px-4 py-3 text-center">Status</th>
+          <th class="px-4 py-3">Added By</th>
+          <th class="px-4 py-3">Added At</th>
+          <th class="px-4 py-3 text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          @for (row of [1, 2, 3, 4, 5]; track row) {
+            <tr class="border-b border-gray-100">
+              <td class="px-5 py-4"><div class="h-4 w-56 animate-pulse rounded bg-gray-200"></div></td>
+              <td class="px-4 py-3"><div class="mx-auto h-6 w-20 animate-pulse rounded-full bg-gray-200"></div></td>
+              <td class="px-4 py-3"><div class="h-4 w-24 animate-pulse rounded bg-gray-200"></div></td>
+              <td class="px-4 py-3"><div class="h-4 w-32 animate-pulse rounded bg-gray-200"></div></td>
+              <td class="px-4 py-3"><div class="mx-auto h-8 w-16 animate-pulse rounded-lg bg-gray-200"></div></td>
+            </tr>
+          }
+        } @else if (error()) {
+          <tr>
+            <td colspan="5" class="px-4 py-8 text-center text-red-600">{{ error() }}</td>
+          </tr>
+        } @else if (emails().length === 0) {
+          <tr>
+            <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+              No allowed emails found.
+            </td>
+          </tr>
+        } @else {
+          @for (row of emails(); track row.id) {
+            <tr class="border-b border-gray-100 odd:bg-white even:bg-gray-50/70 hover:bg-secondary/5">
+              <td class="px-5 py-4 text-black">{{ row.email }}</td>
+              <td class="px-4 py-3 text-center">
+                <ui-status-badge [status]="row.status" />
+              </td>
+              <td class="px-4 py-3 text-black">{{ row.createdBy || '—' }}</td>
+              <td class="px-4 py-3 text-black">{{ row.createdAt || '—' }}</td>
+              <td class="px-4 py-3">
+                <div class="flex justify-center gap-2">
+                  <button
+                    type="button"
+                    [title]="isActive(row.status) ? 'Deactivate' : 'Activate'"
+                    (click)="toggleStatus(row)"
+                    class="cursor-pointer rounded-lg p-1.5 hover:text-primary"
+                  >
+                    <ui-icon [name]="isActive(row.status) ? 'toggle_on' : 'toggle_off'" class="text-xl" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Delete"
+                    (click)="remove(row)"
+                    class="cursor-pointer rounded-lg p-1.5 hover:text-red-600"
+                  >
+                    <ui-icon name="delete" class="text-xl" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="animate-rise flex items-center justify-between rounded-xl bg-white/45 p-3 ring-1 ring-inset ring-white/60 backdrop-blur-xl">
+  <button uiButton variant="secondary" type="button" [disabled]="page() === 0 || loading()" (click)="prevPage()">
+    Previous
+  </button>
+  <span class="text-sm text-gray-700">Page {{ page() + 1 }} of {{ totalPages() }}</span>
+  <button
+    uiButton
+    variant="secondary"
+    type="button"
+    [disabled]="page() >= totalPages() - 1 || loading()"
+    (click)="nextPage()"
+  >
+    Next
+  </button>
+</section>
+
+<ui-toast
+  class="contents"
+  [show]="showToast()"
+  [success]="toastSuccess()"
+  [message]="toastMessage()"
+/>

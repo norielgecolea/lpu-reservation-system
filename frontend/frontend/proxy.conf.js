@@ -35,6 +35,9 @@ module.exports = {
     secure: false,
     changeOrigin: true,
     ws: true,
+    // SockJS xhr-streaming / websocket can idle longer than default proxy timeouts
+    timeout: 0,
+    proxyTimeout: 0,
   },
   '/uploads': {
     target,

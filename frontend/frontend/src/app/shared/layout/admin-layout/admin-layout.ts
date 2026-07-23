@@ -1,12 +1,14 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { ReservationAlertService } from '../../../features/admin/reservations/reservation-alert.service';
+import { ReservationAlertBalloon } from '../reservation-alert-balloon';
 import { SideNav } from '../side-nav/side-nav';
 
 /** Persistent admin chrome: side nav stays mounted while child routes change. */
 @Component({
   selector: 'app-admin-layout',
-  imports: [SideNav, RouterOutlet],
+  imports: [SideNav, RouterOutlet, ReservationAlertBalloon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -19,7 +21,17 @@ import { SideNav } from '../side-nav/side-nav';
       >
         <router-outlet />
       </main>
+      <app-reservation-alert-balloon />
     </div>
   `,
 })
-export class AdminLayout {}
+export class AdminLayout {
+  private readonly alerts = inject(ReservationAlertService);
+
+  /** First click/key unlocks AudioContext + prompts browser notification permission. */
+  @HostListener('document:pointerdown')
+  @HostListener('document:keydown')
+  onUserGesture(): void {
+    this.alerts.unlockAudio();
+  }
+}

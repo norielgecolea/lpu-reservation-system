@@ -1,7 +1,8 @@
-// Dev: API goes through proxy; WebSocket connects directly to Tomcat (proxy WS is unreliable).
+// Dev: API + WebSocket both go through the Angular proxy (same-origin).
+// Direct Tomcat WS was cross-origin and flaky with SockJS session cookies.
 export const environment = {
   production: false,
   apiUrl: '/lpu-reservation-system/api',
-  wsUrl: 'http://localhost:8080/lpu-reservation-system/ws',
+  wsUrl: '/lpu-reservation-system/ws',
   backendUrl: '/',
 };

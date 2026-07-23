@@ -8,12 +8,14 @@ import org.lpu.dev.codes.model.apiresponse.EquipmentResponse;
 import org.lpu.dev.codes.model.apiresponse.VanReservationResponse;
 import org.lpu.dev.codes.model.dto.VanApprovedEventDto;
 import org.lpu.dev.codes.model.dto.VanReservationRequest;
+import org.lpu.dev.codes.services.ReservationOtpService;
 import org.lpu.dev.codes.services.VanReservationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,6 +27,7 @@ public class VanReservationController {
     private static final Logger logger = LogManager.getLogger(VanReservationController.class);
 
     @Autowired private VanReservationService vanService;
+    @Autowired private ReservationOtpService reservationOtpService;
 
     @GetMapping("/approved-events")
     public VanReservationResponse getApprovedEvents() {
@@ -58,17 +61,23 @@ public class VanReservationController {
     }
 
     @PostMapping("/reserve")
-    public EquipmentResponse submitReservation(@RequestBody VanReservationRequest request) {
-        EquipmentResponse res = new EquipmentResponse();
+    public EquipmentResponse submitReservation(
+            @RequestBody VanReservationRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            boolean created = vanService.createReservation(request);
-            res.setSuccess(created);
-            res.setMessage(created ? "Reservation submitted successfully" : "Failed to submit reservation");
+            if (!reservationOtpService.requireOtpOrStaff(authHeader, request.getOtpToken(), request.getContactEmail())) {
+                EquipmentResponse res = new EquipmentResponse();
+                res.setSuccess(false);
+                res.setMessage("Email verification required. Please verify the code sent to your contact email.");
+                return res;
+            }
+            return vanService.createReservation(request);
         } catch (Exception e) {
             logger.error("Error submitting van reservation", e);
+            EquipmentResponse res = new EquipmentResponse();
             res.setSuccess(false);
             res.setMessage("Failed to submit reservation");
+            return res;
         }
-        return res;
     }
 }

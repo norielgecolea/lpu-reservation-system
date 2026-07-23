@@ -182,6 +182,16 @@ public class FacilitiesAdminUserController {
             return res;
         }
 
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            Users existingEmail = userRepository.findByEmail(user.getEmail().trim());
+            if (existingEmail != null) {
+                AccountStatementResponse res = new AccountStatementResponse();
+                res.setSuccess(false);
+                res.setMessage("Email already exists");
+                return res;
+            }
+        }
+
         AccountStatementResponse result = userService.createAccount(authHeader, user, jwtService.getUsername(token));
         if (Boolean.TRUE.equals(result.getSuccess())) {
             result.setMessage("Facilities admin account created successfully");

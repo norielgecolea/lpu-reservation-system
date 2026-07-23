@@ -1,6 +1,11 @@
 import { Routes } from '@angular/router';
 
-import { authGuard, facilitiesGuard, superAdminGuard } from './core/auth/auth.guard';
+import {
+  authGuard,
+  facilitiesGuard,
+  fltTechGuard,
+  superAdminGuard,
+} from './core/auth/auth.guard';
 
 const adminLayout = () =>
   import('./shared/layout/admin-layout/admin-layout').then((m) => m.AdminLayout);
@@ -22,6 +27,11 @@ const superAdminRoutes: Routes = [
   {
     path: 'users/:employeeId/edit',
     loadComponent: () => import('./features/admin/users/edit-user').then((m) => m.EditUser),
+  },
+  {
+    path: 'allowed-emails',
+    loadComponent: () =>
+      import('./features/admin/allowed-emails/allowed-emails').then((m) => m.AllowedEmails),
   },
   {
     path: 'equipments',
@@ -254,6 +264,21 @@ const facilitiesRoutes: Routes = [
   },
 ];
 
+const fltTechRoutes: Routes = [
+  {
+    path: 'dashboard',
+    loadComponent: () =>
+      import('./features/admin/dashboard/dashboard').then((m) => m.Dashboard),
+    data: { fltTechContext: true },
+  },
+  {
+    path: 'reservation/flt',
+    loadComponent: () =>
+      import('./features/admin/reservations/flt/flt-reservations').then((m) => m.FltReservations),
+    data: { fltTechContext: true },
+  },
+];
+
 export const routes: Routes = [
   {
     path: '',
@@ -267,6 +292,12 @@ export const routes: Routes = [
     children: facilitiesRoutes,
   },
   {
+    path: 'flt-tech',
+    canActivate: [fltTechGuard],
+    loadComponent: adminLayout,
+    children: fltTechRoutes,
+  },
+  {
     path: 'customer',
     loadChildren: () =>
       import('./features/customer/customer.routes').then((m) => m.CUSTOMER_ROUTES),
@@ -278,7 +309,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    canActivate: [authGuard],
+    canActivate: [authGuard, superAdminGuard],
     loadComponent: adminLayout,
     children: superAdminRoutes,
   },

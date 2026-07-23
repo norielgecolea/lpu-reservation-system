@@ -4,6 +4,7 @@ public class LoginRequest {
 
 	private String username;
 	private String password;
+	private boolean rememberMe;
 
 	public String getUsername() {
 		return username;
@@ -21,6 +22,11 @@ public class LoginRequest {
 		this.password = password;
 	}
 
-	// getters and setters
+	public boolean isRememberMe() {
+		return rememberMe;
+	}
 
+	public void setRememberMe(boolean rememberMe) {
+		this.rememberMe = rememberMe;
+	}
 }

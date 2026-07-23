@@ -39,9 +39,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // Native WebSocket (preferred by the Angular client).
         registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*");
+
+        // SockJS fallback for older proxies / browsers.
+        registry.addEndpoint("/ws-sockjs")
                 .setAllowedOriginPatterns("*")
-                .withSockJS();
+                .withSockJS()
+                .setSessionCookieNeeded(false);
     }
 
     @Override
@@ -55,18 +61,22 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 }
                 String authHeader = accessor.getFirstNativeHeader("Authorization");
                 if (authHeader == null || !authHeader.startsWith("LpuL ")) {
+                    logger.warn("WebSocket CONNECT rejected: missing Authorization");
                     throw new MessageDeliveryException("Missing or invalid Authorization header");
                 }
                 String token = authHeader.substring(5);
                 if (!jwtService.validateToken(token)) {
+                    logger.warn("WebSocket CONNECT rejected: invalid token");
                     throw new MessageDeliveryException("Invalid or expired token");
                 }
                 String role = jwtService.getRole(token);
-                if (!"SUPERADMIN".equals(role) && !"FACILITIESADMIN".equals(role)) {
+                if (!"SUPERADMIN".equals(role) && !"FACILITIESADMIN".equals(role) && !"FLTTECH".equals(role)) {
+                    logger.warn("WebSocket CONNECT rejected: role {}", role);
                     throw new MessageDeliveryException("Access denied");
                 }
                 String username = jwtService.getUsername(token);
                 if (username == null || !authService.userActive(username)) {
+                    logger.warn("WebSocket CONNECT rejected: inactive user");
                     throw new MessageDeliveryException("User not active");
                 }
                 logger.info("WebSocket CONNECT authorized for {}", username);

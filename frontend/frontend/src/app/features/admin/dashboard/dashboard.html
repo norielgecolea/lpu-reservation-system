@@ -50,21 +50,25 @@
       class="mb-4 flex shrink-0 flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between"
     >
       <ui-date-selector [value]="activeDate()" (valueChange)="selectDate($event)" />
-      <!-- Mobile: dropdown -->
-      <ui-select
-        class="w-full sm:hidden"
-        placeholder="Select service"
-        [options]="serviceSelectOptions"
-        [value]="activeService()"
-        (valueChange)="selectService($any($event))"
-      />
-      <!-- Desktop: segmented -->
-      <ui-segmented
-        class="hidden sm:block"
-        [options]="serviceFilterOptions"
-        [value]="activeService()"
-        (valueChange)="selectService($any($event))"
-      />
+      @if (!fltTechMode()) {
+        <!-- Mobile: dropdown -->
+        <ui-select
+          class="w-full sm:hidden"
+          placeholder="Select service"
+          [options]="serviceSelectOptions"
+          [value]="activeService()"
+          (valueChange)="selectService($any($event))"
+        />
+        <!-- Desktop: segmented -->
+        <ui-segmented
+          class="hidden sm:block"
+          [options]="serviceFilterOptions"
+          [value]="activeService()"
+          (valueChange)="selectService($any($event))"
+        />
+      } @else {
+        <p class="text-sm font-semibold text-gray-700">FLT Theater calendar</p>
+      }
     </div>
 
     <div class="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] xl:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">

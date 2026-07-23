@@ -14,9 +14,11 @@ import org.lpu.dev.codes.model.dto.PopulateVehicleList;
 import org.lpu.dev.codes.model.dto.VanApprovedEventDto;
 import org.lpu.dev.codes.model.dto.VanReservationAdminDto;
 import org.lpu.dev.codes.model.dto.VanReservationRequest;
+import org.lpu.dev.codes.model.apiresponse.EquipmentResponse;
 import org.lpu.dev.codes.repository.DriverRepository;
 import org.lpu.dev.codes.repository.VanReservationRepository;
 import org.lpu.dev.codes.repository.VehicleRepository;
+import org.lpu.dev.codes.services.AllowedReservationEmailService;
 import org.lpu.dev.codes.services.superadmin.SuperAdminVehicleService;
 import org.lpu.dev.codes.util.ReservationSlot;
 import org.lpu.dev.codes.util.ReservationSlotUtil;
@@ -39,6 +41,7 @@ public class VanReservationService {
     @Autowired private SuperAdminVehicleService vehicleService;
     @Autowired private DriverService driverService;
     @Autowired private VanEmailService vanEmailService;
+    @Autowired private AllowedReservationEmailService allowedEmailService;
     @Autowired private ReservationEventPublisher eventPublisher;
     @Autowired private AdminAuditService auditService;
 
@@ -222,13 +225,23 @@ public class VanReservationService {
             dto.setApprovedAt(row[19] != null ? row[19].toString() : null);
             dto.setApprovedBy((String) row[20]);
             dto.setAdditionalRemarks((String) row[21]);
+            dto.setSchool(row.length > 22 ? (String) row[22] : null);
+            dto.setRequestedVehicleType(row.length > 23 ? (String) row[23] : null);
             result.add(dto);
         }
         return result;
     }
 
     @Transactional
-    public boolean createReservation(VanReservationRequest req) {
+    public EquipmentResponse createReservation(VanReservationRequest req) {
+        EquipmentResponse response = new EquipmentResponse();
+        String emailError = allowedEmailService.validateRestrictedServiceEmail(req.getContactEmail());
+        if (emailError != null) {
+            response.setSuccess(false);
+            response.setMessage(emailError);
+            return response;
+        }
+
         try {
             VanReservation r = new VanReservation();
             r.setDepartment(req.getDepartment());
@@ -238,18 +251,24 @@ public class VanReservationService {
             r.setNumberOfPassengers(req.getNumberOfPassengers() != null ? req.getNumberOfPassengers() : 1);
             r.setReturnTime(extractReturnTime(req));
             r.setContactPerson(req.getContactPerson());
-            r.setContactEmail(req.getContactEmail());
+            r.setContactEmail(allowedEmailService.normalizeEmail(req.getContactEmail()));
             r.setContactNumber(req.getContactNumber());
             r.setReservedDates(objectMapper.writeValueAsString(req.getReservedDates()));
             r.setAdditionalRemarks(req.getAdditionalRemarks());
+            r.setSchool(normalizeSchool(req.getSchool()));
+            r.setRequestedVehicleType(req.getRequestedVehicleType());
             vanRepository.save(r);
             vanEmailService.sendReservationConfirmation(r);
             eventPublisher.publishCreated("van", r.getId());
             logger.info("Van reservation created for {}", req.getContactEmail());
-            return true;
+            response.setSuccess(true);
+            response.setMessage("Reservation submitted successfully");
+            return response;
         } catch (Exception e) {
             logger.error("Failed to create van reservation", e);
-            return false;
+            response.setSuccess(false);
+            response.setMessage("Failed to submit reservation");
+            return response;
         }
     }
 
@@ -524,5 +543,14 @@ public class VanReservationService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private String normalizeSchool(String school) {
+        if (school == null) return "LPU-L";
+        String normalized = school.trim().toUpperCase();
+        if ("LPU-SC".equals(normalized) || "LPU SC".equals(normalized) || "LPUSC".equals(normalized)) {
+            return "LPU-SC";
+        }
+        return "LPU-L";
     }
 }

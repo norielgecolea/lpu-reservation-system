@@ -37,6 +37,7 @@ export interface FltReservationPayload {
   contactNumber: string;
   reservedDates: ReservedDateSlot[];
   requestedEquipment: { id: number; name: string }[];
+  otpToken?: string;
 }
 
 export interface FltReservationApiResponse {

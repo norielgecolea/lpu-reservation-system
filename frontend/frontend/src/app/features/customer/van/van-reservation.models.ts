@@ -42,6 +42,7 @@ export interface VanVehiclesResponse {
 }
 
 export interface VanReservationPayload {
+  school: string;
   department: string;
   organization: string;
   travelDestination: string;
@@ -53,6 +54,8 @@ export interface VanReservationPayload {
   contactNumber: string;
   reservedDates: ReservedDateSlot[];
   additionalRemarks?: string;
+  requestedVehicleType?: string;
+  otpToken?: string;
 }
 
 export interface VanReservationApiResponse {

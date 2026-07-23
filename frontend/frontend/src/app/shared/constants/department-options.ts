@@ -1,6 +1,6 @@
 import { UiSelectOption } from '../ui/select/select';
 
-export const DEPARTMENTS = [
+const INTERNAL_DEPARTMENTS = [
   'HRMDO',
   'ACCOUNTING',
   'TREASURY',
@@ -30,10 +30,14 @@ export const DEPARTMENTS = [
   'ETEEAP',
   'EXECUTIVE OFFICE',
   'VLE',
-  'EXTERNAL',
 ] as const;
 
-export const DEPARTMENT_SELECT_OPTIONS: UiSelectOption[] = DEPARTMENTS.map(department => ({
+export const DEPARTMENTS = ['EXTERNAL', ...INTERNAL_DEPARTMENTS] as const;
+
+export const DEPARTMENT_SELECT_OPTIONS: UiSelectOption[] = DEPARTMENTS.map((department) => ({
   value: department,
   label: department,
 }));
+
+export const EXTERNAL_DEPARTMENT = 'EXTERNAL';
+

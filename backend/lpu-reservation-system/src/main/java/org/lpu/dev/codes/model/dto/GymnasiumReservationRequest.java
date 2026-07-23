@@ -14,6 +14,7 @@ public class GymnasiumReservationRequest {
     private String additionalInstructions;
     private List<ReservedDateSlot> reservedDates;
     private List<RequestedEquipmentItem> requestedEquipment;
+    private String otpToken;
 
     // ── inner classes ──────────────────────────────────────────────────────
 
@@ -71,4 +72,7 @@ public class GymnasiumReservationRequest {
 
     public List<RequestedEquipmentItem> getRequestedEquipment() { return requestedEquipment; }
     public void setRequestedEquipment(List<RequestedEquipmentItem> requestedEquipment) { this.requestedEquipment = requestedEquipment; }
+
+    public String getOtpToken() { return otpToken; }
+    public void setOtpToken(String otpToken) { this.otpToken = otpToken; }
 }

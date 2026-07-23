@@ -190,6 +190,8 @@ ALTER TABLE gymnasium_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS additional_remarks TEXT;
+ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS school VARCHAR(20);
+ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS requested_vehicle_type VARCHAR(150);
 
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
     id              BIGSERIAL PRIMARY KEY,
@@ -218,3 +220,14 @@ CREATE INDEX IF NOT EXISTS idx_gymnasium_reservations_created_at
 
 CREATE INDEX IF NOT EXISTS idx_van_reservations_created_at
     ON van_reservations (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS allowed_reservation_emails (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50)
+);
+
+CREATE INDEX IF NOT EXISTS idx_allowed_reservation_emails_status
+    ON allowed_reservation_emails (status);

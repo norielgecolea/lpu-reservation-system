@@ -23,6 +23,7 @@ import {
 } from './van-reservations.models';
 import { VanReservationsService } from './van-reservations.service';
 import { ReservationRealtimeService, ReservationWsEvent } from '../reservation-realtime.service';
+import { ReservationAlertService } from '../reservation-alert.service';
 import { applyRevertedIds, applyReservationWsEvent } from '../reservation-ws.util';
 import { ReservationExportModal } from '../reservation-export-modal';
 import { exportVanReservationsCsv, ExportDateRange } from '../reservation-export.util';
@@ -132,7 +133,7 @@ interface ConfirmState {
                         [class.text-orange-700]="row.status === 'CONFLICT'"
                       >{{ row.status }}</span>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2 truncate">{{ row.department }} · {{ row.organization }}</p>
+                    <p class="text-xs text-gray-500 mt-2 truncate">{{ row.school || 'LPU-L' }} · {{ row.department }} · {{ row.organization }}</p>
                     <p class="text-[11px] text-gray-400 mt-1">{{ formatDate(row.createdAt) }}</p>
                     @if (row.additionalRemarks) {
                       <p class="mt-1 text-[10px] italic text-amber-600 truncate" [title]="row.additionalRemarks">📝 {{ row.additionalRemarks }}</p>
@@ -228,7 +229,7 @@ interface ConfirmState {
                   </td>
 
                   <td class="px-4 py-3 hidden md:table-cell max-w-[160px]">
-                    <p class="text-xs font-medium text-gray-700 truncate">{{ row.department }}</p>
+                    <p class="text-xs font-medium text-gray-700 truncate">{{ row.school || 'LPU-L' }} · {{ row.department }}</p>
                     <p class="text-xs text-gray-400 truncate">{{ row.organization }}</p>
                   </td>
 
@@ -460,7 +461,9 @@ export class VanReservations implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly realtime = inject(ReservationRealtimeService);
+  private readonly alerts = inject(ReservationAlertService);
   private wsSub?: Subscription;
+  private pollSub?: Subscription;
 
   protected readonly addReservationPath = adminAddReservationPath('van', this.router.url);
 
@@ -563,6 +566,7 @@ export class VanReservations implements OnInit, OnDestroy {
     this.load();
     this.realtime.ensureConnected();
     this.wsSub = this.realtime.vanUpdates$.subscribe(ev => this.handleWsEvent(ev));
+    this.pollSub = this.realtime.refreshTicks$.subscribe(() => this.load({ quiet: true }));
   }
 
   private applyDashboardQueryParams(): void {
@@ -577,6 +581,7 @@ export class VanReservations implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.wsSub?.unsubscribe();
+    this.pollSub?.unsubscribe();
   }
 
   onMonthChange(month: string): void {
@@ -584,13 +589,15 @@ export class VanReservations implements OnInit, OnDestroy {
     this.load();
   }
 
-  load(): void {
-    this.loading.set(true);
+  load(opts?: { quiet?: boolean }): void {
+    if (!opts?.quiet) this.loading.set(true);
     this.apiError.set(false);
     this.svc.getAll({ month: this.activeMonth() }).subscribe({
       next: (res) => {
         if (res.success) {
-          this.reservations.set(res.reservations ?? []);
+          const rows = res.reservations ?? [];
+          this.reservations.set(rows);
+          this.alerts.watchPending('VAN', rows);
         } else {
           this.apiError.set(true);
         }
@@ -755,7 +762,7 @@ export class VanReservations implements OnInit, OnDestroy {
   handleWsEvent(ev: ReservationWsEvent): void {
     const { updated, needsReload } = applyReservationWsEvent(this.reservations(), ev);
     if (needsReload) {
-      this.load();
+      this.load({ quiet: true });
       return;
     }
     this.reservations.set(updated);

@@ -244,7 +244,7 @@ import {
           }
         </div>
 
-        @if (event().facility === 'VAN' && event().status === 'APPROVED' && event().eventKind !== 'maintenance') {
+        @if ((event().facility === 'VAN' || event().facility === 'Gymnasium') && event().status === 'APPROVED' && event().eventKind !== 'maintenance') {
           <div class="shrink-0 flex justify-end gap-2 border-t border-gray-100 p-4">
             <button
               type="button"

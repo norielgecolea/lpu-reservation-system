@@ -13,7 +13,8 @@ import {
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButton, UiInput, UiLabel, UiIcon, UiSelect } from '../../../shared/ui';
-import { DEPARTMENT_SELECT_OPTIONS } from '../../../shared/constants/department-options';
+import { DEPARTMENT_SELECT_OPTIONS, EXTERNAL_DEPARTMENT } from '../../../shared/constants/department-options';
+import { ExternalEventNoticeBanner } from '../../../shared/components/external-event-notice-banner';
 import {
   FLT_EVENT_TYPES,
   FLT_ROOM_TYPES,
@@ -23,11 +24,12 @@ import {
 } from './flt-reservation.models';
 import { FltReservationService } from './flt-reservation.service';
 import { ReservationSubmittedModal } from '../reservation-submitted-modal';
+import { ReservationOtpModal } from '../reservation-otp-modal';
 import { formatTime12 } from '../../../shared/utils/datetime.util';
 
 @Component({
   selector: 'app-flt-stepper',
-  imports: [ReactiveFormsModule, RouterLink, UiButton, UiInput, UiLabel, UiIcon, UiSelect, ReservationSubmittedModal],
+  imports: [ReactiveFormsModule, RouterLink, UiButton, UiInput, UiLabel, UiIcon, UiSelect, ReservationSubmittedModal, ReservationOtpModal, ExternalEventNoticeBanner],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'flex flex-col',
@@ -384,6 +386,10 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
             </div>
           </div>
 
+          @if (detailsForm.get('department')?.value === externalDepartment) {
+            <app-external-event-notice-banner />
+          }
+
           <!-- Terms & Conditions agreement -->
           <label
             class="flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors select-none"
@@ -422,6 +428,15 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
           message="Your FLT Theater reservation request has been sent. You will be notified once it's confirmed."
           [returnPath]="returnPath"
           [returnLabel]="returnLabel"
+        />
+      }
+
+      @if (otpOpen()) {
+        <app-reservation-otp-modal
+          [email]="otpEmail()"
+          [contactPerson]="otpContactPerson()"
+          (verified)="onOtpVerified($event)"
+          (cancelled)="onOtpCancelled()"
         />
       }
     </div>
@@ -498,11 +513,15 @@ export class FltStepper implements OnChanges {
   readonly eventTypes = FLT_EVENT_TYPES;
   readonly roomTypes = FLT_ROOM_TYPES;
   readonly departmentOptions = DEPARTMENT_SELECT_OPTIONS;
+  readonly externalDepartment = EXTERNAL_DEPARTMENT;
 
   readonly currentStep = signal(1);
   readonly submitted = signal(false);
   readonly submitting = signal(false);
   readonly submitError = signal('');
+  readonly otpOpen = signal(false);
+  readonly otpEmail = signal('');
+  readonly otpContactPerson = signal('');
   readonly termsAccepted = signal(false);
 
   readonly dateSlots = signal<ReservedDateSlot[]>([]);
@@ -632,6 +651,31 @@ export class FltStepper implements OnChanges {
     this.contactForm.markAllAsTouched();
     if (!this.canSubmit()) return;
 
+    this.submitError.set('');
+    const email = this.contactForm.value.contactEmail!.trim().toLowerCase();
+    const contactPerson = this.contactForm.value.contactPerson!;
+
+    if (this.adminMode) {
+      this.submitReservation(undefined);
+      return;
+    }
+
+    this.otpEmail.set(email);
+    this.otpContactPerson.set(contactPerson);
+    this.otpOpen.set(true);
+  }
+
+  onOtpVerified(otpToken: string): void {
+    this.otpOpen.set(false);
+    this.submitReservation(otpToken);
+  }
+
+  onOtpCancelled(): void {
+    this.otpOpen.set(false);
+    this.submitting.set(false);
+  }
+
+  private submitReservation(otpToken?: string): void {
     this.submitting.set(true);
     this.submitError.set('');
 
@@ -644,10 +688,11 @@ export class FltStepper implements OnChanges {
       organization: this.detailsForm.value.organization!,
       additionalInstructions: this.detailsForm.value.additionalInstructions || undefined,
       contactPerson: this.contactForm.value.contactPerson!,
-      contactEmail: this.contactForm.value.contactEmail!,
+      contactEmail: this.contactForm.value.contactEmail!.trim().toLowerCase(),
       contactNumber: this.contactForm.value.contactNumber!,
       reservedDates: this.dateSlots(),
       requestedEquipment: this.selectedEquipment().map(e => ({ id: e.id, name: e.name })),
+      otpToken,
     };
 
     this.reservationService.submitReservation(payload).subscribe({

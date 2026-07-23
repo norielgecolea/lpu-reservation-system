@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { SlicePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 
 import { UiIcon, UiSegmented, UiDateSelector, UiSelect } from '../../../shared/ui';
 import type { UiSelectOption } from '../../../shared/ui';
@@ -23,6 +23,8 @@ import { GymReservationsService } from '../../admin/reservations/gymnasium/gymna
 import { GymReservationRecord } from '../../admin/reservations/gymnasium/gymnasium-reservations.models';
 import { VanReservationsService } from '../../admin/reservations/van/van-reservations.service';
 import { VanReservationRow } from '../../admin/reservations/van/van-reservations.models';
+import { ReservationRealtimeService } from '../../admin/reservations/reservation-realtime.service';
+import { ReservationAlertService } from '../../admin/reservations/reservation-alert.service';
 import { DashboardEventSummaryModal } from '../../admin/dashboard/dashboard-event-summary-modal';
 import { DashboardAnalyticsSection } from '../../admin/dashboard/dashboard-analytics-section';
 import {
@@ -48,6 +50,7 @@ import {
 } from '../../admin/dashboard/dashboard-events.util';
 import { observePanelHeight } from '../../admin/dashboard/dashboard-calendar-layout.util';
 import { downloadVanReservationFormFromEvent } from '../../admin/reservations/van/van-reservation-form-export.util';
+import { downloadGymnasiumReservationFormFromEvent } from '../../admin/reservations/gymnasium/gymnasium-reservation-form-export.util';
 
 interface StatCard {
   label: string;
@@ -82,6 +85,10 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   private readonly gymSvc = inject(GymReservationsService);
   private readonly vanSvc = inject(VanReservationsService);
   private readonly maintSvc = inject(MaintenanceService);
+  private readonly realtime = inject(ReservationRealtimeService);
+  private readonly alerts = inject(ReservationAlertService);
+  private wsSub?: Subscription;
+  private pollSub?: Subscription;
 
   protected readonly loading = signal(true);
   protected readonly fltReservations = signal<FltReservationRecord[]>([]);
@@ -155,7 +162,7 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
     ];
 
     return kinds.map(({ kind, label, value, icon }) => {
-      const route = dashboardApproverRoute(facility, kind, month, true);
+      const route = dashboardApproverRoute(facility, kind, month, 'facilities');
       return {
         label,
         value,
@@ -206,6 +213,8 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.wsSub?.unsubscribe();
+    this.pollSub?.unsubscribe();
     this.disconnectCalendarHeightObserver?.();
   }
 
@@ -248,9 +257,12 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected async printVanForm(event: DashboardEvent): Promise<void> {
-    if (event.facility !== 'VAN') return;
     try {
-      await downloadVanReservationFormFromEvent(event);
+      if (event.facility === 'VAN') {
+        await downloadVanReservationFormFromEvent(event);
+      } else if (event.facility === 'Gymnasium') {
+        await downloadGymnasiumReservationFormFromEvent(event);
+      }
     } catch {
       // ignore — user can retry from approver page
     }
@@ -258,10 +270,13 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadDashboardData();
+    this.realtime.ensureConnected();
+    this.wsSub = this.realtime.anyUpdates$.subscribe(() => this.loadDashboardData({ quiet: true }));
+    this.pollSub = this.realtime.refreshTicks$.subscribe(() => this.loadDashboardData({ quiet: true }));
   }
 
-  private loadDashboardData(): void {
-    this.loading.set(true);
+  private loadDashboardData(opts?: { quiet?: boolean }): void {
+    if (!opts?.quiet) this.loading.set(true);
     const month = this.activeDate();
     forkJoin({
       flt: this.fltSvc.getAll({ month }),
@@ -271,11 +286,17 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
       gymMaint: this.maintSvc.getBlocks('GYMNASIUM'),
     }).subscribe({
       next: ({ flt, gym, van, fltMaint, gymMaint }) => {
-        this.fltReservations.set(flt.reservations ?? []);
-        this.gymReservations.set(gym.reservations ?? []);
-        this.vanReservations.set(van.reservations ?? []);
+        const fltRows = flt.reservations ?? [];
+        const gymRows = gym.reservations ?? [];
+        const vanRows = van.reservations ?? [];
+        this.fltReservations.set(fltRows);
+        this.gymReservations.set(gymRows);
+        this.vanReservations.set(vanRows);
         this.fltMaintenance.set(fltMaint.blocks ?? []);
         this.gymMaintenance.set(gymMaint.blocks ?? []);
+        this.alerts.watchPending('FLT', fltRows);
+        this.alerts.watchPending('GYMNASIUM', gymRows);
+        this.alerts.watchPending('VAN', vanRows);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

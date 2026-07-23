@@ -15,6 +15,9 @@ public class VanReservationRequest {
     private String contactNumber;
     private List<ReservedDateSlot> reservedDates;
     private String additionalRemarks;
+    private String school;
+    private String requestedVehicleType;
+    private String otpToken;
 
     public static class ReservedDateSlot {
         private String date;
@@ -61,4 +64,13 @@ public class VanReservationRequest {
 
     public String getAdditionalRemarks() { return additionalRemarks; }
     public void setAdditionalRemarks(String additionalRemarks) { this.additionalRemarks = additionalRemarks; }
+
+    public String getSchool() { return school; }
+    public void setSchool(String school) { this.school = school; }
+
+    public String getRequestedVehicleType() { return requestedVehicleType; }
+    public void setRequestedVehicleType(String requestedVehicleType) { this.requestedVehicleType = requestedVehicleType; }
+
+    public String getOtpToken() { return otpToken; }
+    public void setOtpToken(String otpToken) { this.otpToken = otpToken; }
 }

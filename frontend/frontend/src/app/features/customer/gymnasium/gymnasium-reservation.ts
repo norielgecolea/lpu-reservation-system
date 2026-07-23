@@ -12,6 +12,7 @@ import { RouterLink } from '@angular/router';
 import { UiIcon } from '../../../shared/ui';
 import { GymnasiumStepper } from './gymnasium-stepper';
 import { GymReservationService } from './gymnasium-reservation.service';
+import { ExternalEventNoticeStep } from '../../../shared/components/external-event-notice-step';
 import { GymApprovedEvent, GymEquipmentItem, ReservedDateSlot, TIME_SLOTS } from './gymnasium-reservation.models';
 import { MaintenanceBlock, MaintenanceService } from '../../admin/maintenance/maintenance.service';
 import {
@@ -20,7 +21,7 @@ import {
   getMinBookableDateStr,
 } from '../reservation-advance.util';
 
-type View = 'calendar' | 'timeslots' | 'form';
+type View = 'calendar' | 'timeslots' | 'notice' | 'form';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -34,7 +35,7 @@ interface CalendarCell {
 
 @Component({
   selector: 'app-gymnasium-reservation',
-  imports: [RouterLink, UiIcon, GymnasiumStepper],
+  imports: [RouterLink, UiIcon, GymnasiumStepper, ExternalEventNoticeStep],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'flex flex-col',
@@ -419,7 +420,16 @@ interface CalendarCell {
       </div>
     }
 
-    <!-- ─── VIEW 3: Stepper Form ─── -->
+    <!-- ─── VIEW 3: External event notice ─── -->
+    @if (view() === 'notice') {
+      <app-external-event-notice-step
+        facilityTitle="Gymnasium"
+        (back)="view.set('calendar')"
+        (continued)="proceedToForm()"
+      />
+    }
+
+    <!-- ─── VIEW 4: Stepper Form ─── -->
     @if (view() === 'form') {
       <div
         class="flex flex-col"
@@ -712,6 +722,14 @@ export class GymnasiumReservation implements OnInit {
   }
 
   goToForm(): void {
+    if (this.adminMode()) {
+      this.view.set('form');
+      return;
+    }
+    this.view.set('notice');
+  }
+
+  proceedToForm(): void {
     this.view.set('form');
   }
 

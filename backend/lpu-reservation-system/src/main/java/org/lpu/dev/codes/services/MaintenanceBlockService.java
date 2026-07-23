@@ -26,6 +26,10 @@ public class MaintenanceBlockService {
             .collect(Collectors.toList());
     }
 
+    public MaintenanceBlockDto findDtoById(Long id) {
+        return repo.findById(id).map(this::toDto).orElse(null);
+    }
+
     @Transactional
     public MaintenanceBlockDto create(String facilityType, String blockDate, String startTime, String endTime,
             String reason, String performedBy) {

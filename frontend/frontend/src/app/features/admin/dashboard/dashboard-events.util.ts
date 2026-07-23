@@ -277,11 +277,12 @@ export function dashboardApproverRoute(
   service: DashboardService,
   kind: DashboardStatKind,
   month: string,
-  facilitiesContext = false,
+  context: 'admin' | 'facilities' | 'flt-tech' = 'admin',
 ): { routerLink: string; queryParams: { status: string; month: string } } | null {
   const slug = SERVICE_APPROVER_SLUG[service];
   if (!slug || !isServiceImplemented(service)) return null;
-  const prefix = facilitiesContext ? '/facilities' : '';
+  const prefix =
+    context === 'facilities' ? '/facilities' : context === 'flt-tech' ? '/flt-tech' : '';
   return {
     routerLink: `${prefix}/reservation/${slug}`,
     queryParams: {

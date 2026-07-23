@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { filter } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { isFacilitiesAdmin, isFltTech, isSuperAdmin } from '../../../core/auth/roles';
 import { AccountProfileModal } from '../account-profile-modal';
 import { UiIcon } from '../../ui';
 
@@ -35,6 +36,7 @@ export class SideNav implements OnInit {
   private static readonly SUPERADMIN_NAV: NavItem[] = [
     { label: 'Dashboard',   icon: 'grid_view',       link: '/dashboard' },
     { label: 'Users',       icon: 'group',           link: '/users' },
+    { label: 'Allowed Emails', icon: 'mail',         link: '/allowed-emails' },
     { label: 'Equipments',  icon: 'inventory_2',     link: '/equipments' },
     { label: 'Vehicles',    icon: 'directions_car',  link: '/vehicles' },
     { label: 'Drivers',     icon: 'badge',           link: '/drivers' },
@@ -74,12 +76,20 @@ export class SideNav implements OnInit {
     },
   ];
 
+  private static readonly FLT_TECH_NAV: NavItem[] = [
+    { label: 'Dashboard', icon: 'grid_view', link: '/flt-tech/dashboard' },
+    { label: 'FLT Theater', icon: 'theaters', link: '/flt-tech/reservation/flt' },
+  ];
+
   protected readonly nav = computed<NavItem[]>(() => {
     const role = this.user()?.role;
-    if (role === 'FACILITIESADMIN') {
+    if (isFltTech(role)) {
+      return SideNav.FLT_TECH_NAV;
+    }
+    if (isFacilitiesAdmin(role)) {
       return SideNav.FACILITIES_NAV;
     }
-    if (role === 'SUPERADMIN') {
+    if (isSuperAdmin(role)) {
       return SideNav.SUPERADMIN_NAV;
     }
     return SideNav.SUPERADMIN_NAV;

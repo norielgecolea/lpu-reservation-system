@@ -11,9 +11,11 @@ import {
   signal,
 } from '@angular/core';
 import { SlicePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Subscription, forkJoin, of } from 'rxjs';
 
+import { AuthService } from '../../../core/auth/auth.service';
+import { isFltTech } from '../../../core/auth/roles';
 import { UiIcon, UiSegmented, UiDateSelector, UiSelect } from '../../../shared/ui';
 import type { UiSelectOption } from '../../../shared/ui';
 import { MaintenanceBlock, MaintenanceService } from '../maintenance/maintenance.service';
@@ -23,6 +25,8 @@ import { GymReservationsService } from '../reservations/gymnasium/gymnasium-rese
 import { GymReservationRecord } from '../reservations/gymnasium/gymnasium-reservations.models';
 import { VanReservationsService } from '../reservations/van/van-reservations.service';
 import { VanReservationRow } from '../reservations/van/van-reservations.models';
+import { ReservationRealtimeService } from '../reservations/reservation-realtime.service';
+import { ReservationAlertService } from '../reservations/reservation-alert.service';
 import { DashboardEventSummaryModal } from './dashboard-event-summary-modal';
 import { DashboardAnalyticsSection } from './dashboard-analytics-section';
 import {
@@ -48,6 +52,7 @@ import {
 } from './dashboard-events.util';
 import { observePanelHeight } from './dashboard-calendar-layout.util';
 import { downloadVanReservationFormFromEvent } from '../reservations/van/van-reservation-form-export.util';
+import { downloadGymnasiumReservationFormFromEvent } from '../reservations/gymnasium/gymnasium-reservation-form-export.util';
 
 interface StatCard {
   label: string;
@@ -82,6 +87,18 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   private readonly gymSvc = inject(GymReservationsService);
   private readonly vanSvc = inject(VanReservationsService);
   private readonly maintSvc = inject(MaintenanceService);
+  private readonly realtime = inject(ReservationRealtimeService);
+  private readonly alerts = inject(ReservationAlertService);
+  private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+  private wsSub?: Subscription;
+  private pollSub?: Subscription;
+
+  /** FLT Tech shell: FLT calendar only, links into /flt-tech approver. */
+  protected readonly fltTechMode = computed(
+    () =>
+      !!this.route.snapshot.data['fltTechContext'] || isFltTech(this.auth.user()?.role),
+  );
 
   protected readonly loading = signal(true);
   protected readonly fltReservations = signal<FltReservationRecord[]>([]);
@@ -147,6 +164,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     const service = this.activeService();
     const stats = reservationStats(this.activeRecords());
     const month = this.activeDate();
+    const context = this.fltTechMode() ? 'flt-tech' : 'admin';
     const kinds: Array<{ kind: DashboardStatKind; label: string; value: number; icon: string }> = [
       { kind: 'total', label: `${service} – Total`, value: stats.total, icon: 'monitoring' },
       { kind: 'pending', label: `${service} – Pending`, value: stats.pending, icon: 'pending_actions' },
@@ -155,7 +173,13 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     ];
 
     return kinds.map(({ kind, label, value, icon }) => {
-      const route = dashboardApproverRoute(service, kind, month, false);
+      // FLT Tech can see pending counts but cannot open the pending queue.
+      const clickable = !(this.fltTechMode() && kind === 'pending');
+      const routeKind =
+        kind === 'total' && this.fltTechMode() ? 'approved' : kind;
+      const route = clickable
+        ? dashboardApproverRoute(service, routeKind, month, context)
+        : null;
       return {
         label,
         value,
@@ -206,6 +230,8 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.wsSub?.unsubscribe();
+    this.pollSub?.unsubscribe();
     this.disconnectCalendarHeightObserver?.();
   }
 
@@ -226,6 +252,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected selectService(value: DashboardService): void {
+    if (this.fltTechMode()) return;
     if (!value) return;
     this.activeService.set(value);
   }
@@ -248,34 +275,52 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected async printVanForm(event: DashboardEvent): Promise<void> {
-    if (event.facility !== 'VAN') return;
     try {
-      await downloadVanReservationFormFromEvent(event);
+      if (event.facility === 'VAN') {
+        await downloadVanReservationFormFromEvent(event);
+      } else if (event.facility === 'Gymnasium') {
+        await downloadGymnasiumReservationFormFromEvent(event);
+      }
     } catch {
       // no toast on dashboard — modal close is enough
     }
   }
 
   ngOnInit(): void {
+    if (this.fltTechMode()) {
+      this.activeService.set('FLT');
+    }
     this.loadDashboardData();
+    this.realtime.ensureConnected();
+    this.wsSub = this.realtime.anyUpdates$.subscribe(() => this.loadDashboardData({ quiet: true }));
+    this.pollSub = this.realtime.refreshTicks$.subscribe(() => this.loadDashboardData({ quiet: true }));
   }
 
-  private loadDashboardData(): void {
-    this.loading.set(true);
+  private loadDashboardData(opts?: { quiet?: boolean }): void {
+    if (!opts?.quiet) this.loading.set(true);
     const month = this.activeDate();
+    const fltOnly = this.fltTechMode();
     forkJoin({
       flt: this.fltSvc.getAll({ month }),
-      gym: this.gymSvc.getAll({ month }),
-      van: this.vanSvc.getAll({ month }),
+      gym: fltOnly ? of({ reservations: [] as GymReservationRecord[] }) : this.gymSvc.getAll({ month }),
+      van: fltOnly ? of({ reservations: [] as VanReservationRow[] }) : this.vanSvc.getAll({ month }),
       fltMaint: this.maintSvc.getBlocks('FLT'),
-      gymMaint: this.maintSvc.getBlocks('GYMNASIUM'),
+      gymMaint: fltOnly ? of({ blocks: [] as MaintenanceBlock[] }) : this.maintSvc.getBlocks('GYMNASIUM'),
     }).subscribe({
       next: ({ flt, gym, van, fltMaint, gymMaint }) => {
-        this.fltReservations.set(flt.reservations ?? []);
-        this.gymReservations.set(gym.reservations ?? []);
-        this.vanReservations.set(van.reservations ?? []);
+        const fltRows = flt.reservations ?? [];
+        const gymRows = gym.reservations ?? [];
+        const vanRows = van.reservations ?? [];
+        this.fltReservations.set(fltRows);
+        this.gymReservations.set(gymRows);
+        this.vanReservations.set(vanRows);
         this.fltMaintenance.set(fltMaint.blocks ?? []);
         this.gymMaintenance.set(gymMaint.blocks ?? []);
+        this.alerts.watchPending('FLT', fltRows);
+        if (!fltOnly) {
+          this.alerts.watchPending('GYMNASIUM', gymRows);
+          this.alerts.watchPending('VAN', vanRows);
+        }
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

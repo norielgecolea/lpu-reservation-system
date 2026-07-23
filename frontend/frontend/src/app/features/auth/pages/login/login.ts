@@ -12,6 +12,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../../core/auth/auth.service';
+import { homePathForRole } from '../../../../core/auth/roles';
 import { UiButton, UiCheckbox, UiIcon, UiInput, UiLabel } from '../../../../shared/ui';
 import { environment } from '../../../../../environments/environment';
 
@@ -69,7 +70,7 @@ export class Login implements OnDestroy {
   protected readonly form = this.fb.nonNullable.group({
     username: [this.auth.rememberedUsername() ?? '', [Validators.required]],
     password: ['', [Validators.required]],
-    remember: [!!this.auth.rememberedUsername()],
+    remember: [this.auth.rememberMePreferred()],
   });
 
   protected readonly forgotForm = this.fb.nonNullable.group({
@@ -121,26 +122,12 @@ export class Login implements OnDestroy {
           return;
         }
 
-        switch (res.role?.toUpperCase()) {
-          case 'SUPERADMIN':
-            this.router.navigateByUrl('/dashboard');
-            break;
-
-          case 'NEXUSADMIN':
-            this.router.navigateByUrl('/nexus/dashboard');
-            break;
-
-          case 'FACILITIESADMIN':
-            this.router.navigateByUrl('/facilities/dashboard');
-            break;
-
-          case 'EOADMIN':
-            this.router.navigateByUrl('/eo/dashboard');
-            break;
-
-          default:
-            this.error.set(`Unknown role: ${res.role}`);
+        const home = homePathForRole(res.role);
+        if (home === '/login') {
+          this.error.set(`Unknown role: ${res.role}`);
+          return;
         }
+        this.router.navigateByUrl(home);
       },
       error: (err) => {
         this.loading.set(false);

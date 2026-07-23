@@ -5,6 +5,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.GymnasiumReservation;
+import org.lpu.dev.codes.util.ExternalEventNoticeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -31,10 +32,15 @@ public class GymnasiumEmailService {
     @Async
     public void sendReservationConfirmation(GymnasiumReservation r) {
         String subject = "[LPU Laguna Gymnasium] Reservation Received — " + r.getEventTitle();
-        String body = buildBase("Reservation Received", "🎉 We've received your reservation request!", "#1d4ed8", r,
+        String messageHtml =
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>Your reservation is now <strong>pending review</strong> by the Gymnasium team. "
             + "We will notify you once it has been approved.</p>"
-            + "<p style='color:#374151;font-size:15px;margin:0;'>Please expect a response within <strong>3–5 business days</strong>.</p>", null);
+            + "<p style='color:#374151;font-size:15px;margin:0;'>Please expect a response within <strong>3–5 business days</strong>.</p>";
+        if (ExternalEventNoticeUtil.isExternalDepartment(r.getDepartment())) {
+            messageHtml += ExternalEventNoticeUtil.buildConfirmationNoticeHtml();
+        }
+        String body = buildBase("Reservation Received", "🎉 We've received your reservation request!", "#1d4ed8", r,
+            messageHtml, null);
         send(r.getContactEmail(), subject, body);
     }
 

@@ -74,7 +74,7 @@ public class AuthenticationService {
 			return response;
 		}
 
-		String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
+		String token = jwtUtil.generateToken(user.getUsername(), user.getRole(), request.isRememberMe());
 
 		response.setToken(token);
 		response.setUsername(user.getUsername());

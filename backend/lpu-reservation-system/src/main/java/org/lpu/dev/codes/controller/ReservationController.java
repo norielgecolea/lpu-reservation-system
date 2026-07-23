@@ -10,11 +10,13 @@ import org.lpu.dev.codes.model.dto.FltApprovedEventDto;
 import org.lpu.dev.codes.model.dto.FltReservationRequest;
 import org.lpu.dev.codes.model.dto.PopulateEquipmentList;
 import org.lpu.dev.codes.services.FltReservationService;
+import org.lpu.dev.codes.services.ReservationOtpService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,6 +29,9 @@ public class ReservationController {
 
     @Autowired
     private FltReservationService fltReservationService;
+
+    @Autowired
+    private ReservationOtpService reservationOtpService;
 
     @GetMapping("/equipment")
     public FltReservationResponse getFltEquipment() {
@@ -77,9 +82,16 @@ public class ReservationController {
     }
 
     @PostMapping("/reserve")
-    public EquipmentResponse submitReservation(@RequestBody FltReservationRequest request) {
+    public EquipmentResponse submitReservation(
+            @RequestBody FltReservationRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         EquipmentResponse res = new EquipmentResponse();
         try {
+            if (!reservationOtpService.requireOtpOrStaff(authHeader, request.getOtpToken(), request.getContactEmail())) {
+                res.setSuccess(false);
+                res.setMessage("Email verification required. Please verify the code sent to your contact email.");
+                return res;
+            }
             boolean created = fltReservationService.createReservation(request);
             res.setSuccess(created);
             res.setMessage(created ? "Reservation submitted successfully" : "Failed to submit reservation");

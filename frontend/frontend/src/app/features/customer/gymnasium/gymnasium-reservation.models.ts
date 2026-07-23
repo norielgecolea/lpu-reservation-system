@@ -29,6 +29,7 @@ export interface GymReservationPayload {
   contactNumber: string;
   reservedDates: ReservedDateSlot[];
   requestedEquipment: { id: number; name: string }[];
+  otpToken?: string;
 }
 
 export interface GymReservationApiResponse {

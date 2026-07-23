@@ -179,6 +179,28 @@ public class SuperAdminUserService {
 				return response;
 			}
 
+			if (user.getEmployeeId() != null && !user.getEmployeeId().isBlank()) {
+				Users existingEmp = userRepository.findByEmployeeId(user.getEmployeeId().trim());
+				if (existingEmp != null) {
+					logger.info("Employee ID already exists: {}", user.getEmployeeId());
+					response.setSuccess(false);
+					response.setMessage("Employee ID already exists");
+					return response;
+				}
+			}
+
+			if (user.getEmail() != null && !user.getEmail().isBlank()) {
+				String email = user.getEmail().trim().toLowerCase();
+				user.setEmail(email);
+				Users existingEmail = userRepository.findByEmail(email);
+				if (existingEmail != null) {
+					logger.info("Email already exists: {}", email);
+					response.setSuccess(false);
+					response.setMessage("Email already exists");
+					return response;
+				}
+			}
+
 			// Hash password
 			user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
 
@@ -208,7 +230,7 @@ public class SuperAdminUserService {
 
 			response.setSuccess(false);
 			logger.error(String.format("Failed to create account %s", e.getMessage()));
-			response.setMessage("Failed to create account: " + e.getMessage());
+			response.setMessage(friendlyCreateAccountError(e));
 
 			return response;
 		}
@@ -375,6 +397,14 @@ public class SuperAdminUserService {
 				}
 			}
 
+			String newEmail = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
+			if (!newEmail.isEmpty() && userRepository.isEmailUsedByOther(user.getId(), newEmail)) {
+				logger.warn("Duplicate email found: {}", newEmail);
+				response.setSuccess(false);
+				response.setMessage("Email already exists");
+				return response;
+			}
+
 			logger.info("Updating user details...");
 
 			user.setUsername(request.getUsername());
@@ -383,7 +413,7 @@ public class SuperAdminUserService {
 
 			user.setFullname(request.getFullname().trim());
 
-			user.setEmail(request.getEmail().trim().toLowerCase());
+			user.setEmail(newEmail);
 
 			user.setRole(request.getRole());
 
@@ -459,5 +489,35 @@ public class SuperAdminUserService {
 			response.setMessage("Failed to reset password");
 			return response;
 		}
+	}
+
+	private static String friendlyCreateAccountError(Throwable e) {
+		String msg = rootMessage(e).toLowerCase();
+		if (msg.contains("email") || msg.contains("users_email") || msg.contains("(email)")) {
+			return "Email already exists";
+		}
+		if (msg.contains("username") || msg.contains("users_username") || msg.contains("(username)")) {
+			return "Username already exists";
+		}
+		if (msg.contains("employee_id") || msg.contains("users_employee") || msg.contains("(employee_id)")) {
+			return "Employee ID already exists";
+		}
+		if (msg.contains("duplicate") || msg.contains("unique") || msg.contains("constraint")) {
+			return "A user with the same details already exists";
+		}
+		return "Failed to create account";
+	}
+
+	private static String rootMessage(Throwable e) {
+		Throwable cur = e;
+		StringBuilder sb = new StringBuilder();
+		while (cur != null) {
+			if (cur.getMessage() != null) {
+				if (sb.length() > 0) sb.append(' ');
+				sb.append(cur.getMessage());
+			}
+			cur = cur.getCause();
+		}
+		return sb.toString();
 	}
 }

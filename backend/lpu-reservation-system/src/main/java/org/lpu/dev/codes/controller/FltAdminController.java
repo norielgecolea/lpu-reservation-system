@@ -103,6 +103,13 @@ public class FltAdminController {
             return ResponseEntity.status(403).body(res);
         }
 
+        String role = jwtService.getRole(token);
+        if (isFltTech(role) && !isFltTechStatusAllowed(status)) {
+            res.setSuccess(false);
+            res.setMessage("FLT Tech may only complete or cancel approved reservations");
+            return ResponseEntity.status(403).body(res);
+        }
+
         res = fltReservationService.updateStatus(id, status, jwtService.getUsername(token));
         if (!res.isSuccess() && res.getBlockedReason() != null) {
             return ResponseEntity.status(409).body(res);
@@ -166,8 +173,17 @@ public class FltAdminController {
         return ResponseEntity.ok(res);
     }
 
-    /** SUPERADMIN and FACILITIESADMIN may access all FLT scheduling endpoints. */
+    /** SUPERADMIN, FACILITIESADMIN, and FLTTECH may access FLT scheduling endpoints. */
     private boolean isAllowed(String role) {
-        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role);
+        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role) || "FLTTECH".equals(role);
+    }
+
+    private boolean isFltTech(String role) {
+        return "FLTTECH".equals(role);
+    }
+
+    /** FLT Tech cannot approve/reject pending requests — only post-approval workflow. */
+    private boolean isFltTechStatusAllowed(String status) {
+        return "COMPLETED".equals(status) || "CANCELLED".equals(status);
     }
 }

@@ -28,6 +28,7 @@ import {
 } from './gymnasium-reservations.models';
 import { GymReservationsService } from './gymnasium-reservations.service';
 import { ReservationRealtimeService, ReservationWsEvent } from '../reservation-realtime.service';
+import { ReservationAlertService } from '../reservation-alert.service';
 import { applyRevertedIds, applyReservationWsEvent } from '../reservation-ws.util';
 import { ReservationExportModal } from '../reservation-export-modal';
 import { exportGymReservationsCsv, ExportDateRange } from '../reservation-export.util';
@@ -35,6 +36,7 @@ import { adminAddReservationPath } from '../admin-reservation-path.util';
 import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-menu';
 import { ReservationApproverTableSkeleton } from '../reservation-approver-table-skeleton';
 import { ReservationApproverMobileSkeleton } from '../reservation-approver-mobile-skeleton';
+import { downloadGymnasiumReservationForm } from './gymnasium-reservation-form-export.util';
 
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -204,6 +206,15 @@ interface ConfirmState {
                         (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
+                        <button
+                          type="button"
+                          (click)="printForm(row)"
+                          [disabled]="acting() === row.id"
+                          class="flex items-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ui-icon name="download" class="text-sm" />
+                          <span class="hidden sm:inline">Download Form</span>
+                        </button>
                         <button
                           type="button"
                           (click)="openCoordination(row)"
@@ -389,6 +400,11 @@ interface ConfirmState {
                         (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
+                        <button type="button" (click)="printForm(row)" [disabled]="acting() === row.id"
+                          class="flex items-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                          <ui-icon name="download" class="text-sm" />
+                          <span class="hidden sm:inline">Download Form</span>
+                        </button>
                         <button type="button" (click)="openCoordination(row)" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           [title]="row.coordinationDate ? 'Update coordination: ' + row.coordinationDate : 'Set coordination meeting'">
@@ -425,7 +441,7 @@ interface ConfirmState {
       </section>
 
       @if (detailsSummaryEvent(); as event) {
-        <app-dashboard-event-summary-modal [event]="event" (closed)="closeDetails()" />
+        <app-dashboard-event-summary-modal [event]="event" (closed)="closeDetails()" (printForm)="printFormFromDetails()" />
       }
 
       <!-- Confirmation Dialog -->
@@ -537,7 +553,9 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly maintSvc = inject(MaintenanceService);
   private readonly realtime = inject(ReservationRealtimeService);
+  private readonly alerts = inject(ReservationAlertService);
   private wsSub?: Subscription;
+  private pollSub?: Subscription;
 
   protected readonly addReservationPath = adminAddReservationPath('gymnasium', this.router.url);
 
@@ -704,6 +722,7 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
     this.loadMaintenance();
     this.realtime.ensureConnected();
     this.wsSub = this.realtime.gymUpdates$.subscribe(ev => this.handleWsEvent(ev));
+    this.pollSub = this.realtime.refreshTicks$.subscribe(() => this.load({ quiet: true }));
   }
 
   private applyDashboardQueryParams(): void {
@@ -718,6 +737,7 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.wsSub?.unsubscribe();
+    this.pollSub?.unsubscribe();
   }
 
   onMonthChange(month: string): void {
@@ -725,13 +745,15 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
     this.load();
   }
 
-  load(): void {
-    this.loading.set(true);
+  load(opts?: { quiet?: boolean }): void {
+    if (!opts?.quiet) this.loading.set(true);
     this.apiError.set(false);
     this.svc.getAll({ month: this.activeMonth() }).subscribe({
       next: (res) => {
         if (res.success) {
-          this.reservations.set(res.reservations ?? []);
+          const rows = res.reservations ?? [];
+          this.reservations.set(rows);
+          this.alerts.watchPending('GYMNASIUM', rows);
         } else {
           this.apiError.set(true);
         }
@@ -763,6 +785,19 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
 
   openDetails(row: GymReservationRecord): void { this.detailsTarget.set(row); }
   closeDetails(): void { this.detailsTarget.set(null); }
+
+  async printForm(row: GymReservationRecord): Promise<void> {
+    try {
+      await downloadGymnasiumReservationForm(row);
+    } catch {
+      this.toast.set('Failed to generate the facilities reservation form. Please try again.');
+    }
+  }
+
+  printFormFromDetails(): void {
+    const row = this.detailsTarget();
+    if (row) void this.printForm(row);
+  }
 
   executeAction(): void {
     const state = this.confirm();
@@ -909,7 +944,7 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
   handleWsEvent(ev: ReservationWsEvent): void {
     const { updated, needsReload } = applyReservationWsEvent(this.reservations(), ev);
     if (needsReload) {
-      this.load();
+      this.load({ quiet: true });
       return;
     }
     this.reservations.set(updated);

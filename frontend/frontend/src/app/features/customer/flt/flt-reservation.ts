@@ -12,6 +12,7 @@ import { RouterLink } from '@angular/router';
 import { UiIcon } from '../../../shared/ui';
 import { FltStepper } from './flt-stepper';
 import { FltReservationService } from './flt-reservation.service';
+import { ExternalEventNoticeStep } from '../../../shared/components/external-event-notice-step';
 import { FltApprovedEvent, FltEquipmentItem, ReservedDateSlot, TIME_SLOTS } from './flt-reservation.models';
 import { MaintenanceBlock, MaintenanceService } from '../../admin/maintenance/maintenance.service';
 import {
@@ -20,7 +21,7 @@ import {
   getMinBookableDateStr,
 } from '../reservation-advance.util';
 
-type View = 'calendar' | 'timeslots' | 'form';
+type View = 'calendar' | 'timeslots' | 'notice' | 'form';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_PER_WEEK = 7;
@@ -35,7 +36,7 @@ interface CalendarCell {
 
 @Component({
   selector: 'app-flt-reservation',
-  imports: [RouterLink, UiIcon, FltStepper],
+  imports: [RouterLink, UiIcon, FltStepper, ExternalEventNoticeStep],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'flex flex-col',
@@ -463,7 +464,16 @@ interface CalendarCell {
       </div>
     }
 
-    <!-- ─── VIEW 3: Stepper Form ─── -->
+    <!-- ─── VIEW 3: External event notice ─── -->
+    @if (view() === 'notice') {
+      <app-external-event-notice-step
+        facilityTitle="FLT Theater"
+        (back)="view.set('calendar')"
+        (continued)="proceedToForm()"
+      />
+    }
+
+    <!-- ─── VIEW 4: Stepper Form ─── -->
     @if (view() === 'form') {
       <div
         class="flex flex-col"
@@ -774,6 +784,14 @@ export class FltReservation implements OnInit {
   }
 
   goToForm(): void {
+    if (this.adminMode()) {
+      this.view.set('form');
+      return;
+    }
+    this.view.set('notice');
+  }
+
+  proceedToForm(): void {
     this.view.set('form');
   }
 

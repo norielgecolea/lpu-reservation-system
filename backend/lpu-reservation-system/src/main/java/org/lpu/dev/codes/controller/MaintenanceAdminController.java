@@ -5,6 +5,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.apiresponse.MaintenanceBlockResponse;
+import org.lpu.dev.codes.model.dto.MaintenanceBlockDto;
 import org.lpu.dev.codes.services.AuthenticationService;
 import org.lpu.dev.codes.services.JWTService;
 import org.lpu.dev.codes.services.MaintenanceBlockService;
@@ -42,8 +43,12 @@ public class MaintenanceAdminController {
         if (!auth.userActive(jwtService.getUsername(token))) {
             res.setSuccess(false); res.setMessage("USER NOT ACTIVE!"); return ResponseEntity.ok(res);
         }
-        if (!isAllowed(jwtService.getRole(token))) {
+        String role = jwtService.getRole(token);
+        if (!isAllowed(role)) {
             res.setSuccess(false); res.setMessage("Access denied"); return ResponseEntity.ok(res);
+        }
+        if (isFltTech(role) && !isFltFacility(facility)) {
+            res.setSuccess(false); res.setMessage("FLT Tech may only access FLT maintenance"); return ResponseEntity.ok(res);
         }
         try {
             res.setSuccess(true);
@@ -65,7 +70,8 @@ public class MaintenanceAdminController {
         if (!auth.userActive(jwtService.getUsername(token))) {
             res.setSuccess(false); res.setMessage("USER NOT ACTIVE!"); return ResponseEntity.ok(res);
         }
-        if (!isAllowed(jwtService.getRole(token))) {
+        String role = jwtService.getRole(token);
+        if (!canMutate(role)) {
             res.setSuccess(false); res.setMessage("Access denied"); return ResponseEntity.ok(res);
         }
 
@@ -77,6 +83,10 @@ public class MaintenanceAdminController {
 
         if (facility == null || blockDate == null || startTime == null || endTime == null) {
             res.setSuccess(false); res.setMessage("facility, blockDate, startTime, endTime are required");
+            return ResponseEntity.ok(res);
+        }
+        if (isFltTech(role) && !isFltFacility(facility)) {
+            res.setSuccess(false); res.setMessage("FLT Tech may only schedule FLT maintenance");
             return ResponseEntity.ok(res);
         }
 
@@ -102,11 +112,22 @@ public class MaintenanceAdminController {
         if (!auth.userActive(jwtService.getUsername(token))) {
             res.setSuccess(false); res.setMessage("USER NOT ACTIVE!"); return ResponseEntity.ok(res);
         }
-        if (!isAllowed(jwtService.getRole(token))) {
+        String role = jwtService.getRole(token);
+        if (!canMutate(role)) {
             res.setSuccess(false); res.setMessage("Access denied"); return ResponseEntity.ok(res);
         }
 
         try {
+            if (isFltTech(role)) {
+                MaintenanceBlockDto existing = svc.findDtoById(id);
+                if (existing == null) {
+                    res.setSuccess(false); res.setMessage("Block not found"); return ResponseEntity.ok(res);
+                }
+                if (!isFltFacility(existing.getFacilityType())) {
+                    res.setSuccess(false); res.setMessage("FLT Tech may only manage FLT maintenance");
+                    return ResponseEntity.ok(res);
+                }
+            }
             boolean ok = svc.delete(id, jwtService.getUsername(token));
             res.setSuccess(ok);
             res.setMessage(ok ? "Block removed" : "Block not found");
@@ -118,6 +139,18 @@ public class MaintenanceAdminController {
     }
 
     private boolean isAllowed(String role) {
-        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role);
+        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role) || "FLTTECH".equals(role);
+    }
+
+    private boolean canMutate(String role) {
+        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role) || "FLTTECH".equals(role);
+    }
+
+    private boolean isFltTech(String role) {
+        return "FLTTECH".equals(role);
+    }
+
+    private boolean isFltFacility(String facility) {
+        return facility != null && "FLT".equalsIgnoreCase(facility.trim());
     }
 }

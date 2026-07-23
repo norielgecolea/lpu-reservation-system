@@ -4,10 +4,18 @@ import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core
 import { tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AuthResponse, AuthUser, LoginRequest, UpdateProfileRequest, ForgotPasswordRequest, ResetPasswordWithTokenRequest } from './auth.models';
+import {
+  AuthResponse,
+  AuthUser,
+  LoginRequest,
+  UpdateProfileRequest,
+  ForgotPasswordRequest,
+  ResetPasswordWithTokenRequest,
+} from './auth.models';
 
 const TOKEN_KEY = 'lpul_token';
 const USERNAME_KEY = 'lpul_remember_username';
+const REMEMBER_PREF_KEY = 'lpul_remember_me';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -19,9 +27,12 @@ export class AuthService {
   readonly user = signal<AuthUser | null>(null);
   readonly isAuthenticated = computed(() => this.token() !== null);
 
-  login(payload: LoginRequest, remember = true) {
+  login(payload: LoginRequest, remember = false) {
     return this.http
-      .post<AuthResponse>(`${this.base}/auth/login`, payload)
+      .post<AuthResponse>(`${this.base}/auth/login`, {
+        ...payload,
+        rememberMe: remember,
+      })
       .pipe(tap((res) => res.success && this.setSession(res, remember)));
   }
 
@@ -52,11 +63,17 @@ export class AuthService {
     if (this.isBrowser) {
       localStorage.removeItem(TOKEN_KEY);
       sessionStorage.removeItem(TOKEN_KEY);
+      // Keep remembered username / preference so the login form can prefill.
     }
   }
 
   rememberedUsername(): string | null {
     return this.isBrowser ? localStorage.getItem(USERNAME_KEY) : null;
+  }
+
+  rememberMePreferred(): boolean {
+    if (!this.isBrowser) return false;
+    return localStorage.getItem(REMEMBER_PREF_KEY) === '1';
   }
 
   private setSession(res: AuthResponse, remember: boolean) {
@@ -68,9 +85,12 @@ export class AuthService {
       localStorage.setItem(TOKEN_KEY, res.token);
       sessionStorage.removeItem(TOKEN_KEY);
       localStorage.setItem(USERNAME_KEY, res.username);
+      localStorage.setItem(REMEMBER_PREF_KEY, '1');
     } else {
       sessionStorage.setItem(TOKEN_KEY, res.token);
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USERNAME_KEY);
+      localStorage.removeItem(REMEMBER_PREF_KEY);
     }
   }
 

@@ -15,17 +15,28 @@ public class JWTUtil {
     private static final String SECRET =
             "mySecretKeyForLpuReservationSystem2026VeryLongSecret";
 
+    /** Default session: 2 hours. */
+    private static final long SESSION_TTL_MS = 2L * 60 * 60 * 1000;
+    /** Remember-me session: 30 days. */
+    private static final long REMEMBER_TTL_MS = 30L * 24 * 60 * 60 * 1000;
+
     private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
 
     // =========================
     // GENERATE TOKEN
     // =========================
     public String generateToken(String username, String role) {
+        return generateToken(username, role, false);
+    }
+
+    public String generateToken(String username, String role, boolean rememberMe) {
+        long ttl = rememberMe ? REMEMBER_TTL_MS : SESSION_TTL_MS;
         return Jwts.builder()
                 .setSubject(username)
                 .claim("role", role)
+                .claim("rememberMe", rememberMe)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 7200000)) // 2 hours
+                .setExpiration(new Date(System.currentTimeMillis() + ttl))
                 .signWith(key)
                 .compact();
     }

@@ -23,6 +23,8 @@ public class VanReservationAdminDto {
     private String approvedAt;
     private String approvedBy;
     private String additionalRemarks;
+    private String school;
+    private String requestedVehicleType;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -86,4 +88,10 @@ public class VanReservationAdminDto {
 
     public String getAdditionalRemarks() { return additionalRemarks; }
     public void setAdditionalRemarks(String additionalRemarks) { this.additionalRemarks = additionalRemarks; }
+
+    public String getSchool() { return school; }
+    public void setSchool(String school) { this.school = school; }
+
+    public String getRequestedVehicleType() { return requestedVehicleType; }
+    public void setRequestedVehicleType(String requestedVehicleType) { this.requestedVehicleType = requestedVehicleType; }
 }
