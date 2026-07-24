@@ -1,0 +1,132 @@
+{
+  "eventTitle": {
+    "page": 0,
+    "x": 180.1,
+    "y": 627.5,
+    "size": 11.0,
+    "labelY": 627.5,
+    "labelX": 108.1,
+    "matched": "Event Title:",
+    "context": " FormEvent Details:\uf0b7Event Title:\uf0b7Type of Event (Conference/Sem"
+  },
+  "eventType": {
+    "page": 0,
+    "x": 455.1,
+    "y": 603.5,
+    "size": 11.0,
+    "labelY": 603.5,
+    "labelX": 108.1,
+    "matched": "Other):",
+    "context": "orkshop/Performance/Other):\uf0b7Expected Number of Attendees:"
+  },
+  "expectedAttendees": {
+    "page": 0,
+    "x": 273.6,
+    "y": 579.4,
+    "size": 11.0,
+    "labelY": 579.4,
+    "labelX": 108.1,
+    "matched": "Attendees:",
+    "context": "\uf0b7Expected Number of Attendees:\uf0b7Event Date:\uf0b7Event Time (Start"
+  },
+  "eventDate": {
+    "page": 0,
+    "x": 174.6,
+    "y": 555.4,
+    "size": 11.0,
+    "labelY": 555.4,
+    "labelX": 108.1,
+    "matched": "Event Date:",
+    "context": "umber of Attendees:\uf0b7Event Date:\uf0b7Event Time (Start & End):\uf0b7Org"
+  },
+  "eventTime": {
+    "page": 0,
+    "x": 251.6,
+    "y": 531.3,
+    "size": 11.0,
+    "labelY": 531.3,
+    "labelX": 108.1,
+    "matched": "End):",
+    "context": "Event Time (Start & End):\uf0b7Organization/Department:\uf0b7Cont"
+  },
+  "organizationDept": {
+    "page": 0,
+    "x": 246.1,
+    "y": 507.2,
+    "size": 11.0,
+    "labelY": 507.2,
+    "labelX": 108.1,
+    "matched": "Department:",
+    "context": " End):\uf0b7Organization/Department:\uf0b7Contact Person:\uf0b7Contact Numbe"
+  },
+  "contactPerson": {
+    "page": 0,
+    "x": 196.6,
+    "y": 483.2,
+    "size": 11.0,
+    "labelY": 483.2,
+    "labelX": 108.1,
+    "matched": "Contact Person:",
+    "context": "ization/Department:\uf0b7Contact Person:\uf0b7Contact Number:\uf0b7Email Address"
+  },
+  "contactNumber": {
+    "page": 0,
+    "x": 196.6,
+    "y": 459.1,
+    "size": 11.0,
+    "labelY": 459.1,
+    "labelX": 108.1,
+    "matched": "Contact Number:",
+    "context": "nt:\uf0b7Contact Person:\uf0b7Contact Number:\uf0b7Email Address:Technology & Eq"
+  },
+  "contactEmail": {
+    "page": 0,
+    "x": 191.1,
+    "y": 435.1,
+    "size": 11.0,
+    "labelY": 435.1,
+    "labelX": 108.1,
+    "matched": "Email Address:",
+    "context": "on:\uf0b7Contact Number:\uf0b7Email Address:Technology & Equipment Require"
+  },
+  "equipment": {
+    "page": 0,
+    "x": 330.1,
+    "y": 355.4,
+    "size": 14.0,
+    "labelY": 355.4,
+    "labelX": 72.1,
+    "matched": "Requirements:",
+    "context": "hnology & Equipment Requirements:-Special Requests & Additional"
+  },
+  "additionalInstructions": {
+    "page": 0,
+    "x": 421.1,
+    "y": 250.1,
+    "size": 14.0,
+    "labelY": 250.1,
+    "labelX": 72.1,
+    "matched": "Setup Requirements:",
+    "context": "quests & Additional Setup Requirements:-Submission & Approval:\uf0b7This f"
+  },
+  "coordinationDate": {
+    "page": 2,
+    "x": 192.1,
+    "y": 555.9,
+    "size": 12.0,
+    "labelY": 555.9,
+    "labelX": 108.1,
+    "matched": "Meeting Date:",
+    "context": "nceMeeting Details:\uf0b7Meeting Date: _______________\uf0b7Meeting Time:"
+  },
+  "coordinationTime": {
+    "page": 2,
+    "x": 192.1,
+    "y": 539.5,
+    "size": 12.0,
+    "labelY": 539.5,
+    "labelX": 108.1,
+    "matched": "Meeting Time:",
+    "context": "te: _______________\uf0b7Meeting Time: _______________\uf0b7Venue/Locatio"
+  }
+}

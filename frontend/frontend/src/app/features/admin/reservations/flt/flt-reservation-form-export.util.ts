@@ -8,9 +8,9 @@ import {
 } from './flt-reservations.models';
 
 /**
- * Blank/official form PDF exported from public/flt-reservation-template.docx
- * (section-break cleanup for LibreOffice). Markers [[field]] are white-boxed
- * then overwritten with reservation values.
+ * Official FLT form PDF derived from:
+ *   Desktop/NEW Reservation Form QT.doc
+ * Markers / blanks are filled with reservation values via pdf-lib.
  */
 const TEMPLATE_URL = '/templates/FLT-Conference-Theater-Reservation-Form.pdf';
 
@@ -24,21 +24,23 @@ type FieldAnchor = {
   maxWidth: number;
 };
 
-/** pdf-lib coords (origin bottom-left), measured from DOCX→PDF markers. */
+/** pdf-lib coords (origin bottom-left) measured on the QT form PDF. */
 const FIELD: Record<string, FieldAnchor> = {
-  eventTitle: { page: 0, x: 172.1, y: 622.6, size: 11, whiteW: 320, whiteH: 14, maxWidth: 360 },
-  eventType: { page: 0, x: 108.1, y: 582.2, size: 11, whiteW: 420, whiteH: 14, maxWidth: 420 },
-  expectedAttendees: { page: 0, x: 285.5, y: 558.0, size: 11, whiteW: 200, whiteH: 14, maxWidth: 200 },
-  eventDate: { page: 0, x: 173.8, y: 533.8, size: 11, whiteW: 340, whiteH: 14, maxWidth: 340 },
-  eventTime: { page: 0, x: 246.4, y: 509.6, size: 11, whiteW: 280, whiteH: 14, maxWidth: 280 },
-  organizationDept: { page: 0, x: 257.4, y: 485.4, size: 11, whiteW: 280, whiteH: 14, maxWidth: 280 },
-  contactPerson: { page: 0, x: 197.7, y: 461.2, size: 11, whiteW: 320, whiteH: 14, maxWidth: 320 },
-  contactNumber: { page: 0, x: 205.1, y: 437.0, size: 11, whiteW: 300, whiteH: 14, maxWidth: 300 },
-  contactEmail: { page: 0, x: 190.9, y: 412.8, size: 11, whiteW: 320, whiteH: 14, maxWidth: 320 },
-  equipment: { page: 0, x: 72.1, y: 336.3, size: 11, whiteW: 460, whiteH: 40, maxWidth: 460 },
-  additionalInstructions: { page: 0, x: 72.1, y: 222.1, size: 11, whiteW: 460, whiteH: 50, maxWidth: 460 },
-  coordinationDate: { page: 2, x: 108.1, y: 529.2, size: 11, whiteW: 320, whiteH: 14, maxWidth: 320 },
-  coordinationTime: { page: 2, x: 108.1, y: 512.9, size: 11, whiteW: 320, whiteH: 14, maxWidth: 320 },
+  eventTitle: { page: 0, x: 180.1, y: 627.5, size: 10, whiteW: 340, whiteH: 13, maxWidth: 340 },
+  eventType: { page: 0, x: 455.1, y: 603.5, size: 9, whiteW: 130, whiteH: 13, maxWidth: 130 },
+  expectedAttendees: { page: 0, x: 273.6, y: 579.4, size: 10, whiteW: 240, whiteH: 13, maxWidth: 240 },
+  eventDate: { page: 0, x: 174.6, y: 555.4, size: 10, whiteW: 340, whiteH: 13, maxWidth: 340 },
+  eventTime: { page: 0, x: 251.6, y: 531.3, size: 10, whiteW: 280, whiteH: 13, maxWidth: 280 },
+  organizationDept: { page: 0, x: 246.1, y: 507.2, size: 10, whiteW: 280, whiteH: 13, maxWidth: 280 },
+  contactPerson: { page: 0, x: 196.6, y: 483.2, size: 10, whiteW: 320, whiteH: 13, maxWidth: 320 },
+  contactNumber: { page: 0, x: 196.6, y: 459.1, size: 10, whiteW: 320, whiteH: 13, maxWidth: 320 },
+  contactEmail: { page: 0, x: 191.1, y: 435.1, size: 10, whiteW: 320, whiteH: 13, maxWidth: 320 },
+  // Value lines under section headers (where the form shows "-")
+  equipment: { page: 0, x: 72.1, y: 335.1, size: 10, whiteW: 460, whiteH: 36, maxWidth: 460 },
+  additionalInstructions: { page: 0, x: 72.1, y: 221.7, size: 10, whiteW: 460, whiteH: 40, maxWidth: 460 },
+  // Drawn over the underline blanks on the coordination page
+  coordinationDate: { page: 2, x: 192.1, y: 555.9, size: 10, whiteW: 200, whiteH: 13, maxWidth: 200 },
+  coordinationTime: { page: 2, x: 192.1, y: 539.5, size: 10, whiteW: 200, whiteH: 13, maxWidth: 200 },
 };
 
 function parseDates(json: string): ReservedDateSlot[] {
@@ -68,14 +70,8 @@ function slugify(value: string): string {
   );
 }
 
-function drawField(
-  page: PDFPage,
-  font: PDFFont,
-  field: FieldAnchor,
-  text: string,
-): void {
+function drawField(page: PDFPage, font: PDFFont, field: FieldAnchor, text: string): void {
   const value = (text ?? '').trim();
-  // Cover [[marker]] / leftover placeholder glyphs.
   page.drawRectangle({
     x: field.x - 1,
     y: field.y - 2,
@@ -98,7 +94,7 @@ function drawField(
   });
 }
 
-/** Fill the official FLT Conference Theater form (from DOCX) and download as PDF. */
+/** Fill the QT FLT Conference Theater form and download as PDF. */
 export async function downloadFltReservationForm(row: FltReservationRecord): Promise<void> {
   if (!row.coordinationDate || !row.coordinationStartTime || !row.coordinationEndTime) {
     throw new Error('Please set coordination meeting first before downloading.');
