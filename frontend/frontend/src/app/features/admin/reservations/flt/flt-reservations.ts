@@ -38,6 +38,7 @@ import { adminAddReservationPath } from '../admin-reservation-path.util';
 import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-menu';
 import { ReservationApproverTableSkeleton } from '../reservation-approver-table-skeleton';
 import { ReservationApproverMobileSkeleton } from '../reservation-approver-mobile-skeleton';
+import { downloadFltReservationForm } from './flt-reservation-form-export.util';
 
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
 const FLT_TECH_STATUS_FILTERS = ['All', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
@@ -1095,63 +1096,8 @@ export class FltReservations implements OnInit, OnDestroy {
       return;
     }
 
-    const slots = this.parseDates(row.reservedDates);
-    const equipment = this.parseEquipment(row.requestedEquipment).map(e => e.name).join(', ') || '–';
-    const slotDates = slots.map(s => `${s.date}`).join(', ') || '–';
-    const slotTimes = slots.map(s => `${formatTime12(s.startTime)} – ${formatTime12(s.endTime)}`).join(', ') || '–';
-    const room = row.roomType ? this.getRoomTypeLabel(row.roomType) : '–';
-
     try {
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      const marginX = 48;
-      let y = 52;
-      const line = (label: string, value: string) => {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text(label, marginX, y);
-        doc.setFont('helvetica', 'normal');
-        const wrapped = doc.splitTextToSize(String(value ?? '–'), 340);
-        doc.text(wrapped, marginX + 160, y);
-        y += Math.max(18, wrapped.length * 14);
-      };
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.text('FLT Theater Reservation Form', marginX, y);
-      y += 22;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text('Lyceum of the Philippines University – Laguna', marginX, y);
-      y += 18;
-      doc.setDrawColor(120);
-      doc.line(marginX, y, 547, y);
-      y += 20;
-
-      line('Event Title:', String(row.eventTitle ?? ''));
-      line('Event Type:', String(row.eventType ?? ''));
-      line('Room:', room);
-      line('Expected Attendees:', String(row.expectedAttendees ?? ''));
-      line('Event Date(s):', slotDates);
-      line('Event Time(s):', slotTimes);
-      line('Organization / Dept:', `${row.organization ?? ''} / ${row.department ?? ''}`);
-      line('Contact Person:', String(row.contactPerson ?? ''));
-      line('Contact Number:', String(row.contactNumber ?? ''));
-      line('Contact Email:', String(row.contactEmail ?? ''));
-      line('Equipment:', equipment);
-      line('Additional Instructions:', String(row.additionalInstructions ?? ''));
-      line('Coordination Date:', String(row.coordinationDate ?? ''));
-      line('Coordination Time:', `${row.coordinationStartTime ?? ''} - ${row.coordinationEndTime ?? ''}`);
-
-      y += 12;
-      doc.setDrawColor(120);
-      doc.line(marginX, y, 547, y);
-      y += 24;
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.text('Generated from LPU Laguna Reservation System', marginX, y);
-
-      doc.save(`FLT-Reservation-Form-${row.id}.pdf`);
+      await downloadFltReservationForm(row);
       this.toast.set('Reservation form downloaded as PDF.');
     } catch (err: any) {
       console.error('downloadReservationForm error', err);
@@ -1160,3 +1106,5 @@ export class FltReservations implements OnInit, OnDestroy {
   }
 
 }
+
+

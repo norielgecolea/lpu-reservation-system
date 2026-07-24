@@ -1,0 +1,106 @@
+{
+  "eventTitle": {
+    "page": 0,
+    "x": 172.1,
+    "y": 622.6,
+    "size": 11.0,
+    "whiteW": 88.7,
+    "whiteH": 14.0
+  },
+  "eventType": {
+    "page": 0,
+    "x": 108.1,
+    "y": 582.2,
+    "size": 11.0,
+    "whiteW": 82.7,
+    "whiteH": 14.0
+  },
+  "expectedAttendees": {
+    "page": 0,
+    "x": 285.5,
+    "y": 558.0,
+    "size": 11.0,
+    "whiteW": 131.1,
+    "whiteH": 14.0
+  },
+  "eventDate": {
+    "page": 0,
+    "x": 173.8,
+    "y": 533.8,
+    "size": 11.0,
+    "whiteW": 82.7,
+    "whiteH": 14.0
+  },
+  "eventTime": {
+    "page": 0,
+    "x": 246.4,
+    "y": 509.6,
+    "size": 11.0,
+    "whiteW": 82.7,
+    "whiteH": 14.0
+  },
+  "organizationDept": {
+    "page": 0,
+    "x": 257.4,
+    "y": 485.4,
+    "size": 11.0,
+    "whiteW": 125.0,
+    "whiteH": 14.0
+  },
+  "contactPerson": {
+    "page": 0,
+    "x": 197.7,
+    "y": 461.2,
+    "size": 11.0,
+    "whiteW": 106.9,
+    "whiteH": 14.0
+  },
+  "contactNumber": {
+    "page": 0,
+    "x": 205.1,
+    "y": 437.0,
+    "size": 11.0,
+    "whiteW": 106.9,
+    "whiteH": 14.0
+  },
+  "contactEmail": {
+    "page": 0,
+    "x": 190.9,
+    "y": 412.8,
+    "size": 11.0,
+    "whiteW": 100.8,
+    "whiteH": 14.0
+  },
+  "equipment": {
+    "page": 0,
+    "x": 72.1,
+    "y": 336.3,
+    "size": 14.0,
+    "whiteW": 104.1,
+    "whiteH": 17.0
+  },
+  "additionalInstructions": {
+    "page": 0,
+    "x": 72.1,
+    "y": 222.1,
+    "size": 14.0,
+    "whiteW": 204.2,
+    "whiteH": 17.0
+  },
+  "coordinationDate": {
+    "page": 2,
+    "x": 108.1,
+    "y": 529.2,
+    "size": 12.0,
+    "whiteW": 136.0,
+    "whiteH": 15.0
+  },
+  "coordinationTime": {
+    "page": 2,
+    "x": 108.1,
+    "y": 512.9,
+    "size": 12.0,
+    "whiteW": 136.0,
+    "whiteH": 15.0
+  }
+}
