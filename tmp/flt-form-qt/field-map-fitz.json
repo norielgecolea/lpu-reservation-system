@@ -1,0 +1,184 @@
+{
+  "Event Title:": {
+    "page": 0,
+    "x": 145.2,
+    "y_top": 170.1,
+    "y_pdf": 610.4,
+    "size": 10,
+    "label": "Event Title:",
+    "rect": [
+      85.7,
+      170.1,
+      141.2,
+      183.6
+    ]
+  },
+  "Other):": {
+    "page": 0,
+    "x": 147.6,
+    "y_top": 221.2,
+    "y_pdf": 559.3,
+    "size": 10,
+    "label": "Other):",
+    "rect": [
+      108.5,
+      221.2,
+      143.6,
+      234.7
+    ]
+  },
+  "Attendees:": {
+    "page": 0,
+    "x": 248.8,
+    "y_top": 243.8,
+    "y_pdf": 536.7,
+    "size": 10,
+    "label": "Attendees:",
+    "rect": [
+      190.0,
+      243.8,
+      244.8,
+      257.3
+    ]
+  },
+  "Event Date:": {
+    "page": 0,
+    "x": 147.2,
+    "y_top": 266.1,
+    "y_pdf": 514.4,
+    "size": 10,
+    "label": "Event Date:",
+    "rect": [
+      85.7,
+      266.1,
+      143.2,
+      279.6
+    ]
+  },
+  "End):": {
+    "page": 0,
+    "x": 474.1,
+    "y_top": 170.1,
+    "y_pdf": 610.4,
+    "size": 10,
+    "label": "End):",
+    "rect": [
+      444.4,
+      170.1,
+      470.1,
+      183.6
+    ]
+  },
+  "Department:": {
+    "page": 0,
+    "x": 483.8,
+    "y_top": 192.7,
+    "y_pdf": 587.8,
+    "size": 10,
+    "label": "Department:",
+    "rect": [
+      415.9,
+      192.7,
+      479.8,
+      206.2
+    ]
+  },
+  "Contact Person:": {
+    "page": 0,
+    "x": 432.9,
+    "y_top": 215.0,
+    "y_pdf": 565.5,
+    "size": 10,
+    "label": "Contact Person:",
+    "rect": [
+      347.8,
+      215.0,
+      428.9,
+      228.5
+    ]
+  },
+  "Contact Number:": {
+    "page": 0,
+    "x": 438.4,
+    "y_top": 237.3,
+    "y_pdf": 543.2,
+    "size": 10,
+    "label": "Contact Number:",
+    "rect": [
+      347.8,
+      237.3,
+      434.4,
+      250.8
+    ]
+  },
+  "Email Address:": {
+    "page": 0,
+    "x": 426.9,
+    "y_top": 259.6,
+    "y_pdf": 520.9,
+    "size": 10,
+    "label": "Email Address:",
+    "rect": [
+      347.8,
+      259.6,
+      422.9,
+      273.1
+    ]
+  },
+  "Equipment Requirements:": {
+    "page": 0,
+    "x": 331.1,
+    "y_top": 311.6,
+    "y_pdf": 465.4,
+    "size": 10,
+    "label": "Equipment Requirements:",
+    "rect": [
+      160.2,
+      311.6,
+      327.1,
+      328.6
+    ]
+  },
+  "Setup Requirements:": {
+    "page": 0,
+    "x": 405.1,
+    "y_top": 409.1,
+    "y_pdf": 367.9,
+    "size": 10,
+    "label": "Setup Requirements:",
+    "rect": [
+      266.3,
+      409.1,
+      401.1,
+      426.1
+    ]
+  },
+  "Meeting Date:": {
+    "page": 2,
+    "x": 184.0,
+    "y_top": 146.2,
+    "y_pdf": 633.2,
+    "size": 10,
+    "label": "Meeting Date:",
+    "rect": [
+      108.0,
+      146.2,
+      180.0,
+      160.8
+    ]
+  },
+  "Meeting Time:": {
+    "page": 2,
+    "x": 184.3,
+    "y_top": 160.8,
+    "y_pdf": 618.5,
+    "size": 10,
+    "label": "Meeting Time:",
+    "rect": [
+      108.0,
+      160.8,
+      180.3,
+      175.5
+    ]
+  }
+}

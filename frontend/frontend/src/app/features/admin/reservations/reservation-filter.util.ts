@@ -8,6 +8,53 @@ export function reservationMatchesStatusFilter(filter: string, status: string): 
   return status === filter;
 }
 
+export type ApproverStatusTone =
+  | 'neutral'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'cancelled'
+  | 'completed'
+  | 'conflict';
+
+const STATUS_TONE: Record<string, ApproverStatusTone> = {
+  All: 'neutral',
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  CANCELLED: 'cancelled',
+  COMPLETED: 'completed',
+  CONFLICT: 'conflict',
+};
+
+/** Build filter-chip descriptors with counts for the current reservation set. */
+export function buildApproverStatusChips(
+  statuses: readonly string[],
+  rows: ReadonlyArray<{ status: string }>,
+): Array<{ value: string; label: string; count: number; tone: ApproverStatusTone }> {
+  return statuses.map((value) => ({
+    value,
+    label: value === 'All' ? 'All' : value.charAt(0) + value.slice(1).toLowerCase(),
+    count: value === 'All'
+      ? rows.length
+      : rows.filter((r) => reservationMatchesStatusFilter(value, r.status)).length,
+    tone: STATUS_TONE[value] ?? 'neutral',
+  }));
+}
+
+/** Sort so actionable queue items (pending/conflict) surface first, then by age. */
+export function sortApproverReservations<T extends { status: string; createdAt: string }>(
+  rows: T[],
+): T[] {
+  return [...rows].sort((a, b) => {
+    const rank = (status: string) =>
+      status === 'PENDING' || status === 'CONFLICT' ? 0 : 1;
+    const byStatus = rank(a.status) - rank(b.status);
+    if (byStatus !== 0) return byStatus;
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+}
+
 /** Parse a status query param into a known filter value, or null if invalid. */
 export function parseStatusFilterParam(
   value: string | null | undefined,

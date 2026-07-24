@@ -1,0 +1,98 @@
+{
+  "eventTitle": {
+    "page": 0,
+    "x": 369.0,
+    "y": 40.0,
+    "size": 1.0,
+    "labelX": 357.0,
+    "matched": "Event Title:"
+  },
+  "eventType": {
+    "page": 0,
+    "x": 368.5,
+    "y": -173.0,
+    "size": 1.0,
+    "labelX": 357.0,
+    "matched": "Other):"
+  },
+  "expectedAttendees": {
+    "page": 0,
+    "x": 377.5,
+    "y": -267.0,
+    "size": 1.0,
+    "labelX": 357.0,
+    "matched": "Attendees:"
+  },
+  "eventDate": {
+    "page": 0,
+    "x": 368.5,
+    "y": -360.0,
+    "size": 1.0,
+    "labelX": 357.0,
+    "matched": "Event Date:"
+  },
+  "eventTime": {
+    "page": 0,
+    "x": 1467.5,
+    "y": 40.0,
+    "size": 1.0,
+    "labelX": 1449.0,
+    "matched": "End):"
+  },
+  "organizationDept": {
+    "page": 0,
+    "x": 1467.0,
+    "y": -54.0,
+    "size": 1.0,
+    "labelX": 1449.0,
+    "matched": "Department:"
+  },
+  "contactPerson": {
+    "page": 0,
+    "x": 1462.5,
+    "y": -147.0,
+    "size": 1.0,
+    "labelX": 1449.0,
+    "matched": "Contact Person:"
+  },
+  "contactNumber": {
+    "page": 0,
+    "x": 1462.5,
+    "y": -240.0,
+    "size": 1.0,
+    "labelX": 1449.0,
+    "matched": "Contact Number:"
+  },
+  "contactEmail": {
+    "page": 0,
+    "x": 1462.0,
+    "y": -333.0,
+    "size": 1.0,
+    "labelX": 1449.0,
+    "matched": "Email Address:"
+  },
+  "equipmentDash": {
+    "page": 0,
+    "x": 1200.5,
+    "y": 468.0,
+    "size": 1.0,
+    "labelX": 1194.0,
+    "matched": "-"
+  },
+  "coordinationDate": {
+    "page": 2,
+    "x": 462.5,
+    "y": 136.0,
+    "size": 1.0,
+    "labelX": 450.0,
+    "matched": "Meeting Date:"
+  },
+  "coordinationTime": {
+    "page": 2,
+    "x": 462.5,
+    "y": 75.0,
+    "size": 1.0,
+    "labelX": 450.0,
+    "matched": "Meeting Time:"
+  }
+}

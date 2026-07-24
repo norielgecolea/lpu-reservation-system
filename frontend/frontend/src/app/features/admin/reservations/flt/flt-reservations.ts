@@ -7,15 +7,23 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FltRescheduleCalendar, RescheduleEvent } from './flt-reschedule-calendar';
 import { CoordinationSlot, FltCoordinationCalendar } from './flt-coordination-calendar';
-import { UiButton, UiIcon, UiInputSearch, UiSelect, UiSelectOption, UiToast, UiDateSelector } from '../../../../shared/ui';
+import { UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector } from '../../../../shared/ui';
 import { getCurrentYearMonth, reservationRecordToSummaryEvent, vanRecordsToDashboardRecords } from '../../dashboard/dashboard-events.util';
 import { formatReadableDateTime, formatTime12 } from '../../../../shared/utils/datetime.util';
 import { DashboardEventSummaryModal } from '../../dashboard/dashboard-event-summary-modal';
-import { parseStatusFilterParam, reservationMatchesStatusFilter } from '../reservation-filter.util';
+import {
+  buildApproverStatusChips,
+  parseStatusFilterParam,
+  reservationMatchesStatusFilter,
+  sortApproverReservations,
+} from '../reservation-filter.util';
+import { ReservationApproverStatusChips } from '../reservation-approver-status-chips';
+import { ReservationStatusPill } from '../reservation-status-pill';
 import {
   FltReservationRecord,
   RequestedEquipmentItem,
@@ -38,7 +46,6 @@ import { adminAddReservationPath } from '../admin-reservation-path.util';
 import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-menu';
 import { ReservationApproverTableSkeleton } from '../reservation-approver-table-skeleton';
 import { ReservationApproverMobileSkeleton } from '../reservation-approver-mobile-skeleton';
-import { downloadFltReservationForm } from './flt-reservation-form-export.util';
 
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
 const FLT_TECH_STATUS_FILTERS = ['All', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
@@ -52,52 +59,57 @@ interface ConfirmState {
 
 @Component({
   selector: 'app-flt-reservations',
-  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiSelect, UiToast, UiDateSelector, FltRescheduleCalendar, FltCoordinationCalendar, MaintenanceCalendarPicker, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal],
+  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, FltRescheduleCalendar, FltCoordinationCalendar, MaintenanceCalendarPicker, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-none flex-col gap-4 md:min-h-0 md:flex-1' },
   template: `
     <!-- Header -->
-      <section class="animate-rise flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-xl font-black text-gray-900">FLT Theater Reservations</h1>
-          <p class="text-sm text-gray-500 mt-0.5">Review and manage all FLT reservation requests</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          @if (!isFltTechRole()) {
-            <a uiButton [routerLink]="addReservationPath">
-              <ui-icon name="add" class="text-base" />
-              <span class="hidden sm:inline">Add Reservation</span>
-            </a>
-          }
-          <button type="button" (click)="exportOpen.set(true)"
-            class="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-            <ui-icon name="download" class="text-base" />
-            <span class="hidden sm:inline">Export</span>
-          </button>
-          <button type="button" (click)="openMaintenance()"
-            class="flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer">
-            <ui-icon name="construction" class="text-base" />
-            <span class="hidden sm:inline">Maintenance</span>
-            @if (upcomingMaintenanceCount() > 0) {
-              <span class="ml-1 inline-flex items-center justify-center rounded-full bg-amber-500 text-white w-4 h-4 text-[9px] font-black">{{ upcomingMaintenanceCount() }}</span>
+      <section class="animate-rise flex shrink-0 flex-col gap-3">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="flex min-w-0 items-start gap-3">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/15 shadow-sm shadow-primary/5">
+              <ui-icon name="event_note" class="text-2xl" />
+            </div>
+            <div class="min-w-0">
+              <h1 class="text-xl font-black tracking-tight text-gray-900">FLT Theater Reservations</h1>
+              <p class="mt-0.5 text-sm text-gray-500">Review requests, resolve conflicts, and keep the theater schedule clear</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            @if (!isFltTechRole()) {
+              <a uiButton [routerLink]="addReservationPath">
+                <ui-icon name="add" class="text-base" />
+                <span class="hidden sm:inline">Add Reservation</span>
+              </a>
             }
-          </button>
-          <div class="flex items-center gap-2 text-sm text-gray-500">
-            <ui-icon name="event_note" class="text-primary text-base" />
-            <span>{{ filtered().length }} of {{ reservations().length }} shown</span>
+            <button type="button" (click)="exportOpen.set(true)"
+              class="flex items-center gap-1.5 rounded-xl border border-gray-200/90 bg-white/80 px-3 py-2 text-xs font-bold text-gray-700 shadow-sm hover:bg-white transition-colors cursor-pointer">
+              <ui-icon name="download" class="text-base" />
+              <span class="hidden sm:inline">Export</span>
+            </button>
+            <button type="button" (click)="openMaintenance()"
+              class="flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors cursor-pointer">
+              <ui-icon name="construction" class="text-base" />
+              <span class="hidden sm:inline">Maintenance</span>
+              @if (upcomingMaintenanceCount() > 0) {
+                <span class="ml-1 inline-flex items-center justify-center rounded-full bg-amber-500 text-white w-4 h-4 text-[9px] font-black">{{ upcomingMaintenanceCount() }}</span>
+              }
+            </button>
+            <div class="hidden items-center gap-1.5 rounded-xl border border-gray-200/80 bg-white/70 px-3 py-2 text-xs font-semibold text-gray-500 sm:flex">
+              <span class="tabular-nums text-gray-800">{{ filtered().length }}</span>
+              <span>of {{ reservations().length }}</span>
+            </div>
           </div>
         </div>
+        <app-reservation-approver-status-chips
+          [chips]="statusChips()"
+          [value]="statusFilter()"
+          (valueChange)="statusFilter.set($any($event))"
+        />
       </section>
 
       <!-- Filters -->
       <section class="animate-rise flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <ui-select
-          class="w-full sm:w-44 shrink-0"
-          [value]="statusFilter()"
-          (valueChange)="statusFilter.set($any($event))"
-          placeholder="Filter by status"
-          [options]="statusFilterOptions"
-        />
         <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
         <ui-input-search
           placeholder="Search by event, department, contact..."
@@ -107,26 +119,30 @@ interface ConfirmState {
       </section>
 
       <!-- Table -->
-      <section class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex flex-col rounded-xl max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-hidden">
+      <section class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex flex-col rounded-2xl max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-hidden">
         @if (apiError()) {
-          <div class="flex flex-col items-center justify-center gap-3 py-20 text-center">
-            <ui-icon name="cloud_off" class="text-5xl text-red-300" />
-            <p class="text-sm font-semibold text-red-500">Failed to load reservations</p>
+          <div class="flex flex-col items-center justify-center gap-3 px-4 py-20 text-center">
+            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 ring-1 ring-inset ring-red-100">
+              <ui-icon name="cloud_off" class="text-3xl text-red-400" />
+            </div>
+            <p class="text-sm font-semibold text-red-600">Failed to load reservations</p>
             <p class="text-xs text-gray-400 max-w-xs">The server could not be reached or returned an error. Make sure the backend is running and your session is valid.</p>
             <button
               type="button"
               (click)="load()"
-              class="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors cursor-pointer mt-1"
+              class="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors cursor-pointer mt-1"
             >
               <ui-icon name="refresh" class="text-base" />
               Retry
             </button>
           </div>
         } @else if (!loading() && filtered().length === 0) {
-          <div class="flex flex-col items-center justify-center gap-3 py-20 text-center">
-            <ui-icon name="event_busy" class="text-5xl text-gray-300" />
-            <p class="text-sm font-semibold text-gray-500">No reservations found</p>
-            <p class="text-xs text-gray-400">Try adjusting your search or filter</p>
+          <div class="flex flex-col items-center justify-center gap-3 px-4 py-20 text-center">
+            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-50 ring-1 ring-inset ring-gray-100">
+              <ui-icon name="event_busy" class="text-3xl text-gray-300" />
+            </div>
+            <p class="text-sm font-semibold text-gray-600">No reservations found</p>
+            <p class="text-xs text-gray-400">Try another status, month, or search term</p>
           </div>
         } @else {
           @if (loading()) {
@@ -134,47 +150,51 @@ interface ConfirmState {
           } @else {
             <div class="md:hidden flex flex-col gap-3 p-3">
               @for (row of filtered(); track row.id) {
-                <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div
+                  class="rounded-2xl border bg-white p-4 shadow-sm ring-1 ring-inset ring-black/[0.02] transition-shadow"
+                  [class.border-gray-100]="row.status !== 'PENDING' && row.status !== 'CONFLICT'"
+                  [class.border-amber-200/80]="row.status === 'PENDING'"
+                  [class.border-orange-300/80]="row.status === 'CONFLICT'"
+                  [class.shadow-amber-100/50]="row.status === 'PENDING'"
+                >
                   <div class="cursor-pointer" (click)="openDetails(row)">
                     <div class="flex items-start justify-between gap-3">
                       <div class="min-w-0 flex-1">
-                        <p class="text-xs text-gray-400 font-mono">#{{ row.id }}</p>
-                        <p class="font-semibold text-gray-900">{{ row.eventTitle }}</p>
-                        <p class="text-xs text-gray-500 capitalize">{{ row.eventType }}</p>
+                        <p class="text-[11px] text-gray-400 font-mono">#{{ row.id }}</p>
+                        <p class="font-semibold text-gray-900 leading-snug">{{ row.eventTitle }}</p>
+                        <p class="text-xs text-gray-500 capitalize mt-0.5">{{ row.eventType }}</p>
                       </div>
-                      <span
-                        class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide"
-                        [class.bg-amber-100]="row.status === 'PENDING'"
-                        [class.text-amber-700]="row.status === 'PENDING'"
-                        [class.bg-emerald-100]="row.status === 'APPROVED'"
-                        [class.text-emerald-700]="row.status === 'APPROVED'"
-                        [class.bg-red-100]="row.status === 'REJECTED'"
-                        [class.text-red-700]="row.status === 'REJECTED'"
-                        [class.bg-gray-100]="row.status === 'CANCELLED'"
-                        [class.text-gray-500]="row.status === 'CANCELLED'"
-                        [class.bg-teal-100]="row.status === 'COMPLETED'"
-                        [class.text-teal-700]="row.status === 'COMPLETED'"
-                        [class.bg-orange-100]="row.status === 'CONFLICT'"
-                        [class.text-orange-700]="row.status === 'CONFLICT'"
-                      >{{ row.status }}</span>
+                      <app-reservation-status-pill [status]="row.status" />
                     </div>
-                    <p class="text-xs text-gray-500 mt-2 truncate">{{ row.department }} · {{ row.organization }}</p>
-                    <p class="text-[11px] text-gray-400 mt-1">{{ formatDate(row.createdAt) }}</p>
-                    @if (row.additionalInstructions) {
-                      <p class="mt-1 text-[10px] italic text-amber-600 truncate" [title]="row.additionalInstructions">
-                        📝 {{ row.additionalInstructions }}
-                      </p>
-                    }
-                    @if (row.status === 'PENDING' && hasApprovedOverlap(row)) {
-                      <p class="mt-1 text-[10px] font-semibold text-orange-600">⚠ Conflict schedule</p>
-                    }
-                    @if (row.status === 'COMPLETED' && row.satisfactionRating) {
-                      <div class="flex items-center gap-0.5 mt-1.5" [title]="row.satisfactionRating + ' / 5'">
-                        @for (star of [1,2,3,4,5]; track star) {
-                          <span class="text-sm" [class.text-yellow-400]="star <= row.satisfactionRating!" [class.text-gray-300]="star > row.satisfactionRating!">★</span>
-                        }
-                      </div>
-                    }
+                    <div class="mt-3 space-y-1.5 border-t border-gray-50 pt-3">
+                      <p class="text-xs text-gray-500 truncate">{{ row.department }} · {{ row.organization }}</p>
+                      @for (slot of parseDates(row.reservedDates); track slot.date) {
+                        <div class="flex items-center gap-1.5 text-[11px] text-gray-600">
+                          <ui-icon name="calendar_today" class="text-[12px] text-primary shrink-0" />
+                          <span class="font-medium">{{ slot.date }}</span>
+                          <span class="text-gray-400">{{ formatSlotTime(slot.startTime, slot.endTime) }}</span>
+                        </div>
+                      }
+                      <p class="text-[11px] text-gray-400">Submitted {{ formatDate(row.createdAt) }}</p>
+                      @if (row.additionalInstructions) {
+                        <p class="text-[11px] italic text-amber-700 truncate" [title]="row.additionalInstructions">
+                          Note: {{ row.additionalInstructions }}
+                        </p>
+                      }
+                      @if (row.status === 'PENDING' && hasApprovedOverlap(row)) {
+                        <p class="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-1 text-[10px] font-semibold text-orange-700 ring-1 ring-inset ring-orange-200">
+                          <ui-icon name="warning" class="text-sm" />
+                          Conflict schedule
+                        </p>
+                      }
+                      @if (row.status === 'COMPLETED' && row.satisfactionRating) {
+                        <div class="flex items-center gap-0.5" [title]="row.satisfactionRating + ' / 5'">
+                          @for (star of [1,2,3,4,5]; track star) {
+                            <span class="text-sm" [class.text-yellow-400]="star <= row.satisfactionRating!" [class.text-gray-300]="star > row.satisfactionRating!">★</span>
+                          }
+                        </div>
+                      }
+                    </div>
                   </div>
                   <div class="mt-3 flex flex-wrap gap-1.5">
                     @if (!isFltTechRole() && row.status === 'PENDING') {
@@ -270,9 +290,9 @@ interface ConfirmState {
             </div>
           }
           <div class="hidden md:block min-h-0 flex-1 overflow-auto">
-            <table class="w-full text-sm border-collapse bg-white">
+            <table class="w-full text-sm border-collapse bg-white/90">
               <thead class="sticky top-0 z-10">
-                <tr class="border-b border-gray-100 bg-gray-50">
+                <tr class="border-b border-gray-100/90 bg-gray-50/95 backdrop-blur-sm">
                   <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500 w-10">#</th>
                   <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Event</th>
                   <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500 hidden md:table-cell">Dept / Org</th>
@@ -289,7 +309,14 @@ interface ConfirmState {
                   <app-reservation-approver-table-skeleton />
                 } @else {
                   @for (row of filtered(); track row.id) {
-                <tr class="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
+                <tr
+                  class="border-b border-gray-50/80 border-l-4 transition-colors hover:bg-gray-50/70"
+                  [class.border-l-transparent]="row.status !== 'PENDING' && row.status !== 'CONFLICT'"
+                  [class.border-l-amber-400]="row.status === 'PENDING'"
+                  [class.border-l-orange-500]="row.status === 'CONFLICT'"
+                  [class.bg-amber-50/30]="row.status === 'PENDING'"
+                  [class.bg-orange-50/40]="row.status === 'CONFLICT'"
+                >
                   <td class="px-4 py-3 text-xs text-gray-400 font-mono">{{ row.id }}</td>
 
                   <!-- Event -->
@@ -299,10 +326,10 @@ interface ConfirmState {
                     <p class="text-[11px] text-gray-400 mt-0.5">{{ formatDate(row.createdAt) }}</p>
                     @if (row.additionalInstructions) {
                       <p class="mt-1 text-[10px] italic text-amber-600 truncate max-w-[180px]" [title]="row.additionalInstructions">
-                        📝 {{ row.additionalInstructions }}
+                        Note: {{ row.additionalInstructions }}
                       </p>
                     }
-                    <p class="mt-1 text-[10px] font-semibold text-primary">Click to view full summary</p>
+                    <p class="mt-1 text-[10px] font-medium text-primary/80">View full summary</p>
                   </td>
 
                   <!-- Dept / Org -->
@@ -353,23 +380,9 @@ interface ConfirmState {
 
                   <!-- Status -->
                   <td class="px-4 py-3">
-                    <span
-                      class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide"
-                      [class.bg-amber-100]="row.status === 'PENDING'"
-                      [class.text-amber-700]="row.status === 'PENDING'"
-                      [class.bg-emerald-100]="row.status === 'APPROVED'"
-                      [class.text-emerald-700]="row.status === 'APPROVED'"
-                      [class.bg-red-100]="row.status === 'REJECTED'"
-                      [class.text-red-700]="row.status === 'REJECTED'"
-                      [class.bg-gray-100]="row.status === 'CANCELLED'"
-                      [class.text-gray-500]="row.status === 'CANCELLED'"
-                      [class.bg-teal-100]="row.status === 'COMPLETED'"
-                      [class.text-teal-700]="row.status === 'COMPLETED'"
-                      [class.bg-orange-100]="row.status === 'CONFLICT'"
-                      [class.text-orange-700]="row.status === 'CONFLICT'"
-                    >{{ row.status }}</span>
+                    <app-reservation-status-pill [status]="row.status" />
                     @if (row.status === 'PENDING' && hasApprovedOverlap(row)) {
-                      <p class="mt-1 text-[10px] font-semibold text-orange-600">⚠ Conflict schedule</p>
+                      <p class="mt-1 text-[10px] font-semibold text-orange-600">Conflict schedule</p>
                     }
                     @if (row.status === 'COMPLETED' && row.satisfactionRating) {
                       <div class="flex items-center gap-0.5 mt-1.5" [title]="row.satisfactionRating + ' / 5'">
@@ -604,6 +617,7 @@ interface ConfirmState {
 })
 export class FltReservations implements OnInit, OnDestroy {
   private readonly svc  = inject(FltReservationsService);
+  private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly maintSvc = inject(MaintenanceService);
@@ -762,9 +776,13 @@ export class FltReservations implements OnInit, OnDestroy {
     return { date: row.coordinationDate, startTime: row.coordinationStartTime, endTime: row.coordinationEndTime };
   });
 
-  readonly statusFilterOptions: UiSelectOption[] = (
-    isFltTech(this.auth.user()?.role) ? FLT_TECH_STATUS_FILTERS : STATUS_FILTERS
-  ).map((s) => ({ value: s, label: s }));
+  readonly statusChips = computed(() => {
+    const filters = this.isFltTechRole() ? FLT_TECH_STATUS_FILTERS : STATUS_FILTERS;
+    const rows = this.isFltTechRole()
+      ? this.reservations().filter(r => r.status !== 'PENDING' && r.status !== 'CONFLICT')
+      : this.reservations();
+    return buildApproverStatusChips(filters, rows);
+  });
 
   readonly filtered = computed(() => {
     const q = this.search().toLowerCase().trim();
@@ -783,9 +801,7 @@ export class FltReservations implements OnInit, OnDestroy {
         r.contactEmail.toLowerCase().includes(q);
       return matchStatus && matchSearch;
     });
-    return [...rows].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
+    return sortApproverReservations(rows);
   });
 
   ngOnInit(): void {
@@ -1096,11 +1112,61 @@ export class FltReservations implements OnInit, OnDestroy {
       return;
     }
 
+    const slots      = this.parseDates(row.reservedDates);
+    const equipment  = this.parseEquipment(row.requestedEquipment).map(e => e.name).join(', ') || '–';
+    const slotDates  = slots.map(s => `${s.date}`).join(', ')                                   || '–';
+    const slotTimes  = slots.map(s => `${formatTime12(s.startTime)} – ${formatTime12(s.endTime)}`).join(', ')               || '–';
     try {
-      await downloadFltReservationForm(row);
-      this.toast.set('Reservation form downloaded as PDF.');
+      // Dynamic imports so these large libs are only loaded when needed
+      const [PizZip, Docxtemplater] = await Promise.all([
+        import('pizzip').then(m => m.default),
+        import('docxtemplater').then(m => m.default)]);
+
+      const templateBuf = await firstValueFrom(
+        this.http.get('/flt-reservation-template.docx', { responseType: 'arraybuffer' })
+      );
+
+      const zip = new PizZip(templateBuf);
+      const templateDoc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+      });
+
+      templateDoc.render({
+        eventTitle:              String(row.eventTitle           ?? ''),
+        eventType:               String(row.eventType            ?? ''),
+        expectedAttendees:       String(row.expectedAttendees    ?? ''),
+        eventDate:               slotDates,
+        eventTime:               slotTimes,
+        organizationDept:        `${row.organization ?? ''} / ${row.department ?? ''}`,
+        contactPerson:           String(row.contactPerson        ?? ''),
+        contactNumber:           String(row.contactNumber        ?? ''),
+        contactEmail:            String(row.contactEmail         ?? ''),
+        equipment:               equipment,
+        additionalInstructions:  String(row.additionalInstructions ?? ''),
+        coordinationDate:        String(row.coordinationDate       ?? ''),
+        coordinationTime:        `${row.coordinationStartTime ?? ''} - ${row.coordinationEndTime ?? ''}`,
+      });
+
+      const out  = templateDoc.getZip().generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const url  = URL.createObjectURL(out);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `FLT-Reservation-Form-${row.id}.docx`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.toast.set('Reservation form downloaded.');
     } catch (err: any) {
-      console.error('downloadReservationForm error', err);
+      // docxtemplater wraps template errors in err.properties.errors
+      const inner = err?.properties?.errors;
+      if (inner?.length) {
+        inner.forEach((e: any) => console.error('docxtemplater:', e.message, e.properties));
+      } else {
+        console.error('downloadReservationForm error', err);
+      }
       this.toast.set('Failed to generate form: ' + (err?.message ?? 'unknown error'));
     }
   }

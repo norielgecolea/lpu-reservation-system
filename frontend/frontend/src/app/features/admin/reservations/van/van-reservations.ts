@@ -11,11 +11,18 @@ import { Subscription } from 'rxjs';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { VanRescheduleCalendar, VanRescheduleEvent } from './van-reschedule-calendar';
 import { VanApproveModal, VanApproveResult } from './van-approve-modal';
-import { UiButton, UiIcon, UiInputSearch, UiSelect, UiSelectOption, UiToast, UiDateSelector } from '../../../../shared/ui';
+import { UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector } from '../../../../shared/ui';
 import { getCurrentYearMonth, reservationRecordToSummaryEvent, vanRecordsToDashboardRecords } from '../../dashboard/dashboard-events.util';
 import { formatReadableDateTime, formatTime12 } from '../../../../shared/utils/datetime.util';
 import { DashboardEventSummaryModal } from '../../dashboard/dashboard-event-summary-modal';
-import { parseStatusFilterParam, reservationMatchesStatusFilter } from '../reservation-filter.util';
+import {
+  buildApproverStatusChips,
+  parseStatusFilterParam,
+  reservationMatchesStatusFilter,
+  sortApproverReservations,
+} from '../reservation-filter.util';
+import { ReservationApproverStatusChips } from '../reservation-approver-status-chips';
+import { ReservationStatusPill } from '../reservation-status-pill';
 import {
   ReservationStatus,
   ReservedDateSlot,
@@ -44,41 +51,45 @@ interface ConfirmState {
 
 @Component({
   selector: 'app-van-reservations',
-  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiSelect, UiToast, UiDateSelector, VanRescheduleCalendar, VanApproveModal, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal],
+  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, VanRescheduleCalendar, VanApproveModal, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-none flex-col gap-4 md:min-h-0 md:flex-1' },
   template: `
-    <section class="animate-rise flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-xl font-black text-gray-900">University Van Reservations</h1>
-          <p class="text-sm text-gray-500 mt-0.5">Review, assign vehicles/drivers, and manage van trip requests</p>
+    <section class="animate-rise flex shrink-0 flex-col gap-3">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="flex min-w-0 items-start gap-3">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/15 shadow-sm shadow-primary/5">
+              <ui-icon name="airport_shuttle" class="text-2xl" />
+            </div>
+            <div class="min-w-0">
+              <h1 class="text-xl font-black tracking-tight text-gray-900">University Van Reservations</h1>
+              <p class="mt-0.5 text-sm text-gray-500">Assign vehicles and drivers, then approve trip requests</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <a uiButton [routerLink]="addReservationPath">
+              <ui-icon name="add" class="text-base" />
+              <span class="hidden sm:inline">Add Reservation</span>
+            </a>
+            <button type="button" (click)="exportOpen.set(true)"
+              class="flex items-center gap-1.5 rounded-xl border border-gray-200/90 bg-white/80 px-3 py-2 text-xs font-bold text-gray-700 shadow-sm hover:bg-white transition-colors cursor-pointer">
+              <ui-icon name="download" class="text-base" />
+              <span class="hidden sm:inline">Export</span>
+            </button>
+            <div class="hidden items-center gap-1.5 rounded-xl border border-gray-200/80 bg-white/70 px-3 py-2 text-xs font-semibold text-gray-500 sm:flex">
+              <span class="tabular-nums text-gray-800">{{ filtered().length }}</span>
+              <span>of {{ reservations().length }}</span>
+            </div>
+          </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <a uiButton [routerLink]="addReservationPath">
-            <ui-icon name="add" class="text-base" />
-            <span class="hidden sm:inline">Add Reservation</span>
-          </a>
-          <button type="button" (click)="exportOpen.set(true)"
-            class="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-            <ui-icon name="download" class="text-base" />
-            <span class="hidden sm:inline">Export</span>
-          </button>
-          <div class="flex items-center gap-2 text-sm text-gray-500">
-          <ui-icon name="airport_shuttle" class="text-primary text-base" />
-          <span class="hidden xs:inline sm:inline">{{ filtered().length }} of {{ reservations().length }} shown</span>
-          <span class="sm:hidden">{{ filtered().length }}/{{ reservations().length }}</span>
-        </div>
-        </div>
+        <app-reservation-approver-status-chips
+          [chips]="statusChips()"
+          [value]="statusFilter()"
+          (valueChange)="statusFilter.set($any($event))"
+        />
       </section>
 
       <section class="animate-rise flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <ui-select
-          class="w-full sm:w-44 shrink-0"
-          [value]="statusFilter()"
-          (valueChange)="statusFilter.set($any($event))"
-          placeholder="Filter by status"
-          [options]="statusFilterOptions"
-        />
         <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
         <ui-input-search
           placeholder="Search by destination, department, contact, passengers..."
@@ -87,22 +98,30 @@ interface ConfirmState {
         />
       </section>
 
-      <section class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex flex-col rounded-xl max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-hidden">
+      <section class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex flex-col rounded-2xl max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-hidden">
         @if (apiError()) {
-          <div class="flex flex-col items-center justify-center gap-3 py-20 text-center">
-            <ui-icon name="cloud_off" class="text-5xl text-red-300" />
-            <p class="text-sm font-semibold text-red-500">Failed to load reservations</p>
-            <button type="button" (click)="load()"
-              class="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors cursor-pointer mt-1">
+          <div class="flex flex-col items-center justify-center gap-3 px-4 py-20 text-center">
+            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 ring-1 ring-inset ring-red-100">
+              <ui-icon name="cloud_off" class="text-3xl text-red-400" />
+            </div>
+            <p class="text-sm font-semibold text-red-600">Failed to load reservations</p>
+            <p class="text-xs text-gray-400 max-w-xs">The server could not be reached or returned an error. Make sure the backend is running and your session is valid.</p>
+            <button
+              type="button"
+              (click)="load()"
+              class="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors cursor-pointer mt-1"
+            >
               <ui-icon name="refresh" class="text-base" />
               Retry
             </button>
           </div>
         } @else if (!loading() && filtered().length === 0) {
-          <div class="flex flex-col items-center justify-center gap-3 py-20 text-center">
-            <ui-icon name="event_busy" class="text-5xl text-gray-300" />
-            <p class="text-sm font-semibold text-gray-500">No reservations found</p>
-            <p class="text-xs text-gray-400">Try adjusting your search or filter</p>
+          <div class="flex flex-col items-center justify-center gap-3 px-4 py-20 text-center">
+            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-50 ring-1 ring-inset ring-gray-100">
+              <ui-icon name="event_busy" class="text-3xl text-gray-300" />
+            </div>
+            <p class="text-sm font-semibold text-gray-600">No reservations found</p>
+            <p class="text-xs text-gray-400">Try another status, month, or search term</p>
           </div>
         } @else {
           @if (loading()) {
@@ -110,37 +129,52 @@ interface ConfirmState {
           } @else {
             <div class="md:hidden flex flex-col gap-3 p-3">
               @for (row of filtered(); track row.id) {
-                <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div
+                  class="rounded-2xl border bg-white p-4 shadow-sm ring-1 ring-inset ring-black/[0.02] transition-shadow"
+                  [class.border-gray-100]="row.status !== 'PENDING' && row.status !== 'CONFLICT'"
+                  [class.border-amber-200/80]="row.status === 'PENDING'"
+                  [class.border-orange-300/80]="row.status === 'CONFLICT'"
+                  [class.shadow-amber-100/50]="row.status === 'PENDING'"
+                >
                   <div class="cursor-pointer" (click)="openDetails(row)">
                     <div class="flex items-start justify-between gap-3">
                       <div class="min-w-0 flex-1">
-                        <p class="text-xs text-gray-400 font-mono">#{{ row.id }}</p>
-                        <p class="font-semibold text-gray-900">{{ row.travelDestination }}</p>
+                        <p class="text-[11px] text-gray-400 font-mono">#{{ row.id }}</p>
+                        <p class="font-semibold text-gray-900 leading-snug">{{ row.travelDestination }}</p>
                       </div>
-                      <span
-                        class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide"
-                        [class.bg-amber-100]="row.status === 'PENDING'"
-                        [class.text-amber-700]="row.status === 'PENDING'"
-                        [class.bg-emerald-100]="row.status === 'APPROVED'"
-                        [class.text-emerald-700]="row.status === 'APPROVED'"
-                        [class.bg-red-100]="row.status === 'REJECTED'"
-                        [class.text-red-700]="row.status === 'REJECTED'"
-                        [class.bg-gray-100]="row.status === 'CANCELLED'"
-                        [class.text-gray-500]="row.status === 'CANCELLED'"
-                        [class.bg-teal-100]="row.status === 'COMPLETED'"
-                        [class.text-teal-700]="row.status === 'COMPLETED'"
-                        [class.bg-orange-100]="row.status === 'CONFLICT'"
-                        [class.text-orange-700]="row.status === 'CONFLICT'"
-                      >{{ row.status }}</span>
+                      <app-reservation-status-pill [status]="row.status" />
                     </div>
-                    <p class="text-xs text-gray-500 mt-2 truncate">{{ row.school || 'LPU-L' }} · {{ row.department }} · {{ row.organization }}</p>
-                    <p class="text-[11px] text-gray-400 mt-1">{{ formatDate(row.createdAt) }}</p>
-                    @if (row.additionalRemarks) {
-                      <p class="mt-1 text-[10px] italic text-amber-600 truncate" [title]="row.additionalRemarks">📝 {{ row.additionalRemarks }}</p>
-                    }
-                    @if (row.vehicleLabel || row.driverName) {
-                      <p class="mt-1 text-[10px] text-gray-500 truncate">{{ row.vehicleLabel || 'No vehicle' }} · {{ row.driverName || 'No driver' }}</p>
-                    }
+                    <div class="mt-3 space-y-1.5 border-t border-gray-50 pt-3">
+                      <p class="text-xs text-gray-500 truncate">{{ row.school || 'LPU-L' }} · {{ row.department }} · {{ row.organization }}</p>
+                      @for (slot of parseDates(row.reservedDates); track slot.date) {
+                        <div class="flex items-center gap-1.5 text-[11px] text-gray-600">
+                          <ui-icon name="calendar_today" class="text-[12px] text-primary shrink-0" />
+                          <span class="font-medium">{{ slot.date }}</span>
+                          <span class="text-gray-400">{{ formatSlotTime(slot.startTime, slot.endTime) }}</span>
+                        </div>
+                      }
+                      @if (row.returnTime) {
+                        <p class="text-[11px] text-primary">Return: {{ row.returnTime }}</p>
+                      }
+                      <p class="text-[11px] text-gray-400">Submitted {{ formatDate(row.createdAt) }}</p>
+                      @if (row.additionalRemarks) {
+                        <p class="text-[11px] italic text-amber-700 truncate" [title]="row.additionalRemarks">
+                          Note: {{ row.additionalRemarks }}
+                        </p>
+                      }
+                      @if (row.vehicleLabel || row.driverName) {
+                        <p class="text-[11px] text-gray-500 truncate">
+                          {{ row.vehicleLabel || 'No vehicle' }} · {{ row.driverName || 'No driver' }}
+                        </p>
+                      }
+                      @if (row.status === 'COMPLETED' && row.satisfactionRating) {
+                        <div class="flex items-center gap-0.5" [title]="row.satisfactionRating + ' / 5'">
+                          @for (star of [1,2,3,4,5]; track star) {
+                            <span class="text-sm" [class.text-yellow-400]="star <= row.satisfactionRating!" [class.text-gray-300]="star > row.satisfactionRating!">★</span>
+                          }
+                        </div>
+                      }
+                    </div>
                   </div>
                   <div class="mt-3 flex flex-wrap gap-1.5">
                     @if (row.status === 'PENDING') {
@@ -200,9 +234,9 @@ interface ConfirmState {
             </div>
           }
           <div class="hidden md:block min-h-0 flex-1 overflow-auto">
-            <table class="w-full text-sm border-collapse bg-white">
+            <table class="w-full text-sm border-collapse bg-white/90">
               <thead class="sticky top-0 z-10">
-                <tr class="border-b border-gray-100 bg-gray-50">
+                <tr class="border-b border-gray-100/90 bg-gray-50/95 backdrop-blur-sm">
                   <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500 w-10">#</th>
                   <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Destination</th>
                   <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500 hidden md:table-cell">Dept / Org</th>
@@ -219,13 +253,20 @@ interface ConfirmState {
                   <app-reservation-approver-table-skeleton />
                 } @else {
                   @for (row of filtered(); track row.id) {
-                <tr class="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
+                <tr
+                  class="border-b border-gray-50/80 border-l-4 transition-colors hover:bg-gray-50/70"
+                  [class.border-l-transparent]="row.status !== 'PENDING' && row.status !== 'CONFLICT'"
+                  [class.border-l-amber-400]="row.status === 'PENDING'"
+                  [class.border-l-orange-500]="row.status === 'CONFLICT'"
+                  [class.bg-amber-50/30]="row.status === 'PENDING'"
+                  [class.bg-orange-50/40]="row.status === 'CONFLICT'"
+                >
                   <td class="px-4 py-3 text-xs text-gray-400 font-mono">{{ row.id }}</td>
 
                   <td class="px-4 py-3 max-w-[200px] cursor-pointer hover:bg-gray-50/80 transition-colors" (click)="openDetails(row)">
                     <p class="font-semibold text-gray-900 truncate">{{ row.travelDestination }}</p>
                     <p class="text-[11px] text-gray-400 mt-0.5">{{ formatDate(row.createdAt) }}</p>
-                    <p class="mt-1 text-[10px] font-semibold text-primary">Click to view full summary</p>
+                    <p class="mt-1 text-[10px] font-medium text-primary/80">View full summary</p>
                   </td>
 
                   <td class="px-4 py-3 hidden md:table-cell max-w-[160px]">
@@ -277,21 +318,7 @@ interface ConfirmState {
                   </td>
 
                   <td class="px-4 py-3">
-                    <span
-                      class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide"
-                      [class.bg-amber-100]="row.status === 'PENDING'"
-                      [class.text-amber-700]="row.status === 'PENDING'"
-                      [class.bg-emerald-100]="row.status === 'APPROVED'"
-                      [class.text-emerald-700]="row.status === 'APPROVED'"
-                      [class.bg-red-100]="row.status === 'REJECTED'"
-                      [class.text-red-700]="row.status === 'REJECTED'"
-                      [class.bg-gray-100]="row.status === 'CANCELLED'"
-                      [class.text-gray-500]="row.status === 'CANCELLED'"
-                      [class.bg-teal-100]="row.status === 'COMPLETED'"
-                      [class.text-teal-700]="row.status === 'COMPLETED'"
-                      [class.bg-orange-100]="row.status === 'CONFLICT'"
-                      [class.text-orange-700]="row.status === 'CONFLICT'"
-                    >{{ row.status }}</span>
+                    <app-reservation-status-pill [status]="row.status" />
                     @if (row.status === 'COMPLETED' && row.satisfactionRating) {
                       <div class="flex items-center gap-0.5 mt-1.5" [title]="row.satisfactionRating + ' / 5'">
                         @for (star of [1,2,3,4,5]; track star) {
@@ -540,10 +567,12 @@ export class VanReservations implements OnInit, OnDestroy {
     try { return JSON.parse(row.reservedDates); } catch { return []; }
   });
 
-  readonly statusFilterOptions: UiSelectOption[] = STATUS_FILTERS.map((s) => ({ value: s, label: s }));
+  readonly statusChips = computed(() =>
+    buildApproverStatusChips(STATUS_FILTERS, this.reservations()),
+  );
 
   readonly filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = this.search().toLowerCase().trim();
     const status = this.statusFilter();
     const rows = this.reservations().filter(r => {
       const matchStatus = reservationMatchesStatusFilter(status, r.status);
@@ -556,9 +585,7 @@ export class VanReservations implements OnInit, OnDestroy {
         || (r.passengerNames?.toLowerCase().includes(q) ?? false);
       return matchStatus && matchSearch;
     });
-    return [...rows].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
+    return sortApproverReservations(rows);
   });
 
   ngOnInit(): void {
