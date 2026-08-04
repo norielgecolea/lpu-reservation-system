@@ -384,6 +384,11 @@ public class FltReservationService {
             fltReservationRepository.reschedule(id, json);
             logger.info("FLT reservation {} rescheduled", id);
 
+            opt.ifPresent(r -> {
+                r.setReservedDates(json);
+                fltEmailService.sendRescheduleEmail(r, previousDates);
+            });
+
             List<Long> revertedIds = reEvaluateConflicts();
             String status = fltReservationRepository.findById(id)
                     .map(FltReservation::getStatus)

@@ -165,4 +165,23 @@ public class VanReservationRepository {
                 .setParameter("driverId", driverId)
                 .executeUpdate();
     }
+
+    /** APPROVED reservations that include the given reserved date (YYYY-MM-DD). */
+    @SuppressWarnings("unchecked")
+    public List<VanReservation> findApprovedByReservedDate(String date) {
+        List<Number> ids = entityManager.createNativeQuery(
+                "SELECT id FROM van_reservations WHERE status = 'APPROVED' "
+                        + "AND EXISTS (SELECT 1 FROM jsonb_array_elements(reserved_dates) e "
+                        + "WHERE (e->>'date') = :date)")
+                .setParameter("date", date)
+                .getResultList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        List<Long> longIds = ids.stream().map(Number::longValue).toList();
+        return entityManager
+                .createQuery("FROM VanReservation r WHERE r.id IN :ids", VanReservation.class)
+                .setParameter("ids", longIds)
+                .getResultList();
+    }
 }

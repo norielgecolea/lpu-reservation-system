@@ -1,7 +1,9 @@
 package org.lpu.dev.codes.config;
 
+import org.lpu.dev.codes.services.RoleAccessService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
@@ -11,7 +13,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
 /**
- * Seeds the default SUPERADMIN account on first startup when no such user exists.
+ * Seeds the default SUPERADMIN account and default role/service map on first startup.
  */
 @Component
 public class DefaultDataSeeder implements ApplicationListener<ContextRefreshedEvent> {
@@ -27,6 +29,9 @@ public class DefaultDataSeeder implements ApplicationListener<ContextRefreshedEv
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Autowired
+    private RoleAccessService roleAccessService;
+
     @Override
     @Transactional
     public void onApplicationEvent(ContextRefreshedEvent event) {
@@ -34,6 +39,7 @@ public class DefaultDataSeeder implements ApplicationListener<ContextRefreshedEv
             return;
         }
         seeded = true;
+        roleAccessService.ensureDefaults();
         ensureSuperAdmin();
     }
 

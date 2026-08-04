@@ -38,9 +38,17 @@ public class AuthenticationService {
 	@Autowired
 	private PasswordResetEmailService passwordResetEmailService;
 
+	@Autowired
+	private RoleAccessService roleAccessService;
+
 	public AuthenticationService() {
 		logger.info("Authentication Service Started");
 		
+	}
+
+	private void attachRoleAccess(LoginResponse response, String role) {
+		response.setServices(roleAccessService.getServicesForRole(role));
+		response.setHomePath(roleAccessService.getHomePath(role).orElse(null));
 	}
 
 	public LoginResponse login(LoginRequest request) {
@@ -87,6 +95,7 @@ public class AuthenticationService {
 		response.setEmail(user.getEmail());
 		response.setFullname(user.getFullname());
 		response.setEmpId(user.getEmployeeId());
+		attachRoleAccess(response, user.getRole());
 
 		return response;
 	}
@@ -130,6 +139,7 @@ public class AuthenticationService {
 			response.setEmail(user.getEmail());
 			response.setFullname(user.getFullname());
 			response.setEmpId(user.getEmployeeId());
+			attachRoleAccess(response, user.getRole());
 
 			logger.info(String.format("Token Valid! employee: %s", user.getEmployeeId()));
 
@@ -222,6 +232,7 @@ public class AuthenticationService {
 			response.setEmail((String) row[3]);
 			response.setFullname((String) row[4]);
 			response.setEmpId(row[6] != null ? row[6].toString() : null);
+			attachRoleAccess(response, response.getRole());
 
 			logger.info("Profile updated for user: {}", response.getUsername());
 			return ResponseEntity.ok(response);

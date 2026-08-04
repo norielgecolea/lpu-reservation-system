@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { UiButton, UiFormFeedback, UiIcon, UiInput, UiSelect } from '../../../shared/ui';
-import { USER_ROLE_OPTIONS } from './user-roles';
+import { UiButton, UiFormFeedback, UiIcon, UiInput, UiSelect, type UiSelectOption } from '../../../shared/ui';
+import { RolesService } from '../roles/roles.service';
 import { UsersService } from './users.service';
 
 @Component({
@@ -14,6 +14,7 @@ import { UsersService } from './users.service';
 export class EditUser {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(UsersService);
+  private readonly rolesApi = inject(RolesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -23,14 +24,15 @@ export class EditUser {
   protected readonly error = signal<string | null>(null);
   protected readonly oldEmployeeId = signal('');
   protected readonly currentRole = signal<string | null>(null);
+  protected readonly roleOptions = signal<UiSelectOption[]>([]);
 
   protected readonly roles = computed(() => {
+    const options = this.roleOptions();
     const current = this.currentRole();
-    if (!current || USER_ROLE_OPTIONS.some((role) => role.value === current)) {
-      return USER_ROLE_OPTIONS;
+    if (!current || options.some((role) => role.value === current)) {
+      return options;
     }
-
-    return [{ label: current, value: current }, ...USER_ROLE_OPTIONS];
+    return [{ label: current, value: current }, ...options];
   });
 
   protected readonly form = this.fb.nonNullable.group({
@@ -44,6 +46,16 @@ export class EditUser {
   constructor() {
     const employeeId = this.route.snapshot.paramMap.get('employeeId') ?? '';
     this.oldEmployeeId.set(employeeId);
+
+    this.rolesApi.list().subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.roleOptions.set(
+            (res.roles ?? []).map((r) => ({ label: r.label, value: r.code })),
+          );
+        }
+      },
+    });
 
     if (!employeeId) {
       this.loading.set(false);

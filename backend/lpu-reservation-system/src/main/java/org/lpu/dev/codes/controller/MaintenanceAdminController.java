@@ -32,6 +32,7 @@ public class MaintenanceAdminController {
     @Autowired private AuthenticationService auth;
     @Autowired private JWTService jwtService;
     @Autowired private MaintenanceBlockService svc;
+    @Autowired private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
 
     @GetMapping
     public ResponseEntity<MaintenanceBlockResponse> getBlocks(
@@ -47,8 +48,8 @@ public class MaintenanceAdminController {
         if (!isAllowed(role)) {
             res.setSuccess(false); res.setMessage("Access denied"); return ResponseEntity.ok(res);
         }
-        if (isFltTech(role) && !isFltFacility(facility)) {
-            res.setSuccess(false); res.setMessage("FLT Tech may only access FLT maintenance"); return ResponseEntity.ok(res);
+        if (!canAccessFacility(role, facility)) {
+            res.setSuccess(false); res.setMessage("Access denied for this facility"); return ResponseEntity.ok(res);
         }
         try {
             res.setSuccess(true);
@@ -85,8 +86,8 @@ public class MaintenanceAdminController {
             res.setSuccess(false); res.setMessage("facility, blockDate, startTime, endTime are required");
             return ResponseEntity.ok(res);
         }
-        if (isFltTech(role) && !isFltFacility(facility)) {
-            res.setSuccess(false); res.setMessage("FLT Tech may only schedule FLT maintenance");
+        if (!canAccessFacility(role, facility)) {
+            res.setSuccess(false); res.setMessage("Access denied for this facility");
             return ResponseEntity.ok(res);
         }
 
@@ -118,15 +119,13 @@ public class MaintenanceAdminController {
         }
 
         try {
-            if (isFltTech(role)) {
-                MaintenanceBlockDto existing = svc.findDtoById(id);
-                if (existing == null) {
-                    res.setSuccess(false); res.setMessage("Block not found"); return ResponseEntity.ok(res);
-                }
-                if (!isFltFacility(existing.getFacilityType())) {
-                    res.setSuccess(false); res.setMessage("FLT Tech may only manage FLT maintenance");
-                    return ResponseEntity.ok(res);
-                }
+            MaintenanceBlockDto existing = svc.findDtoById(id);
+            if (existing == null) {
+                res.setSuccess(false); res.setMessage("Block not found"); return ResponseEntity.ok(res);
+            }
+            if (!canAccessFacility(role, existing.getFacilityType())) {
+                res.setSuccess(false); res.setMessage("Access denied for this facility");
+                return ResponseEntity.ok(res);
             }
             boolean ok = svc.delete(id, jwtService.getUsername(token));
             res.setSuccess(ok);
@@ -139,18 +138,33 @@ public class MaintenanceAdminController {
     }
 
     private boolean isAllowed(String role) {
-        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role) || "FLTTECH".equals(role);
+        return roleAccessService.roleHasAnyService(role);
     }
 
     private boolean canMutate(String role) {
-        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role) || "FLTTECH".equals(role);
+        return roleAccessService.roleHasAnyService(role);
     }
 
-    private boolean isFltTech(String role) {
-        return "FLTTECH".equals(role);
+    private boolean canAccessFacility(String role, String facility) {
+        String service = facilityToService(facility);
+        if (service == null) {
+            return false;
+        }
+        return roleAccessService.roleHasService(role, service);
     }
 
-    private boolean isFltFacility(String facility) {
-        return facility != null && "FLT".equalsIgnoreCase(facility.trim());
+    private static String facilityToService(String facility) {
+        if (facility == null || facility.isBlank()) {
+            return null;
+        }
+        String f = facility.trim().toUpperCase();
+        if ("FLT".equals(f)) return org.lpu.dev.codes.services.RoleAccessService.SERVICE_FLT;
+        if ("GYMNASIUM".equals(f) || "GYM".equals(f)) {
+            return org.lpu.dev.codes.services.RoleAccessService.SERVICE_GYMNASIUM;
+        }
+        if ("VAN".equals(f) || "UNIVERSITY_VAN".equals(f)) {
+            return org.lpu.dev.codes.services.RoleAccessService.SERVICE_VAN;
+        }
+        return null;
     }
 }

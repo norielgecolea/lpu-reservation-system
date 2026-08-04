@@ -9,7 +9,7 @@ import { UiIcon } from '../../../shared/ui';
 <div class="animate-rise flex flex-1 flex-col items-center justify-center gap-6 rounded-2xl bg-white/45 backdrop-blur-xl ring-1 ring-inset ring-white/60 p-10 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] min-h-96">
 
     <div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-100">
-      <ui-icon name="sports_gymnastics" class="text-5xl text-emerald-600" />
+      <ui-icon name="sports_basketball" class="text-5xl text-emerald-600" />
     </div>
 
     <div>

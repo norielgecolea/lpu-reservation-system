@@ -37,10 +37,11 @@ public class GymnasiumAdminController {
     @Autowired private AuthenticationService auth;
     @Autowired private JWTService jwtService;
     @Autowired private GymnasiumReservationService gymService;
+    @Autowired private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
 
     private boolean isAllowed(String token) {
         String role = jwtService.getRole(token);
-        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role);
+        return roleAccessService.roleHasService(role, org.lpu.dev.codes.services.RoleAccessService.SERVICE_GYMNASIUM);
     }
 
     private String tok(String header) { return header.replace("LpuL ", ""); }

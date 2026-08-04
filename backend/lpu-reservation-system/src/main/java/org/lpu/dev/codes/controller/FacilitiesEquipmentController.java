@@ -35,6 +35,7 @@ public class FacilitiesEquipmentController {
     @Autowired private AuthenticationService auth;
     @Autowired private JWTService jwtService;
     @Autowired private FacilitiesEquipmentService facilitiesEquipmentService;
+    @Autowired private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
 
     private String tok(String header) {
         return header.replace("LpuL ", "");
@@ -42,7 +43,8 @@ public class FacilitiesEquipmentController {
 
     private boolean isAllowed(String token) {
         String role = jwtService.getRole(token);
-        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role);
+        return roleAccessService.roleHasAnyService(role)
+                && !"FLTTECH".equalsIgnoreCase(role);
     }
 
     private PopulateEquipmentResponse unauthorizedList() {

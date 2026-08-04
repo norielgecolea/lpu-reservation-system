@@ -337,6 +337,11 @@ public class GymnasiumReservationService {
             gymRepository.reschedule(id, json);
             logger.info("Gymnasium reservation {} rescheduled", id);
 
+            opt.ifPresent(r -> {
+                r.setReservedDates(json);
+                gymEmailService.sendRescheduleEmail(r, previousDates);
+            });
+
             List<Long> revertedIds = reEvaluateConflicts();
             String status = gymRepository.findById(id)
                     .map(GymnasiumReservation::getStatus)

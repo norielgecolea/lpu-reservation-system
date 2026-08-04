@@ -27,7 +27,7 @@ import { UiIcon } from '../../../shared/ui';
         <!-- Overview -->
         <div class="rounded-2xl bg-white ring-1 ring-black/5 shadow-sm p-6">
           <h2 class="text-base font-black text-gray-900 mb-1 flex items-center gap-2">
-            <ui-icon name="sports_gymnastics" class="text-primary text-lg" />
+            <ui-icon name="sports_basketball" class="text-primary text-lg" />
             LPU Laguna Gymnasium Reservation Policy
           </h2>
           <p class="text-sm text-gray-500">

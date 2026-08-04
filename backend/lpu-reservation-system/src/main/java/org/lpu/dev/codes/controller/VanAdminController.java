@@ -38,10 +38,11 @@ public class VanAdminController {
     @Autowired private AuthenticationService auth;
     @Autowired private JWTService jwtService;
     @Autowired private VanReservationService vanService;
+    @Autowired private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
 
     private boolean isAllowed(String token) {
         String role = jwtService.getRole(token);
-        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role);
+        return roleAccessService.roleHasService(role, org.lpu.dev.codes.services.RoleAccessService.SERVICE_VAN);
     }
 
     private String tok(String header) { return header.replace("LpuL ", ""); }

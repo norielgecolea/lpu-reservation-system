@@ -122,7 +122,7 @@ export class Login implements OnDestroy {
           return;
         }
 
-        const home = homePathForRole(res.role);
+        const home = homePathForRole(res.role, res.homePath);
         if (home === '/login') {
           this.error.set(`Unknown role: ${res.role}`);
           return;

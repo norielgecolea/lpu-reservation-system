@@ -54,14 +54,14 @@
       <ui-select
         class="w-full sm:hidden"
         placeholder="Select service"
-        [options]="facilitySelectOptions"
+        [options]="facilitySelectOptions()"
         [value]="activeFacility()"
         (valueChange)="selectFacility($any($event))"
       />
       <!-- Desktop: segmented -->
       <ui-segmented
         class="hidden sm:block"
-        [options]="facilityFilterOptions"
+        [options]="facilityFilterOptions()"
         [value]="activeFacility()"
         (valueChange)="selectFacility($any($event))"
       />

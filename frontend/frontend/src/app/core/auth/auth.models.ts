@@ -20,6 +20,9 @@ export interface ResetPasswordWithTokenRequest {
   newPassword: string;
 }
 
+/** Bookable admin services a role may access. */
+export type ServiceCode = 'FLT' | 'GYMNASIUM' | 'VAN';
+
 export interface AuthResponse {
   success: boolean;
   message: string;
@@ -29,6 +32,8 @@ export interface AuthResponse {
   email: string;
   fullname: string;
   empId: string;
+  services?: string[];
+  homePath?: string | null;
 }
 
 export interface AuthUser {
@@ -37,4 +42,6 @@ export interface AuthUser {
   email: string;
   fullname: string;
   empId: string;
+  services: ServiceCode[];
+  homePath: string | null;
 }

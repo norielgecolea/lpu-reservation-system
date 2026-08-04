@@ -44,6 +44,9 @@ public class FltAdminController {
     @Autowired
     private FltReservationService fltReservationService;
 
+    @Autowired
+    private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
+
     @GetMapping("/reservations")
     public FltReservationResponse getAllReservations(
             @RequestHeader("Authorization") String authHeader,
@@ -173,9 +176,9 @@ public class FltAdminController {
         return ResponseEntity.ok(res);
     }
 
-    /** SUPERADMIN, FACILITIESADMIN, and FLTTECH may access FLT scheduling endpoints. */
+    /** Role may access FLT if SUPERADMIN, FLTTECH, or assigned FLT service. */
     private boolean isAllowed(String role) {
-        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role) || "FLTTECH".equals(role);
+        return roleAccessService.roleHasService(role, org.lpu.dev.codes.services.RoleAccessService.SERVICE_FLT);
     }
 
     private boolean isFltTech(String role) {

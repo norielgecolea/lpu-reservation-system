@@ -473,6 +473,10 @@ public class VanReservationService {
             }
 
             vanRepository.reschedule(id, json, returnTime);
+            existing.setReservedDates(json);
+            existing.setReturnTime(returnTime);
+            vanEmailService.sendRescheduleEmail(existing, previousDates);
+
             String status = existing.getStatus();
             eventPublisher.publishStatusUpdate("van", id, status, List.of());
 

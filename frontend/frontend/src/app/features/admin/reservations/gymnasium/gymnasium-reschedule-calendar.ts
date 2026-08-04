@@ -332,8 +332,12 @@ export class GymnasiumRescheduleCalendar implements OnChanges {
   readonly timeSlots = TIME_SLOTS;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['initialSlots']) {
-      this.basket.set((changes['initialSlots'].currentValue as ReservedDateSlot[]).map(s => ({ ...s })));
+    // Seed once on open only. Parent polls refresh reservations while the overlay
+    // is open, which recreates initialSlots and would otherwise wipe in-progress edits.
+    const ch = changes['initialSlots'];
+    if (ch?.firstChange) {
+      const slots = (ch.currentValue as ReservedDateSlot[] | null) ?? [];
+      this.basket.set(slots.map(s => ({ ...s })));
     }
   }
 

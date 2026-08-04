@@ -44,6 +44,11 @@ import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-
 import { ReservationApproverTableSkeleton } from '../reservation-approver-table-skeleton';
 import { ReservationApproverMobileSkeleton } from '../reservation-approver-mobile-skeleton';
 import { downloadGymnasiumReservationForm } from './gymnasium-reservation-form-export.util';
+import {
+  buildApprovedOverlapIds,
+  parseEquipmentJson,
+  parseReservedDatesJson,
+} from '../reservation-row.util';
 
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -52,6 +57,12 @@ interface ConfirmState {
   id: number;
   action: ReservationStatus;
   eventTitle: string;
+}
+
+interface GymReservationViewRow extends GymReservationRecord {
+  parsedSlots: ReservedDateSlot[];
+  parsedEquipment: RequestedEquipmentItem[];
+  hasScheduleConflict: boolean;
 }
 
 @Component({
@@ -65,7 +76,7 @@ interface ConfirmState {
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="flex min-w-0 items-start gap-3">
             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/15 shadow-sm shadow-primary/5">
-              <ui-icon name="sports_gymnastics" class="text-2xl" />
+              <ui-icon name="sports_basketball" class="text-2xl" />
             </div>
             <div class="min-w-0">
               <h1 class="text-xl font-black tracking-tight text-gray-900">Gymnasium Reservations</h1>
@@ -114,7 +125,7 @@ interface ConfirmState {
       </section>
 
       <!-- Table -->
-      <section class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex flex-col rounded-2xl max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-hidden">
+      <section class="list-panel animate-rise flex flex-col rounded-2xl max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-hidden">
         @if (apiError()) {
           <div class="flex flex-col items-center justify-center gap-3 px-4 py-20 text-center">
             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 ring-1 ring-inset ring-red-100">
@@ -165,7 +176,7 @@ interface ConfirmState {
                     </div>
                     <div class="mt-3 space-y-1.5 border-t border-gray-50 pt-3">
                       <p class="text-xs text-gray-500 truncate">{{ row.department }} · {{ row.organization }}</p>
-                      @for (slot of parseDates(row.reservedDates); track slot.date) {
+                      @for (slot of row.parsedSlots; track slot.date) {
                         <div class="flex items-center gap-1.5 text-[11px] text-gray-600">
                           <ui-icon name="calendar_today" class="text-[12px] text-primary shrink-0" />
                           <span class="font-medium">{{ slot.date }}</span>
@@ -178,7 +189,7 @@ interface ConfirmState {
                           Note: {{ row.additionalInstructions }}
                         </p>
                       }
-                      @if (row.status === 'PENDING' && hasApprovedOverlap(row)) {
+                      @if (row.status === 'PENDING' && row.hasScheduleConflict) {
                         <p class="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-2 py-1 text-[10px] font-semibold text-orange-700 ring-1 ring-inset ring-orange-200">
                           <ui-icon name="warning" class="text-sm" />
                           Conflict schedule
@@ -340,7 +351,7 @@ interface ConfirmState {
 
                   <!-- Dates -->
                   <td class="px-4 py-3 hidden xl:table-cell max-w-[180px]">
-                    @for (slot of parseDates(row.reservedDates); track slot.date) {
+                    @for (slot of row.parsedSlots; track slot.date) {
                       <div class="text-[11px] leading-tight text-gray-600 flex items-center gap-1 mb-0.5">
                         <ui-icon name="calendar_today" class="text-[10px] text-primary shrink-0" />
                         <span>{{ slot.date }}</span>
@@ -360,8 +371,8 @@ interface ConfirmState {
 
                   <!-- Equipment -->
                   <td class="px-4 py-3 hidden xl:table-cell max-w-[140px]">
-                    @if (parseEquipment(row.requestedEquipment).length > 0) {
-                      @for (eq of parseEquipment(row.requestedEquipment); track eq.id) {
+                    @if (row.parsedEquipment.length > 0) {
+                      @for (eq of row.parsedEquipment; track eq.id) {
                         <div class="text-[11px] text-gray-600 flex items-center gap-1 mb-0.5">
                           <ui-icon name="devices" class="text-[10px] shrink-0" />
                           {{ eq.name }}
@@ -375,7 +386,7 @@ interface ConfirmState {
                   <!-- Status -->
                   <td class="px-4 py-3">
                     <app-reservation-status-pill [status]="row.status" />
-                    @if (row.status === 'PENDING' && hasApprovedOverlap(row)) {
+                    @if (row.status === 'PENDING' && row.hasScheduleConflict) {
                       <p class="mt-1 text-[10px] font-semibold text-orange-600">Conflict schedule</p>
                     }
                     @if (row.status === 'COMPLETED' && row.satisfactionRating) {
@@ -717,10 +728,12 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
     buildApproverStatusChips(STATUS_FILTERS, this.reservations()),
   );
 
-  readonly filtered = computed(() => {
+  readonly filtered = computed((): GymReservationViewRow[] => {
     const q = this.search().toLowerCase().trim();
     const status = this.statusFilter();
-    const rows = this.reservations().filter(r => {
+    const all = this.reservations();
+    const conflictIds = buildApprovedOverlapIds(all);
+    const rows = all.filter(r => {
       const matchStatus = reservationMatchesStatusFilter(status, r.status);
       const matchSearch = !q
         || r.eventTitle.toLowerCase().includes(q)
@@ -730,7 +743,12 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
         || r.contactEmail.toLowerCase().includes(q);
       return matchStatus && matchSearch;
     });
-    return sortApproverReservations(rows);
+    return sortApproverReservations(rows).map(r => ({
+      ...r,
+      parsedSlots: parseReservedDatesJson(r.reservedDates) as ReservedDateSlot[],
+      parsedEquipment: parseEquipmentJson<RequestedEquipmentItem>(r.requestedEquipment),
+      hasScheduleConflict: conflictIds.has(r.id),
+    }));
   });
 
   ngOnInit(): void {
@@ -965,45 +983,6 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
       return;
     }
     this.reservations.set(updated);
-  }
-
-  hasApprovedOverlap(row: GymReservationRecord): boolean {
-    const targetSlots = this.parseDates(row.reservedDates);
-    if (!targetSlots.length) return false;
-    for (const other of this.reservations()) {
-      if (other.id === row.id) continue;
-      if (other.status !== 'APPROVED' && other.status !== 'COMPLETED') continue;
-      const otherSlots = [
-        ...this.parseDates(other.reservedDates),
-        ...(other.coordinationDate && other.coordinationStartTime && other.coordinationEndTime
-          ? [{ date: other.coordinationDate, startTime: other.coordinationStartTime, endTime: other.coordinationEndTime }]
-          : [])];
-      if (this.slotsOverlap(targetSlots, otherSlots)) return true;
-    }
-    return false;
-  }
-
-  private slotsOverlap(a: ReservedDateSlot[], b: ReservedDateSlot[]): boolean {
-    for (const sa of a) {
-      for (const sb of b) {
-        if (sa.date !== sb.date) continue;
-        const aStart = parseInt(sa.startTime, 10);
-        const aEnd = parseInt(sa.endTime, 10);
-        const bStart = parseInt(sb.startTime, 10);
-        const bEnd = parseInt(sb.endTime, 10);
-        if (aStart < bEnd && aEnd > bStart) return true;
-      }
-    }
-    return false;
-  }
-
-  parseDates(json: string): ReservedDateSlot[] {
-    try { return JSON.parse(json) ?? []; } catch { return []; }
-  }
-
-  parseEquipment(json: string | null): RequestedEquipmentItem[] {
-    if (!json) return [];
-    try { return JSON.parse(json) ?? []; } catch { return []; }
   }
 
   formatDate(iso: string): string {

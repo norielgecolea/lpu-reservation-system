@@ -31,6 +31,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Autowired
     private AuthenticationService authService;
 
+    @Autowired
+    private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.enableSimpleBroker("/topic");
@@ -70,7 +73,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     throw new MessageDeliveryException("Invalid or expired token");
                 }
                 String role = jwtService.getRole(token);
-                if (!"SUPERADMIN".equals(role) && !"FACILITIESADMIN".equals(role) && !"FLTTECH".equals(role)) {
+                if (!roleAccessService.roleHasAnyService(role)) {
                     logger.warn("WebSocket CONNECT rejected: role {}", role);
                     throw new MessageDeliveryException("Access denied");
                 }

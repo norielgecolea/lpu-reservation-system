@@ -55,14 +55,14 @@
         <ui-select
           class="w-full sm:hidden"
           placeholder="Select service"
-          [options]="serviceSelectOptions"
+          [options]="serviceSelectOptions()"
           [value]="activeService()"
           (valueChange)="selectService($any($event))"
         />
         <!-- Desktop: segmented -->
         <ui-segmented
           class="hidden sm:block"
-          [options]="serviceFilterOptions"
+          [options]="serviceFilterOptions()"
           [value]="activeService()"
           (valueChange)="selectService($any($event))"
         />

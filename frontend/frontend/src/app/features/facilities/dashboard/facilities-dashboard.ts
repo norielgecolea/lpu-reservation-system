@@ -12,8 +12,9 @@ import {
 } from '@angular/core';
 import { SlicePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Subscription, forkJoin } from 'rxjs';
+import { Subscription, forkJoin, of } from 'rxjs';
 
+import { AuthService } from '../../../core/auth/auth.service';
 import { UiIcon, UiSegmented, UiDateSelector, UiSelect } from '../../../shared/ui';
 import type { UiSelectOption } from '../../../shared/ui';
 import { MaintenanceBlock, MaintenanceService } from '../../admin/maintenance/maintenance.service';
@@ -40,6 +41,7 @@ import {
   createCalendarDays,
   dashboardApproverRoute,
   dashboardServiceFilterOptions,
+  dashboardServicesFromRoleCodes,
   dashboardStatCardBg,
   formatEventDay,
   formatEventMonth,
@@ -87,8 +89,14 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   private readonly maintSvc = inject(MaintenanceService);
   private readonly realtime = inject(ReservationRealtimeService);
   private readonly alerts = inject(ReservationAlertService);
+  private readonly auth = inject(AuthService);
   private wsSub?: Subscription;
   private pollSub?: Subscription;
+
+  protected readonly allowedServices = computed<DashboardService[]>(() => {
+    const fromRole = dashboardServicesFromRoleCodes(this.auth.user()?.services);
+    return fromRole.length > 0 ? fromRole : ['FLT'];
+  });
 
   protected readonly loading = signal(true);
   protected readonly fltReservations = signal<FltReservationRecord[]>([]);
@@ -99,12 +107,16 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   protected readonly activeDate = signal(getCurrentYearMonth());
   protected readonly activeFacility = signal<DashboardService>('FLT');
 
-  protected readonly facilityFilterOptions = dashboardServiceFilterOptions();
-  protected readonly facilitySelectOptions: UiSelectOption[] = this.facilityFilterOptions.map((o) => ({
-    value: o.value,
-    label: o.label,
-    disabled: o.disabled,
-  }));
+  protected readonly facilityFilterOptions = computed(() =>
+    dashboardServiceFilterOptions(this.allowedServices()),
+  );
+  protected readonly facilitySelectOptions = computed<UiSelectOption[]>(() =>
+    this.facilityFilterOptions().map((o) => ({
+      value: o.value,
+      label: o.label,
+      disabled: o.disabled,
+    })),
+  );
   protected readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   protected readonly isComingSoon = computed(
@@ -236,6 +248,7 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
 
   protected selectFacility(value: DashboardService): void {
     if (!value) return;
+    if (!this.allowedServices().includes(value)) return;
     this.activeFacility.set(value);
   }
 
@@ -269,6 +282,8 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    const allowed = this.allowedServices();
+    this.activeFacility.set(allowed[0] ?? 'FLT');
     this.loadDashboardData();
     this.realtime.ensureConnected();
     this.wsSub = this.realtime.anyUpdates$.subscribe(() => this.loadDashboardData({ quiet: true }));
@@ -278,12 +293,16 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   private loadDashboardData(opts?: { quiet?: boolean }): void {
     if (!opts?.quiet) this.loading.set(true);
     const month = this.activeDate();
+    const allowed = new Set(this.allowedServices());
+    const loadFlt = allowed.has('FLT');
+    const loadGym = allowed.has('Gymnasium');
+    const loadVan = allowed.has('VAN');
     forkJoin({
-      flt: this.fltSvc.getAll({ month }),
-      gym: this.gymSvc.getAll({ month }),
-      van: this.vanSvc.getAll({ month }),
-      fltMaint: this.maintSvc.getBlocks('FLT'),
-      gymMaint: this.maintSvc.getBlocks('GYMNASIUM'),
+      flt: loadFlt ? this.fltSvc.getAll({ month }) : of({ reservations: [] as FltReservationRecord[] }),
+      gym: loadGym ? this.gymSvc.getAll({ month }) : of({ reservations: [] as GymReservationRecord[] }),
+      van: loadVan ? this.vanSvc.getAll({ month }) : of({ reservations: [] as VanReservationRow[] }),
+      fltMaint: loadFlt ? this.maintSvc.getBlocks('FLT') : of({ blocks: [] as MaintenanceBlock[] }),
+      gymMaint: loadGym ? this.maintSvc.getBlocks('GYMNASIUM') : of({ blocks: [] as MaintenanceBlock[] }),
     }).subscribe({
       next: ({ flt, gym, van, fltMaint, gymMaint }) => {
         const fltRows = flt.reservations ?? [];
@@ -294,9 +313,9 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
         this.vanReservations.set(vanRows);
         this.fltMaintenance.set(fltMaint.blocks ?? []);
         this.gymMaintenance.set(gymMaint.blocks ?? []);
-        this.alerts.watchPending('FLT', fltRows);
-        this.alerts.watchPending('GYMNASIUM', gymRows);
-        this.alerts.watchPending('VAN', vanRows);
+        if (loadFlt) this.alerts.watchPending('FLT', fltRows);
+        if (loadGym) this.alerts.watchPending('GYMNASIUM', gymRows);
+        if (loadVan) this.alerts.watchPending('VAN', vanRows);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

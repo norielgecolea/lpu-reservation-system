@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.FltReservation;
 import org.lpu.dev.codes.util.ExternalEventNoticeUtil;
+import org.lpu.dev.codes.util.ReservationEmailThreadUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Service;
 public class FltEmailService {
 
     private static final Logger logger = LogManager.getLogger(FltEmailService.class);
+    private static final String SERVICE_KEY = "flt";
+    private static final String SERVICE_LABEL = "FLT";
 
     @Autowired
     private JavaMailSender mailSender;
@@ -35,7 +38,6 @@ public class FltEmailService {
     // ─────────────────────────────────────────────────────────────────────────
     @Async
     public void sendReservationConfirmation(FltReservation r) {
-        String subject = "[LPU Laguna FLT] Reservation Received — " + r.getEventTitle();
         String messageHtml =
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>"
             + "Your reservation is now <strong>pending review</strong> by the FLT team. "
@@ -53,7 +55,7 @@ public class FltEmailService {
             messageHtml,
             null
         );
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), true);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -61,7 +63,6 @@ public class FltEmailService {
     // ─────────────────────────────────────────────────────────────────────────
     @Async
     public void sendApprovalEmail(FltReservation r) {
-        String subject = "[LPU Laguna FLT] Reservation APPROVED — " + r.getEventTitle();
         String body = buildBase(
             "Reservation Approved",
             "✅ Your reservation has been approved!",
@@ -74,7 +75,7 @@ public class FltEmailService {
             + "If you have any questions or need to make changes, please contact the FLT office directly.</p>",
             null
         );
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -82,7 +83,6 @@ public class FltEmailService {
     // ─────────────────────────────────────────────────────────────────────────
     @Async
     public void sendRejectionEmail(FltReservation r) {
-        String subject = "[LPU Laguna FLT] Reservation Declined — " + r.getEventTitle();
         String body = buildBase(
             "Reservation Declined",
             "⚠️ Your reservation was not approved",
@@ -96,12 +96,11 @@ public class FltEmailService {
             + "If you believe this was an error, please contact the FLT office for clarification.</p>",
             null
         );
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     @Async
     public void sendConflictEmail(FltReservation r) {
-        String subject = "[LPU Laguna FLT] Reservation Conflict — " + r.getEventTitle();
         String body = buildBase(
             "Scheduling Conflict",
             "⚠️ Your reservation conflicts with an approved booking",
@@ -114,7 +113,7 @@ public class FltEmailService {
             + "You are welcome to submit a new reservation for a different date and time.</p>",
             null
         );
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -122,7 +121,6 @@ public class FltEmailService {
     // ─────────────────────────────────────────────────────────────────────────
     @Async
     public void sendCancellationEmail(FltReservation r) {
-        String subject = "[LPU Laguna FLT] Reservation Cancelled — " + r.getEventTitle();
         String body = buildBase(
             "Reservation Cancelled",
             "❌ Your reservation has been cancelled",
@@ -135,7 +133,32 @@ public class FltEmailService {
             + "You may submit a new reservation if you still need to use the facility.</p>",
             null
         );
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  5b. Rescheduled
+    // ─────────────────────────────────────────────────────────────────────────
+    @Async
+    public void sendRescheduleEmail(FltReservation r, String previousDatesJson) {
+        String previousDisplay = formatDates(previousDatesJson);
+        String body = buildBase(
+            "Reservation Rescheduled",
+            "📅 Your reservation has been rescheduled",
+            "#0369a1",
+            r,
+            "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>"
+            + "The FLT team has <strong>rescheduled</strong> your reservation. "
+            + "Please review the updated date(s) and time(s) below.</p>"
+            + "<div style='background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:16px 20px;margin:0 0 16px;'>"
+            + "<p style='margin:0 0 6px;font-size:13px;font-weight:700;color:#075985;text-transform:uppercase;letter-spacing:.5px;'>Previous schedule</p>"
+            + "<p style='margin:0;font-size:14px;color:#0c4a6e;'>" + escHtml(previousDisplay) + "</p>"
+            + "</div>"
+            + "<p style='color:#374151;font-size:15px;margin:0;'>"
+            + "If you have any questions about this change, please contact the FLT office.</p>",
+            null
+        );
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -143,8 +166,6 @@ public class FltEmailService {
     // ─────────────────────────────────────────────────────────────────────────
     @Async
     public void sendCoordinationEmail(FltReservation r, String coordDate, String coordStart, String coordEnd) {
-        String subject = "[LPU Laguna FLT] Coordination Meeting Scheduled — " + r.getEventTitle();
-
         String formattedCoordDate = coordDate;
         try {
             java.time.LocalDate ld = java.time.LocalDate.parse(coordDate);
@@ -175,16 +196,34 @@ public class FltEmailService {
             + "If you have any conflicts with this schedule, please contact the FLT office as soon as possible.</p>",
             null
         );
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  6. Completed — Satisfaction Survey
+    //  6. Upcoming reservation reminder (1 week / 3 days / 1 day before)
+    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Reminds the requestor to cancel if the booking will not push through,
+     * or visit the Facilities Office. Returns true when the email was sent.
+     */
+    public boolean sendReminderEmail(FltReservation r, int daysBefore) {
+        String whenLabel = reminderWhenLabel(daysBefore);
+        String body = buildBase(
+            "Upcoming Reservation Reminder",
+            "⏰ Reminder: your reservation is in " + whenLabel,
+            "#b45309",
+            r,
+            reminderMessageHtml(whenLabel),
+            null
+        );
+        return send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  7. Completed — Satisfaction Survey
     // ─────────────────────────────────────────────────────────────────────────
     @Async
     public void sendSatisfactionSurvey(FltReservation r) {
-        String subject = "[LPU Laguna FLT] Thank You for Booking — " + r.getEventTitle();
-
         String body = buildBase(
             "Thank You for Choosing FLT Theater",
             "Thank you for booking with us",
@@ -211,7 +250,7 @@ public class FltEmailService {
             + "Thank you for your time, cooperation, and continued support. We look forward to serving you again in the future.</p>",
             null
         );
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -341,7 +380,44 @@ public class FltEmailService {
         };
     }
 
-    private void send(String to, String subject, String htmlBody) {
+    private static String reminderWhenLabel(int daysBefore) {
+        return switch (daysBefore) {
+            case 7 -> "1 week";
+            case 3 -> "3 days";
+            case 1 -> "1 day";
+            default -> daysBefore + " days";
+        };
+    }
+
+    private static String reminderMessageHtml(String whenLabel) {
+        return "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>"
+            + "This is a friendly reminder that your approved reservation is coming up in <strong>"
+            + whenLabel + "</strong>.</p>"
+            + "<div style='background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px 20px;margin:0 0 16px;'>"
+            + "<p style='margin:0 0 10px;font-size:14px;font-weight:700;color:#9a3412;'>Important notice</p>"
+            + "<p style='margin:0 0 10px;font-size:14px;color:#7c2d12;line-height:1.55;'>"
+            + "If this reservation <strong>will not push through</strong>, please <strong>cancel your reservation</strong> as soon as possible. "
+            + "Otherwise, you may be <strong>penalized</strong>.</p>"
+            + "<p style='margin:0;font-size:14px;color:#7c2d12;line-height:1.55;'>"
+            + "If you wish not to push through, please go to the <strong>Facilities Office</strong>.</p>"
+            + "</div>"
+            + "<p style='color:#374151;font-size:15px;margin:0;'>"
+            + "If your event is still confirmed, no further action is needed — we look forward to serving you.</p>";
+    }
+
+    private static String threadSubject(FltReservation r) {
+        return ReservationEmailThreadUtil.threadSubject(r.getEventTitle(), SERVICE_LABEL);
+    }
+
+    /**
+     * @param threadRoot true for the first email of the reservation (confirmation);
+     *                   later updates reply into the same thread.
+     */
+    private boolean send(String to, String subject, String htmlBody, Long reservationId, boolean threadRoot) {
+        if (to == null || to.isBlank()) {
+            logger.warn("Skipping email — blank recipient for subject: {}", subject);
+            return false;
+        }
         try {
             MimeMessage msg = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(msg, false, "UTF-8");
@@ -349,10 +425,23 @@ public class FltEmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
+
+            String rootId = ReservationEmailThreadUtil.rootMessageId(SERVICE_KEY, reservationId);
+            if (threadRoot) {
+                msg.setHeader("Message-ID", rootId);
+            } else {
+                msg.setHeader("Message-ID", ReservationEmailThreadUtil.messageId(SERVICE_KEY, reservationId));
+                msg.setHeader("In-Reply-To", rootId);
+                msg.setHeader("References", rootId);
+            }
+            msg.setHeader("Thread-Topic", subject);
+
             mailSender.send(msg);
             logger.info("Email sent to {} — {}", to, subject);
+            return true;
         } catch (Exception e) {
             logger.error("Failed to send email to {} — {}: {}", to, subject, e.getMessage(), e);
+            return false;
         }
     }
 }

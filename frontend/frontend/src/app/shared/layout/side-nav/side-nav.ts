@@ -3,7 +3,15 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { filter } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
-import { isFacilitiesAdmin, isFltTech, isSuperAdmin } from '../../../core/auth/roles';
+import {
+  isFltTech,
+  isSuperAdmin,
+  reservationLinkForService,
+  serviceIcon,
+  serviceLabel,
+  usesFacilitiesShell,
+  type ServiceCode,
+} from '../../../core/auth/roles';
 import { AccountProfileModal } from '../account-profile-modal';
 import { UiIcon } from '../../ui';
 
@@ -31,68 +39,73 @@ export class SideNav implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  protected readonly user  = this.auth.user;
-
-  private static readonly SUPERADMIN_NAV: NavItem[] = [
-    { label: 'Dashboard',   icon: 'grid_view',       link: '/dashboard' },
-    { label: 'Users',       icon: 'group',           link: '/users' },
-    { label: 'Allowed Emails', icon: 'mail',         link: '/allowed-emails' },
-    { label: 'Equipments',  icon: 'inventory_2',     link: '/equipments' },
-    { label: 'Vehicles',    icon: 'directions_car',  link: '/vehicles' },
-    { label: 'Drivers',     icon: 'badge',           link: '/drivers' },
-    {
-      label: 'Reservation', icon: 'event_note', children: [
-        { label: 'FLT Theater', icon: 'theaters',          link: '/reservation/flt' },
-        { label: 'Gymnasium',   icon: 'sports_gymnastics', link: '/reservation/gymnasium' },
-        { label: 'University Van', icon: 'airport_shuttle', link: '/reservation/van' },
-      ],
-    },
-    {
-      label: 'Audit', icon: 'history', children: [
-        { label: 'FLT Theater',      icon: 'theaters',          link: '/audit/flt' },
-        { label: 'Gymnasium',        icon: 'sports_gymnastics', link: '/audit/gymnasium' },
-        { label: 'University Van',   icon: 'airport_shuttle',   link: '/audit/van' },
-        { label: 'Maintenance',      icon: 'construction',      link: '/audit/maintenance' },
-        { label: 'Users',            icon: 'group',             link: '/audit/users' },
-        { label: 'Equipments',       icon: 'inventory_2',       link: '/audit/equipments' },
-        { label: 'Vehicles',         icon: 'directions_car',    link: '/audit/vehicles' },
-        { label: 'Drivers',          icon: 'badge',             link: '/audit/drivers' },
-      ],
-    },
-  ];
-
-  private static readonly FACILITIES_NAV: NavItem[] = [
-    { label: 'Dashboard',  icon: 'grid_view',    link: '/facilities/dashboard' },
-    { label: 'Users',      icon: 'group',        link: '/facilities/users' },
-    { label: 'Equipments', icon: 'inventory_2',  link: '/facilities/equipments' },
-    { label: 'Vehicles',   icon: 'directions_car', link: '/facilities/vehicles' },
-    { label: 'Drivers',    icon: 'badge',        link: '/facilities/drivers' },
-    {
-      label: 'Scheduling', icon: 'event_note', children: [
-        { label: 'FLT Theater',    icon: 'theaters',          link: '/facilities/reservation/flt' },
-        { label: 'Gymnasium',      icon: 'sports_gymnastics', link: '/facilities/reservation/gymnasium' },
-        { label: 'University Van', icon: 'airport_shuttle',   link: '/facilities/reservation/van' },
-      ],
-    },
-  ];
-
-  private static readonly FLT_TECH_NAV: NavItem[] = [
-    { label: 'Dashboard', icon: 'grid_view', link: '/flt-tech/dashboard' },
-    { label: 'FLT Theater', icon: 'theaters', link: '/flt-tech/reservation/flt' },
-  ];
+  protected readonly user = this.auth.user;
 
   protected readonly nav = computed<NavItem[]>(() => {
-    const role = this.user()?.role;
+    const user = this.user();
+    const role = user?.role;
     if (isFltTech(role)) {
-      return SideNav.FLT_TECH_NAV;
+      return [
+        { label: 'Dashboard', icon: 'grid_view', link: '/flt-tech/dashboard' },
+        { label: 'FLT Theater', icon: 'theaters', link: '/flt-tech/reservation/flt' },
+      ];
     }
-    if (isFacilitiesAdmin(role)) {
-      return SideNav.FACILITIES_NAV;
-    }
+
+    const services = (user?.services ?? []) as ServiceCode[];
+
     if (isSuperAdmin(role)) {
-      return SideNav.SUPERADMIN_NAV;
+      const reservationChildren = services.map((s) => ({
+        label: serviceLabel(s),
+        icon: serviceIcon(s),
+        link: reservationLinkForService(s, 'super'),
+      }));
+      return [
+        { label: 'Dashboard', icon: 'grid_view', link: '/dashboard' },
+        { label: 'Users', icon: 'group', link: '/users' },
+        { label: 'Roles', icon: 'admin_panel_settings', link: '/roles' },
+        { label: 'Allowed Emails', icon: 'mail', link: '/allowed-emails' },
+        { label: 'Equipments', icon: 'inventory_2', link: '/equipments' },
+        { label: 'Vehicles', icon: 'directions_car', link: '/vehicles' },
+        { label: 'Drivers', icon: 'badge', link: '/drivers' },
+        ...(reservationChildren.length
+          ? [{ label: 'Reservation', icon: 'event_note', children: reservationChildren }]
+          : []),
+        {
+          label: 'Audit',
+          icon: 'history',
+          children: [
+            { label: 'FLT Theater', icon: 'theaters', link: '/audit/flt' },
+            { label: 'Gymnasium', icon: 'sports_basketball', link: '/audit/gymnasium' },
+            { label: 'University Van', icon: 'airport_shuttle', link: '/audit/van' },
+            { label: 'Maintenance', icon: 'construction', link: '/audit/maintenance' },
+            { label: 'Users', icon: 'group', link: '/audit/users' },
+            { label: 'Equipments', icon: 'inventory_2', link: '/audit/equipments' },
+            { label: 'Vehicles', icon: 'directions_car', link: '/audit/vehicles' },
+            { label: 'Drivers', icon: 'badge', link: '/audit/drivers' },
+          ],
+        },
+      ];
     }
-    return SideNav.SUPERADMIN_NAV;
+
+    if (usesFacilitiesShell(user)) {
+      const schedulingChildren = services.map((s) => ({
+        label: serviceLabel(s),
+        icon: serviceIcon(s),
+        link: reservationLinkForService(s, 'facilities'),
+      }));
+      return [
+        { label: 'Dashboard', icon: 'grid_view', link: '/facilities/dashboard' },
+        { label: 'Users', icon: 'group', link: '/facilities/users' },
+        { label: 'Equipments', icon: 'inventory_2', link: '/facilities/equipments' },
+        { label: 'Vehicles', icon: 'directions_car', link: '/facilities/vehicles' },
+        { label: 'Drivers', icon: 'badge', link: '/facilities/drivers' },
+        ...(schedulingChildren.length
+          ? [{ label: 'Scheduling', icon: 'event_note', children: schedulingChildren }]
+          : []),
+      ];
+    }
+
+    return [{ label: 'Dashboard', icon: 'grid_view', link: '/dashboard' }];
   });
 
   protected readonly openGroups = signal<Set<string>>(new Set());
@@ -102,7 +115,7 @@ export class SideNav implements OnInit {
   ngOnInit(): void {
     this.syncOpenGroups();
     this.router.events
-      .pipe(filter(e => e instanceof NavigationEnd))
+      .pipe(filter((e) => e instanceof NavigationEnd))
       .subscribe(() => {
         this.syncOpenGroups();
         this.mobileNavOpen.set(false);
@@ -110,11 +123,11 @@ export class SideNav implements OnInit {
   }
 
   protected toggleMobileNav(): void {
-    this.mobileNavOpen.update(open => !open);
+    this.mobileNavOpen.update((open) => !open);
   }
 
   private syncOpenGroups(): void {
-    this.openGroups.update(set => {
+    this.openGroups.update((set) => {
       const next = new Set(set);
       for (const item of this.nav()) {
         if (item.children && this.isChildActive(item.children)) {
@@ -130,7 +143,7 @@ export class SideNav implements OnInit {
   }
 
   protected toggleGroup(label: string): void {
-    this.openGroups.update(set => {
+    this.openGroups.update((set) => {
       const next = new Set(set);
       if (next.has(label)) {
         next.delete(label);
@@ -142,13 +155,13 @@ export class SideNav implements OnInit {
   }
 
   protected isChildActive(children: NavChild[]): boolean {
-    return children.some(c =>
+    return children.some((c) =>
       this.router.isActive(c.link, {
         paths: 'subset',
         queryParams: 'ignored',
         fragment: 'ignored',
         matrixParams: 'ignored',
-      })
+      }),
     );
   }
 

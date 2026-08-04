@@ -95,6 +95,35 @@
   .admin-layout-main > * {
     @apply contents;
   }
+
+  .glass-panel {
+    @apply bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 16px 40px -12px rgba(24, 24, 27, 0.18);
+  }
+
+  /* Opaque list shells — avoid blur on long scroll containers. */
+  .list-panel {
+    @apply bg-white ring-1 ring-inset ring-black/5;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 16px 40px -12px rgba(24, 24, 27, 0.12);
+  }
+
+  .facility-card {
+    @apply bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 border-2 border-primary rounded-xl p-2 md:p-4 flex flex-row md:flex-col items-center justify-start md:justify-center gap-4 md:gap-6 text-black hover:bg-primary hover:text-white hover:-translate-y-1 transition-all duration-300 cursor-pointer h-fit md:h-full;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 16px 40px -12px rgba(24, 24, 27, 0.18);
+  }
+
+  .facility-card--disabled {
+    @apply bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 border-2 border-gray-300 rounded-xl p-2 md:p-4 flex flex-row md:flex-col items-center justify-start md:justify-center gap-4 md:gap-3 text-gray-500 cursor-not-allowed h-fit md:h-full opacity-75 select-none;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 16px 40px -12px rgba(24, 24, 27, 0.18);
+  }
 }
 
 @keyframes shimmer {

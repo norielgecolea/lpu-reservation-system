@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -7,8 +7,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { UiButton, UiFormFeedback, UiIcon, UiInput, UiSelect } from '../../../shared/ui';
-import { USER_ROLE_OPTIONS } from './user-roles';
+import { UiButton, UiFormFeedback, UiIcon, UiInput, UiSelect, type UiSelectOption } from '../../../shared/ui';
+import { RolesService } from '../roles/roles.service';
 import { UsersService } from './users.service';
 
 function passwordsMatch(group: AbstractControl): ValidationErrors | null {
@@ -23,12 +23,13 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
   templateUrl: './add-user.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AddUser {
+export class AddUser implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(UsersService);
+  private readonly rolesApi = inject(RolesService);
   private readonly router = inject(Router);
 
-  protected readonly roles = USER_ROLE_OPTIONS;
+  protected readonly roles = signal<UiSelectOption[]>([]);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly showPassword = signal(false);
@@ -46,6 +47,18 @@ export class AddUser {
     },
     { validators: passwordsMatch },
   );
+
+  ngOnInit(): void {
+    this.rolesApi.list().subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.roles.set(
+            (res.roles ?? []).map((r) => ({ label: r.label, value: r.code })),
+          );
+        }
+      },
+    });
+  }
 
   protected save(): void {
     if (this.form.invalid) {
@@ -78,7 +91,7 @@ export class AddUser {
           if (res?.success) {
             this.router.navigateByUrl('/users');
           } else {
-            this.error.set(res?.message ?? 'Failed to create account');
+            this.error.set(res?.message ?? 'Failed to create user');
           }
         },
         error: (err) => {

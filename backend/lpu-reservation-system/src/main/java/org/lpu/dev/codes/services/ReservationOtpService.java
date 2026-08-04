@@ -29,6 +29,7 @@ public class ReservationOtpService {
     @Autowired private ReservationOtpEmailService emailService;
     @Autowired private JWTUtil jwtUtil;
     @Autowired private AuthenticationService authService;
+    @Autowired private RoleAccessService roleAccessService;
 
     public String normalizeEmail(String email) {
         return email == null ? "" : email.trim().toLowerCase();
@@ -100,7 +101,7 @@ public class ReservationOtpService {
         String token = authHeader.substring(5);
         if (!jwtUtil.validateToken(token)) return false;
         String role = jwtUtil.getRole(token);
-        if (!"SUPERADMIN".equals(role) && !"FACILITIESADMIN".equals(role) && !"FLTTECH".equals(role)) {
+        if (!roleAccessService.roleHasAnyService(role)) {
             return false;
         }
         String username = jwtUtil.getUsername(token);

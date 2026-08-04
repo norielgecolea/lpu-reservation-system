@@ -32,10 +32,12 @@ public class DriverManagementController {
     @Autowired private AuthenticationService auth;
     @Autowired private JWTService jwtService;
     @Autowired private DriverService driverService;
+    @Autowired private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
 
     private boolean isAllowed(String token) {
         String role = jwtService.getRole(token);
-        return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role);
+        return roleAccessService.roleHasAnyService(role)
+                && !"FLTTECH".equalsIgnoreCase(role);
     }
 
     private String tok(String header) { return header.replace("LpuL ", ""); }

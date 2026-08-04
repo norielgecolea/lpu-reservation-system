@@ -231,3 +231,35 @@ CREATE TABLE IF NOT EXISTS allowed_reservation_emails (
 
 CREATE INDEX IF NOT EXISTS idx_allowed_reservation_emails_status
     ON allowed_reservation_emails (status);
+
+-- Tracks cancel-or-penalize reminder emails (1 week / 3 days / 1 day before reserved date)
+CREATE TABLE IF NOT EXISTS reservation_reminders (
+    id BIGSERIAL PRIMARY KEY,
+    service VARCHAR(20) NOT NULL,
+    reservation_id BIGINT NOT NULL,
+    reserved_date VARCHAR(20) NOT NULL,
+    reminder_type VARCHAR(10) NOT NULL,
+    sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_reservation_reminder UNIQUE (service, reservation_id, reserved_date, reminder_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reservation_reminders_lookup
+    ON reservation_reminders (service, reserved_date, reminder_type);
+
+-- Super Admin–managed roles and which bookable services each role may see
+CREATE TABLE IF NOT EXISTS app_roles (
+    code VARCHAR(50) PRIMARY KEY,
+    label VARCHAR(100) NOT NULL,
+    is_system BOOLEAN NOT NULL DEFAULT FALSE,
+    home_path VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS role_service_access (
+    role_code VARCHAR(50) NOT NULL REFERENCES app_roles(code) ON DELETE CASCADE,
+    service_code VARCHAR(20) NOT NULL,
+    PRIMARY KEY (role_code, service_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_role_service_access_service
+    ON role_service_access (service_code);

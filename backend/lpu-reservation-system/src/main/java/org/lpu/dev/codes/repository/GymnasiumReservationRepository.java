@@ -159,4 +159,23 @@ public class GymnasiumReservationRepository {
                 .setParameter("id", id)
                 .executeUpdate();
     }
+
+    /** APPROVED reservations that include the given reserved date (YYYY-MM-DD). */
+    @SuppressWarnings("unchecked")
+    public List<GymnasiumReservation> findApprovedByReservedDate(String date) {
+        List<Number> ids = entityManager.createNativeQuery(
+                "SELECT id FROM gymnasium_reservations WHERE status = 'APPROVED' "
+                        + "AND EXISTS (SELECT 1 FROM jsonb_array_elements(reserved_dates) e "
+                        + "WHERE (e->>'date') = :date)")
+                .setParameter("date", date)
+                .getResultList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        List<Long> longIds = ids.stream().map(Number::longValue).toList();
+        return entityManager
+                .createQuery("FROM GymnasiumReservation r WHERE r.id IN :ids", GymnasiumReservation.class)
+                .setParameter("ids", longIds)
+                .getResultList();
+    }
 }

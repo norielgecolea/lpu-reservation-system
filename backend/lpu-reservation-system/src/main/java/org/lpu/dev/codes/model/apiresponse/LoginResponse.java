@@ -1,5 +1,8 @@
 package org.lpu.dev.codes.model.apiresponse;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class LoginResponse {
 	private boolean success;
 	private String message;
@@ -9,8 +12,8 @@ public class LoginResponse {
 	private String fullname;
 	private String role;
 	private String empId;
-	
-	
+	private List<String> services = new ArrayList<>();
+	private String homePath;
 
 	public String getEmpId() {
 		return empId;
@@ -75,6 +78,20 @@ public class LoginResponse {
 	public void setFullname(String fullname) {
 		this.fullname = fullname;
 	}
-	
 
+	public List<String> getServices() {
+		return services;
+	}
+
+	public void setServices(List<String> services) {
+		this.services = services != null ? services : new ArrayList<>();
+	}
+
+	public String getHomePath() {
+		return homePath;
+	}
+
+	public void setHomePath(String homePath) {
+		this.homePath = homePath;
+	}
 }

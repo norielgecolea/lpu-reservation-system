@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.GymnasiumReservation;
 import org.lpu.dev.codes.util.ExternalEventNoticeUtil;
+import org.lpu.dev.codes.util.ReservationEmailThreadUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Service;
 public class GymnasiumEmailService {
 
     private static final Logger logger = LogManager.getLogger(GymnasiumEmailService.class);
+    private static final String SERVICE_KEY = "gymnasium";
+    private static final String SERVICE_LABEL = "Gymnasium";
 
     @Autowired
     private JavaMailSender mailSender;
@@ -31,7 +34,6 @@ public class GymnasiumEmailService {
 
     @Async
     public void sendReservationConfirmation(GymnasiumReservation r) {
-        String subject = "[LPU Laguna Gymnasium] Reservation Received — " + r.getEventTitle();
         String messageHtml =
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>Your reservation is now <strong>pending review</strong> by the Gymnasium team. "
             + "We will notify you once it has been approved.</p>"
@@ -41,49 +43,66 @@ public class GymnasiumEmailService {
         }
         String body = buildBase("Reservation Received", "🎉 We've received your reservation request!", "#1d4ed8", r,
             messageHtml, null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), true);
     }
 
     @Async
     public void sendApprovalEmail(GymnasiumReservation r) {
-        String subject = "[LPU Laguna Gymnasium] Reservation APPROVED — " + r.getEventTitle();
         String body = buildBase("Reservation Approved", "✅ Your reservation has been approved!", "#059669", r,
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>Great news! The Gymnasium team has <strong>approved</strong> your reservation. "
             + "Please make sure your team is ready on the scheduled date(s).</p>", null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     @Async
     public void sendRejectionEmail(GymnasiumReservation r) {
-        String subject = "[LPU Laguna Gymnasium] Reservation Declined — " + r.getEventTitle();
         String body = buildBase("Reservation Declined", "⚠️ Your reservation was not approved", "#dc2626", r,
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>We regret to inform you that your reservation request could not be approved at this time. "
             + "You are welcome to submit a new reservation for a different date.</p>", null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     @Async
     public void sendConflictEmail(GymnasiumReservation r) {
-        String subject = "[LPU Laguna Gymnasium] Reservation Conflict — " + r.getEventTitle();
         String body = buildBase("Scheduling Conflict", "⚠️ Your reservation conflicts with an approved booking", "#ea580c", r,
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>Your reservation request could not be approved because the requested date and time "
             + "overlaps with another reservation that was approved first.</p>"
             + "<p style='color:#374151;font-size:15px;margin:0;'>You are welcome to submit a new reservation for a different date and time.</p>", null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     @Async
     public void sendCancellationEmail(GymnasiumReservation r) {
-        String subject = "[LPU Laguna Gymnasium] Reservation Cancelled — " + r.getEventTitle();
         String body = buildBase("Reservation Cancelled", "❌ Your reservation has been cancelled", "#6b7280", r,
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>Your reservation has been <strong>cancelled</strong> by the Gymnasium administration. "
             + "You may submit a new reservation if you still need to use the facility.</p>", null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
+    }
+
+    @Async
+    public void sendRescheduleEmail(GymnasiumReservation r, String previousDatesJson) {
+        String previousDisplay = formatDates(previousDatesJson);
+        String body = buildBase(
+            "Reservation Rescheduled",
+            "📅 Your reservation has been rescheduled",
+            "#0369a1",
+            r,
+            "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>"
+            + "The Gymnasium team has <strong>rescheduled</strong> your reservation. "
+            + "Please review the updated date(s) and time(s) below.</p>"
+            + "<div style='background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:16px 20px;margin:0 0 16px;'>"
+            + "<p style='margin:0 0 6px;font-size:13px;font-weight:700;color:#075985;text-transform:uppercase;letter-spacing:.5px;'>Previous schedule</p>"
+            + "<p style='margin:0;font-size:14px;color:#0c4a6e;'>" + escHtml(previousDisplay) + "</p>"
+            + "</div>"
+            + "<p style='color:#374151;font-size:15px;margin:0;'>"
+            + "If you have any questions about this change, please contact the Gymnasium office.</p>",
+            null
+        );
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     @Async
     public void sendCoordinationEmail(GymnasiumReservation r, String coordDate, String coordStart, String coordEnd) {
-        String subject = "[LPU Laguna Gymnasium] Coordination Meeting Scheduled — " + r.getEventTitle();
         String formattedDate = coordDate;
         try {
             java.time.LocalDate ld = java.time.LocalDate.parse(coordDate);
@@ -103,17 +122,33 @@ public class GymnasiumEmailService {
         String body = buildBase("Coordination Meeting Scheduled", "📋 A coordination meeting has been set", "#d97706", r,
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>The Gymnasium team has scheduled a <strong>coordination meeting</strong> for your upcoming event.</p>"
             + meetingInfo, null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
+    }
+
+    /**
+     * Reminds the requestor to cancel if the booking will not push through,
+     * or visit the Facilities Office. Returns true when the email was sent.
+     */
+    public boolean sendReminderEmail(GymnasiumReservation r, int daysBefore) {
+        String whenLabel = reminderWhenLabel(daysBefore);
+        String body = buildBase(
+            "Upcoming Reservation Reminder",
+            "⏰ Reminder: your reservation is in " + whenLabel,
+            "#b45309",
+            r,
+            reminderMessageHtml(whenLabel),
+            null
+        );
+        return send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     @Async
     public void sendSatisfactionSurvey(GymnasiumReservation r) {
-        String subject = "[LPU Laguna Gymnasium] Thank You for Booking — " + r.getEventTitle();
         String body = buildBase("Thank You", "Thank you for booking with us", "#7c3aed", r,
             "<p style='color:#374151;font-size:15px;margin:0;line-height:1.6;'>"
             + "Thank you for booking the LPU Laguna Gymnasium for your event. "
             + "We appreciate your trust in our facility and look forward to serving you again.</p>", null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     private String buildSurveyStars(Long id) {
@@ -190,7 +225,40 @@ public class GymnasiumEmailService {
         } catch (Exception e) { return json; }
     }
 
-    private void send(String to, String subject, String htmlBody) {
+    private static String reminderWhenLabel(int daysBefore) {
+        return switch (daysBefore) {
+            case 7 -> "1 week";
+            case 3 -> "3 days";
+            case 1 -> "1 day";
+            default -> daysBefore + " days";
+        };
+    }
+
+    private static String reminderMessageHtml(String whenLabel) {
+        return "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>"
+            + "This is a friendly reminder that your approved reservation is coming up in <strong>"
+            + whenLabel + "</strong>.</p>"
+            + "<div style='background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px 20px;margin:0 0 16px;'>"
+            + "<p style='margin:0 0 10px;font-size:14px;font-weight:700;color:#9a3412;'>Important notice</p>"
+            + "<p style='margin:0 0 10px;font-size:14px;color:#7c2d12;line-height:1.55;'>"
+            + "If this reservation <strong>will not push through</strong>, please <strong>cancel your reservation</strong> as soon as possible. "
+            + "Otherwise, you may be <strong>penalized</strong>.</p>"
+            + "<p style='margin:0;font-size:14px;color:#7c2d12;line-height:1.55;'>"
+            + "If you wish not to push through, please go to the <strong>Facilities Office</strong>.</p>"
+            + "</div>"
+            + "<p style='color:#374151;font-size:15px;margin:0;'>"
+            + "If your event is still confirmed, no further action is needed — we look forward to serving you.</p>";
+    }
+
+    private static String threadSubject(GymnasiumReservation r) {
+        return ReservationEmailThreadUtil.threadSubject(r.getEventTitle(), SERVICE_LABEL);
+    }
+
+    private boolean send(String to, String subject, String htmlBody, Long reservationId, boolean threadRoot) {
+        if (to == null || to.isBlank()) {
+            logger.warn("Skipping gymnasium email — blank recipient for subject: {}", subject);
+            return false;
+        }
         try {
             MimeMessage msg = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(msg, false, "UTF-8");
@@ -198,10 +266,23 @@ public class GymnasiumEmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
+
+            String rootId = ReservationEmailThreadUtil.rootMessageId(SERVICE_KEY, reservationId);
+            if (threadRoot) {
+                msg.setHeader("Message-ID", rootId);
+            } else {
+                msg.setHeader("Message-ID", ReservationEmailThreadUtil.messageId(SERVICE_KEY, reservationId));
+                msg.setHeader("In-Reply-To", rootId);
+                msg.setHeader("References", rootId);
+            }
+            msg.setHeader("Thread-Topic", subject);
+
             mailSender.send(msg);
             logger.info("Gymnasium email sent to {} — {}", to, subject);
+            return true;
         } catch (Exception e) {
             logger.error("Failed to send gymnasium email to {}: {}", to, e.getMessage(), e);
+            return false;
         }
     }
 }

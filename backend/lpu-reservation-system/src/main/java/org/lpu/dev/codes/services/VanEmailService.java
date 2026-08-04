@@ -3,6 +3,7 @@ package org.lpu.dev.codes.services;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.VanReservation;
+import org.lpu.dev.codes.util.ReservationEmailThreadUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -18,19 +19,20 @@ import jakarta.mail.internet.MimeMessage;
 public class VanEmailService {
 
     private static final Logger logger = LogManager.getLogger(VanEmailService.class);
+    private static final String SERVICE_KEY = "van";
+    private static final String SERVICE_LABEL = "University Van";
 
     @Autowired private JavaMailSender mailSender;
     @Value("${spring.mail.username}") private String fromAddress;
 
     @Async
     public void sendReservationConfirmation(VanReservation r) {
-        String subject = "[LPU Laguna Van] Reservation Received — " + r.getTravelDestination();
         String body = buildBase("Reservation Received", "We've received your van reservation request", "#1d4ed8", r,
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>Your request is <strong>pending review</strong>. "
             + "We will notify you once a vehicle and driver have been assigned.</p>"
             + "<p style='color:#374151;font-size:15px;margin:0;'>Please expect a response within <strong>3–5 business days</strong>.</p>",
             null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), true);
     }
 
     @Async
@@ -39,7 +41,6 @@ public class VanEmailService {
                 ? r.getVehicle().getBrand() + " (" + r.getVehicle().getPlateNum() + ")" : "—";
         String driverInfo = r.getDriver() != null ? r.getDriver().getFullName() : "—";
         String extra = detailRow("Assigned Vehicle", vehicleInfo) + detailRow("Assigned Driver", driverInfo);
-        String subject = "[LPU Laguna Van] Reservation APPROVED — " + r.getTravelDestination();
         String body = buildBase("Reservation Approved", "Your van reservation has been approved", "#059669", r,
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>Your trip has been approved. Vehicle and driver details are below.</p>"
             + "<p style='color:#92400e;font-size:14px;margin:0 0 12px;padding:12px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;'>"
@@ -47,33 +48,69 @@ public class VanEmailService {
             + "Failure to sign the form will result in cancellation of your reservation.</p>",
             "<table role='presentation' cellpadding='0' cellspacing='0' border='0' width='100%' style='border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-top:12px;'>"
             + extra + "</table>");
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     @Async
     public void sendRejectionEmail(VanReservation r) {
-        String subject = "[LPU Laguna Van] Reservation Declined — " + r.getTravelDestination();
         String body = buildBase("Reservation Declined", "Your van reservation was not approved", "#dc2626", r,
             "<p style='color:#374151;font-size:15px;margin:0;'>We regret to inform you that your request could not be approved at this time.</p>", null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     @Async
     public void sendCancellationEmail(VanReservation r) {
-        String subject = "[LPU Laguna Van] Reservation Cancelled — " + r.getTravelDestination();
         String body = buildBase("Reservation Cancelled", "Your van reservation has been cancelled", "#6b7280", r,
             "<p style='color:#374151;font-size:15px;margin:0;'>Your reservation has been cancelled by the administration.</p>", null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
+    }
+
+    @Async
+    public void sendRescheduleEmail(VanReservation r, String previousDatesJson) {
+        String previousDisplay = formatDates(previousDatesJson);
+        String body = buildBase(
+            "Reservation Rescheduled",
+            "Your van reservation has been rescheduled",
+            "#0369a1",
+            r,
+            "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>"
+            + "Your van reservation has been <strong>rescheduled</strong>. "
+            + "Please review the updated date(s) and time(s) below.</p>"
+            + "<div style='background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:16px 20px;margin:0 0 16px;'>"
+            + "<p style='margin:0 0 6px;font-size:13px;font-weight:700;color:#075985;text-transform:uppercase;letter-spacing:.5px;'>Previous schedule</p>"
+            + "<p style='margin:0;font-size:14px;color:#0c4a6e;'>" + escHtml(previousDisplay) + "</p>"
+            + "</div>"
+            + "<p style='color:#374151;font-size:15px;margin:0;'>"
+            + "If you have any questions about this change, please contact the Facilities Office.</p>",
+            null
+        );
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
+    }
+
+    /**
+     * Reminds the requestor to cancel if the booking will not push through,
+     * or visit the Facilities Office. Returns true when the email was sent.
+     */
+    public boolean sendReminderEmail(VanReservation r, int daysBefore) {
+        String whenLabel = reminderWhenLabel(daysBefore);
+        String body = buildBase(
+            "Upcoming Reservation Reminder",
+            "Reminder: your reservation is in " + whenLabel,
+            "#b45309",
+            r,
+            reminderMessageHtml(whenLabel),
+            null
+        );
+        return send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     @Async
     public void sendSatisfactionSurvey(VanReservation r) {
-        String subject = "[LPU Laguna Van] Thank You for Booking — " + r.getTravelDestination();
         String body = buildBase("Thank You", "Thank you for booking with us", "#7c3aed", r,
             "<p style='color:#374151;font-size:15px;margin:0;line-height:1.6;'>"
             + "Thank you for booking the LPU Laguna University Van service. "
             + "We appreciate the opportunity to support your trip and look forward to serving you again.</p>", null);
-        send(r.getContactEmail(), subject, body);
+        send(r.getContactEmail(), threadSubject(r), body, r.getId(), false);
     }
 
     private String buildBase(String title, String headline, String accentColor,
@@ -133,7 +170,40 @@ public class VanEmailService {
         } catch (Exception e) { return json; }
     }
 
-    private void send(String to, String subject, String htmlBody) {
+    private static String reminderWhenLabel(int daysBefore) {
+        return switch (daysBefore) {
+            case 7 -> "1 week";
+            case 3 -> "3 days";
+            case 1 -> "1 day";
+            default -> daysBefore + " days";
+        };
+    }
+
+    private static String reminderMessageHtml(String whenLabel) {
+        return "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>"
+            + "This is a friendly reminder that your approved reservation is coming up in <strong>"
+            + whenLabel + "</strong>.</p>"
+            + "<div style='background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px 20px;margin:0 0 16px;'>"
+            + "<p style='margin:0 0 10px;font-size:14px;font-weight:700;color:#9a3412;'>Important notice</p>"
+            + "<p style='margin:0 0 10px;font-size:14px;color:#7c2d12;line-height:1.55;'>"
+            + "If this reservation <strong>will not push through</strong>, please <strong>cancel your reservation</strong> as soon as possible. "
+            + "Otherwise, you may be <strong>penalized</strong>.</p>"
+            + "<p style='margin:0;font-size:14px;color:#7c2d12;line-height:1.55;'>"
+            + "If you wish not to push through, please go to the <strong>Facilities Office</strong>.</p>"
+            + "</div>"
+            + "<p style='color:#374151;font-size:15px;margin:0;'>"
+            + "If your trip is still confirmed, no further action is needed — we look forward to serving you.</p>";
+    }
+
+    private static String threadSubject(VanReservation r) {
+        return ReservationEmailThreadUtil.threadSubject(r.getTravelDestination(), SERVICE_LABEL);
+    }
+
+    private boolean send(String to, String subject, String htmlBody, Long reservationId, boolean threadRoot) {
+        if (to == null || to.isBlank()) {
+            logger.warn("Skipping van email — blank recipient for subject: {}", subject);
+            return false;
+        }
         try {
             MimeMessage msg = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(msg, false, "UTF-8");
@@ -141,10 +211,23 @@ public class VanEmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
+
+            String rootId = ReservationEmailThreadUtil.rootMessageId(SERVICE_KEY, reservationId);
+            if (threadRoot) {
+                msg.setHeader("Message-ID", rootId);
+            } else {
+                msg.setHeader("Message-ID", ReservationEmailThreadUtil.messageId(SERVICE_KEY, reservationId));
+                msg.setHeader("In-Reply-To", rootId);
+                msg.setHeader("References", rootId);
+            }
+            msg.setHeader("Thread-Topic", subject);
+
             mailSender.send(msg);
             logger.info("Van email sent to {} — {}", to, subject);
+            return true;
         } catch (Exception e) {
             logger.error("Failed to send van email to {}: {}", to, e.getMessage(), e);
+            return false;
         }
     }
 }

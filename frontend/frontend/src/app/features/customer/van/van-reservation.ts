@@ -54,7 +54,7 @@ interface CalendarCell {
           <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
             <div class="flex items-center gap-3 flex-1">
               @if (!adminMode()) {
-                <img src="/logo.svg" alt="LPU Logo" class="w-10 h-10 shrink-0 object-contain drop-shadow" />
+                <img src="/logo.svg" alt="LPU Logo" width="40" height="40" class="w-10 h-10 shrink-0 object-contain drop-shadow" />
               }
               <div>
                 <h1 class="text-xl sm:text-2xl font-black tracking-tight leading-tight">University Van</h1>
@@ -123,7 +123,7 @@ interface CalendarCell {
                 [class.overflow-auto]="!adminMode()"
                 [style.grid-template-rows]="calendarRows()"
               >
-                @for (cell of calendarCells(); track ($index)) {
+                @for (cell of calendarCells(); track cell.dateStr ?? ('pad-' + $index)) {
                   <div
                     class="flex flex-col border-r border-b border-gray-100 bg-white p-1 sm:p-2 min-h-16 sm:min-h-20 transition-colors"
                     [class.bg-gray-50]="cell.day !== null && !cell.isToday && !basket().some(s => s.date === cell.dateStr)"
@@ -478,7 +478,7 @@ interface CalendarCell {
       >
         <div class="${VAN_HEADER} text-white shrink-0 px-4 sm:px-6 py-3 flex items-center gap-4 shadow">
           @if (!adminMode()) {
-            <img src="/logo.svg" alt="LPU Logo" class="w-8 h-8 object-contain drop-shadow" />
+            <img src="/logo.svg" alt="LPU Logo" width="32" height="32" loading="lazy" class="w-8 h-8 object-contain drop-shadow" />
           }
           <span class="font-bold text-sm tracking-wide">University Van — Reservation Form</span>
           @if (adminMode()) {

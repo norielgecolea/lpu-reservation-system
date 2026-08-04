@@ -15,9 +15,10 @@
      <!-- Recognize Java Config annotations -->
      <mvc:annotation-driven  />
      
-     <!-- Enable @Async for non-blocking email sending -->
-     <task:annotation-driven executor="mailTaskExecutor"/>
+     <!-- Enable @Async for non-blocking email sending and @Scheduled for reminders -->
+     <task:annotation-driven executor="mailTaskExecutor" scheduler="taskScheduler"/>
      <task:executor id="mailTaskExecutor" pool-size="2-5" queue-capacity="50"/>
+     <task:scheduler id="taskScheduler" pool-size="1"/>
      
      <!-- Location of your beans and components -->
      <context:component-scan base-package="org.lpu.dev.codes"/>

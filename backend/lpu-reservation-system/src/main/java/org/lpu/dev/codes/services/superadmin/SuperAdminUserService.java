@@ -35,6 +35,9 @@ public class SuperAdminUserService {
 	@Autowired
 	private AdminAuditService auditService;
 
+	@Autowired
+	private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
+
 	@Transactional
 	public void createDefaultSuperAdmin() {
 
@@ -199,6 +202,13 @@ public class SuperAdminUserService {
 					return response;
 				}
 			}
+
+			if (user.getRole() == null || !roleAccessService.roleExists(user.getRole())) {
+				response.setSuccess(false);
+				response.setMessage("Invalid role. Choose a role from Role Management.");
+				return response;
+			}
+			user.setRole(org.lpu.dev.codes.services.RoleAccessService.normalizeRole(user.getRole()));
 
 			// Hash password
 			user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
@@ -414,7 +424,12 @@ public class SuperAdminUserService {
 
 			user.setEmail(newEmail);
 
-			user.setRole(request.getRole());
+			if (request.getRole() == null || !roleAccessService.roleExists(request.getRole())) {
+				response.setSuccess(false);
+				response.setMessage("Invalid role. Choose a role from Role Management.");
+				return response;
+			}
+			user.setRole(org.lpu.dev.codes.services.RoleAccessService.normalizeRole(request.getRole()));
 
 			userRepository.save(user);
 

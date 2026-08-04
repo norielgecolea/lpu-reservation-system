@@ -1,7 +1,2 @@
-export const USER_ROLE_OPTIONS = [
-  { label: 'NEXUS ADMIN', value: 'NEXUSADMIN' },
-  { label: 'FACILITIES ADMIN', value: 'FACILITIESADMIN' },
-  { label: 'FLT TECH', value: 'FLTTECH' },
-  { label: 'EO ADMIN', value: 'EOADMIN' },
-  { label: 'SUPER ADMIN', value: 'SUPERADMIN' },
-] as const;
+/** @deprecated Prefer RolesService / GET /api/admin/roles — kept as empty fallback only. */
+export const USER_ROLE_OPTIONS: { label: string; value: string }[] = [];

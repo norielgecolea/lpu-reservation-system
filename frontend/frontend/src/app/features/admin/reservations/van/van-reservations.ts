@@ -39,6 +39,7 @@ import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-
 import { ReservationApproverTableSkeleton } from '../reservation-approver-table-skeleton';
 import { ReservationApproverMobileSkeleton } from '../reservation-approver-mobile-skeleton';
 import { downloadVanReservationForm } from './van-reservation-form-export.util';
+import { parseReservedDatesJson } from '../reservation-row.util';
 
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -47,6 +48,10 @@ interface ConfirmState {
   id: number;
   action: ReservationStatus;
   tripTitle: string;
+}
+
+interface VanReservationViewRow extends VanReservationRow {
+  parsedSlots: ReservedDateSlot[];
 }
 
 @Component({
@@ -98,7 +103,7 @@ interface ConfirmState {
         />
       </section>
 
-      <section class="bg-white/45 backdrop-blur-xl backdrop-saturate-150 ring-1 ring-inset ring-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_16px_40px_-12px_rgba(24,24,27,0.18)] animate-rise flex flex-col rounded-2xl max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-hidden">
+      <section class="list-panel animate-rise flex flex-col rounded-2xl max-md:overflow-visible md:min-h-0 md:flex-1 md:overflow-hidden">
         @if (apiError()) {
           <div class="flex flex-col items-center justify-center gap-3 px-4 py-20 text-center">
             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 ring-1 ring-inset ring-red-100">
@@ -146,7 +151,7 @@ interface ConfirmState {
                     </div>
                     <div class="mt-3 space-y-1.5 border-t border-gray-50 pt-3">
                       <p class="text-xs text-gray-500 truncate">{{ row.school || 'LPU-L' }} · {{ row.department }} · {{ row.organization }}</p>
-                      @for (slot of parseDates(row.reservedDates); track slot.date) {
+                      @for (slot of row.parsedSlots; track slot.date) {
                         <div class="flex items-center gap-1.5 text-[11px] text-gray-600">
                           <ui-icon name="calendar_today" class="text-[12px] text-primary shrink-0" />
                           <span class="font-medium">{{ slot.date }}</span>
@@ -281,7 +286,7 @@ interface ConfirmState {
                   </td>
 
                   <td class="px-4 py-3 hidden xl:table-cell max-w-[180px]">
-                    @for (slot of parseDates(row.reservedDates); track slot.date) {
+                    @for (slot of row.parsedSlots; track slot.date) {
                       <div class="text-[11px] leading-tight text-gray-600 flex items-center gap-1 mb-0.5">
                         <ui-icon name="calendar_today" class="text-[10px] text-primary shrink-0" />
                         <span>{{ slot.date }}</span>
@@ -571,7 +576,7 @@ export class VanReservations implements OnInit, OnDestroy {
     buildApproverStatusChips(STATUS_FILTERS, this.reservations()),
   );
 
-  readonly filtered = computed(() => {
+  readonly filtered = computed((): VanReservationViewRow[] => {
     const q = this.search().toLowerCase().trim();
     const status = this.statusFilter();
     const rows = this.reservations().filter(r => {
@@ -585,7 +590,10 @@ export class VanReservations implements OnInit, OnDestroy {
         || (r.passengerNames?.toLowerCase().includes(q) ?? false);
       return matchStatus && matchSearch;
     });
-    return sortApproverReservations(rows);
+    return sortApproverReservations(rows).map(r => ({
+      ...r,
+      parsedSlots: parseReservedDatesJson(r.reservedDates) as ReservedDateSlot[],
+    }));
   });
 
   ngOnInit(): void {
@@ -793,10 +801,6 @@ export class VanReservations implements OnInit, OnDestroy {
       return;
     }
     this.reservations.set(updated);
-  }
-
-  parseDates(json: string): ReservedDateSlot[] {
-    try { return JSON.parse(json) ?? []; } catch { return []; }
   }
 
   formatDate(iso: string): string {

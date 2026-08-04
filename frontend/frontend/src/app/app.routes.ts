@@ -4,6 +4,7 @@ import {
   authGuard,
   facilitiesGuard,
   fltTechGuard,
+  serviceGuard,
   superAdminGuard,
 } from './core/auth/auth.guard';
 
@@ -27,6 +28,10 @@ const superAdminRoutes: Routes = [
   {
     path: 'users/:employeeId/edit',
     loadComponent: () => import('./features/admin/users/edit-user').then((m) => m.EditUser),
+  },
+  {
+    path: 'roles',
+    loadComponent: () => import('./features/admin/roles/roles').then((m) => m.RolesPage),
   },
   {
     path: 'allowed-emails',
@@ -68,6 +73,7 @@ const superAdminRoutes: Routes = [
   },
   {
     path: 'reservation/flt/new',
+    canActivate: [serviceGuard('FLT')],
     loadComponent: () =>
       import('./features/admin/reservations/admin-add-reservation').then(
         (m) => m.AdminAddReservation,
@@ -76,11 +82,13 @@ const superAdminRoutes: Routes = [
   },
   {
     path: 'reservation/flt',
+    canActivate: [serviceGuard('FLT')],
     loadComponent: () =>
       import('./features/admin/reservations/flt/flt-reservations').then((m) => m.FltReservations),
   },
   {
     path: 'reservation/gymnasium/new',
+    canActivate: [serviceGuard('GYMNASIUM')],
     loadComponent: () =>
       import('./features/admin/reservations/admin-add-reservation').then(
         (m) => m.AdminAddReservation,
@@ -89,6 +97,7 @@ const superAdminRoutes: Routes = [
   },
   {
     path: 'reservation/gymnasium',
+    canActivate: [serviceGuard('GYMNASIUM')],
     loadComponent: () =>
       import('./features/admin/reservations/gymnasium/gymnasium-reservations').then(
         (m) => m.GymnasiumReservations,
@@ -96,6 +105,7 @@ const superAdminRoutes: Routes = [
   },
   {
     path: 'reservation/van/new',
+    canActivate: [serviceGuard('VAN')],
     loadComponent: () =>
       import('./features/admin/reservations/admin-add-reservation').then(
         (m) => m.AdminAddReservation,
@@ -104,6 +114,7 @@ const superAdminRoutes: Routes = [
   },
   {
     path: 'reservation/van',
+    canActivate: [serviceGuard('VAN')],
     loadComponent: () =>
       import('./features/admin/reservations/van/van-reservations').then((m) => m.VanReservations),
   },
@@ -218,6 +229,7 @@ const facilitiesRoutes: Routes = [
   },
   {
     path: 'reservation/flt/new',
+    canActivate: [serviceGuard('FLT')],
     loadComponent: () =>
       import('./features/admin/reservations/admin-add-reservation').then(
         (m) => m.AdminAddReservation,
@@ -226,11 +238,13 @@ const facilitiesRoutes: Routes = [
   },
   {
     path: 'reservation/flt',
+    canActivate: [serviceGuard('FLT')],
     loadComponent: () =>
       import('./features/admin/reservations/flt/flt-reservations').then((m) => m.FltReservations),
   },
   {
     path: 'reservation/gymnasium/new',
+    canActivate: [serviceGuard('GYMNASIUM')],
     loadComponent: () =>
       import('./features/admin/reservations/admin-add-reservation').then(
         (m) => m.AdminAddReservation,
@@ -239,6 +253,7 @@ const facilitiesRoutes: Routes = [
   },
   {
     path: 'reservation/gymnasium',
+    canActivate: [serviceGuard('GYMNASIUM')],
     loadComponent: () =>
       import('./features/admin/reservations/gymnasium/gymnasium-reservations').then(
         (m) => m.GymnasiumReservations,
@@ -246,6 +261,7 @@ const facilitiesRoutes: Routes = [
   },
   {
     path: 'reservation/van/new',
+    canActivate: [serviceGuard('VAN')],
     loadComponent: () =>
       import('./features/admin/reservations/admin-add-reservation').then(
         (m) => m.AdminAddReservation,
@@ -254,6 +270,7 @@ const facilitiesRoutes: Routes = [
   },
   {
     path: 'reservation/van',
+    canActivate: [serviceGuard('VAN')],
     loadComponent: () =>
       import('./features/admin/reservations/van/van-reservations').then((m) => m.VanReservations),
   },
@@ -273,6 +290,7 @@ const fltTechRoutes: Routes = [
   },
   {
     path: 'reservation/flt',
+    canActivate: [serviceGuard('FLT')],
     loadComponent: () =>
       import('./features/admin/reservations/flt/flt-reservations').then((m) => m.FltReservations),
     data: { fltTechContext: true },

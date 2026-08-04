@@ -105,11 +105,18 @@ export class AuthService {
 }
 
 function toUser(res: AuthResponse): AuthUser {
+  const services = (res.services ?? [])
+    .map((s) => (s ?? '').trim().toUpperCase())
+    .filter((s): s is AuthUser['services'][number] =>
+      s === 'FLT' || s === 'GYMNASIUM' || s === 'VAN',
+    );
   return {
     username: res.username,
     role: res.role,
     email: res.email,
     fullname: res.fullname,
     empId: res.empId,
+    services,
+    homePath: res.homePath ?? null,
   };
 }

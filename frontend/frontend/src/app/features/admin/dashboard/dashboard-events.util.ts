@@ -163,6 +163,25 @@ export function dashboardServiceFilterOptions(
   });
 }
 
+/** Maps auth role service codes (FLT | GYMNASIUM | VAN) → dashboard filter tabs. */
+export function dashboardServicesFromRoleCodes(
+  codes: readonly string[] | null | undefined,
+): DashboardService[] {
+  const map: Record<string, DashboardService> = {
+    FLT: 'FLT',
+    GYMNASIUM: 'Gymnasium',
+    VAN: 'VAN',
+  };
+  const allowed = new Set<DashboardService>();
+  for (const code of codes ?? []) {
+    const ds = map[(code ?? '').trim().toUpperCase()];
+    if (ds) allowed.add(ds);
+  }
+  return DASHBOARD_SERVICE_FILTER_ORDER.filter(
+    (s) => allowed.has(s) && isServiceImplemented(s),
+  );
+}
+
 export const MAINTENANCE_API_FACILITY: Partial<Record<DashboardService, string>> = {
   FLT: 'FLT',
   Gymnasium: 'GYMNASIUM',

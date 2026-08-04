@@ -37,9 +37,13 @@ public class VehicleManagementController {
 	@Autowired
 	private JWTService jwtService;
 
+	@Autowired
+	private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
+
 	private boolean isAllowed(String token) {
 		String role = jwtService.getRole(token);
-		return "SUPERADMIN".equals(role) || "FACILITIESADMIN".equals(role);
+		return roleAccessService.roleHasAnyService(role)
+				&& !"FLTTECH".equalsIgnoreCase(role);
 	}
 
 	@GetMapping("/admin/vehicle")
