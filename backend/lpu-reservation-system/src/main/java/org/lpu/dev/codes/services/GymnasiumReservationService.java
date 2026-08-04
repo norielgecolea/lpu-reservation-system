@@ -2,6 +2,7 @@ package org.lpu.dev.codes.services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -365,6 +366,68 @@ public class GymnasiumReservationService {
             logger.error("Failed to reschedule gymnasium reservation {}", id, e);
             response.setSuccess(false);
             response.setMessage("Failed to reschedule reservation");
+            return response;
+        }
+    }
+
+    @Transactional
+    public ReservationActionResponse updateDetails(Long id, org.lpu.dev.codes.model.dto.GymnasiumReservationDetailsEditRequest req, String performedBy) {
+        ReservationActionResponse response = new ReservationActionResponse();
+        try {
+            var opt = gymRepository.findById(id);
+            if (opt.isEmpty()) {
+                response.setSuccess(false);
+                response.setMessage("Reservation not found");
+                return response;
+            }
+            GymnasiumReservation r = opt.get();
+            String status = r.getStatus() != null ? r.getStatus() : "";
+            if (!Set.of("PENDING", "APPROVED", "CONFLICT").contains(status)) {
+                response.setSuccess(false);
+                response.setMessage("Only PENDING, APPROVED, or CONFLICT reservations can be edited");
+                return response;
+            }
+            if (req.getEventTitle() == null || req.getEventTitle().isBlank()
+                    || req.getDepartment() == null || req.getDepartment().isBlank()
+                    || req.getOrganization() == null || req.getOrganization().isBlank()
+                    || req.getContactPerson() == null || req.getContactPerson().isBlank()
+                    || req.getContactEmail() == null || req.getContactEmail().isBlank()
+                    || req.getContactNumber() == null || req.getContactNumber().isBlank()
+                    || req.getNumberOfAttendees() == null) {
+                response.setSuccess(false);
+                response.setMessage("Required event fields are missing");
+                return response;
+            }
+
+            String previousTitle = r.getEventTitle();
+            r.setEventTitle(req.getEventTitle().trim());
+            r.setDepartment(req.getDepartment().trim());
+            r.setOrganization(req.getOrganization().trim());
+            r.setContactPerson(req.getContactPerson().trim());
+            r.setContactEmail(req.getContactEmail().trim());
+            r.setContactNumber(req.getContactNumber().trim());
+            r.setNumberOfAttendees(req.getNumberOfAttendees());
+            String instructions = req.getAdditionalInstructions();
+            r.setAdditionalInstructions(instructions == null || instructions.isBlank() ? null : instructions.trim());
+            if (req.getRequestedEquipment() != null) {
+                r.setRequestedEquipment(objectMapper.writeValueAsString(req.getRequestedEquipment()));
+            }
+
+            publishStatusEvent("gymnasium", id, "DETAILS_UPDATED", List.of());
+            auditService.log("GYMNASIUM", "EDIT_DETAILS", performedBy, "reservation", id, r.getEventTitle(),
+                    AdminAuditService.detailsOf(
+                            "previousTitle", previousTitle,
+                            "eventTitle", r.getEventTitle(),
+                            "department", r.getDepartment(),
+                            "contactEmail", r.getContactEmail()));
+
+            response.setSuccess(true);
+            response.setMessage("Event details updated");
+            return response;
+        } catch (Exception e) {
+            logger.error("Failed to update gymnasium reservation {} details", id, e);
+            response.setSuccess(false);
+            response.setMessage("Failed to update event details");
             return response;
         }
     }

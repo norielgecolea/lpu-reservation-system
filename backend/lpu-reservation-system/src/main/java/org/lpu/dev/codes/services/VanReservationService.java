@@ -2,6 +2,7 @@ package org.lpu.dev.codes.services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -493,6 +494,74 @@ public class VanReservationService {
             logger.error("Failed to reschedule van reservation {}", id, e);
             response.setSuccess(false);
             response.setMessage("Failed to reschedule reservation");
+            return response;
+        }
+    }
+
+    @Transactional
+    public ReservationActionResponse updateDetails(Long id, org.lpu.dev.codes.model.dto.VanReservationDetailsEditRequest req, String performedBy) {
+        ReservationActionResponse response = new ReservationActionResponse();
+        try {
+            var opt = vanRepository.findById(id);
+            if (opt.isEmpty()) {
+                response.setSuccess(false);
+                response.setMessage("Reservation not found");
+                return response;
+            }
+            VanReservation r = opt.get();
+            String status = r.getStatus() != null ? r.getStatus() : "";
+            if (!Set.of("PENDING", "APPROVED", "CONFLICT").contains(status)) {
+                response.setSuccess(false);
+                response.setMessage("Only PENDING, APPROVED, or CONFLICT reservations can be edited");
+                return response;
+            }
+            if (req.getDepartment() == null || req.getDepartment().isBlank()
+                    || req.getOrganization() == null || req.getOrganization().isBlank()
+                    || req.getTravelDestination() == null || req.getTravelDestination().isBlank()
+                    || req.getPassengerNames() == null || req.getPassengerNames().isBlank()
+                    || req.getNumberOfPassengers() == null
+                    || req.getContactPerson() == null || req.getContactPerson().isBlank()
+                    || req.getContactEmail() == null || req.getContactEmail().isBlank()
+                    || req.getContactNumber() == null || req.getContactNumber().isBlank()) {
+                response.setSuccess(false);
+                response.setMessage("Required trip fields are missing");
+                return response;
+            }
+
+            String previousDest = r.getTravelDestination();
+            if (req.getSchool() != null && !req.getSchool().isBlank()) {
+                r.setSchool(req.getSchool().trim());
+            }
+            r.setDepartment(req.getDepartment().trim());
+            r.setOrganization(req.getOrganization().trim());
+            r.setTravelDestination(req.getTravelDestination().trim());
+            r.setPassengerNames(req.getPassengerNames().trim());
+            r.setNumberOfPassengers(req.getNumberOfPassengers());
+            r.setContactPerson(req.getContactPerson().trim());
+            r.setContactEmail(req.getContactEmail().trim());
+            r.setContactNumber(req.getContactNumber().trim());
+            String remarks = req.getAdditionalRemarks();
+            r.setAdditionalRemarks(remarks == null || remarks.isBlank() ? null : remarks.trim());
+            if (req.getRequestedVehicleType() != null) {
+                String vt = req.getRequestedVehicleType().trim();
+                r.setRequestedVehicleType(vt.isEmpty() ? null : vt);
+            }
+
+            eventPublisher.publishStatusUpdate("van", id, "DETAILS_UPDATED", List.of());
+            auditService.log("VAN", "EDIT_DETAILS", performedBy, "reservation", id, reservationLabel(r),
+                    AdminAuditService.detailsOf(
+                            "previousDestination", previousDest,
+                            "travelDestination", r.getTravelDestination(),
+                            "department", r.getDepartment(),
+                            "contactEmail", r.getContactEmail()));
+
+            response.setSuccess(true);
+            response.setMessage("Trip details updated");
+            return response;
+        } catch (Exception e) {
+            logger.error("Failed to update van reservation {} details", id, e);
+            response.setSuccess(false);
+            response.setMessage("Failed to update trip details");
             return response;
         }
     }

@@ -27,6 +27,7 @@ import { ReservationApproverStatusChips } from '../reservation-approver-status-c
 import { ReservationStatusPill } from '../reservation-status-pill';
 import { MaintenanceCalendarPicker, MaintenanceSlot, ScheduledEvent } from '../../../admin/maintenance/maintenance-calendar-picker';
 import {
+  GymnasiumReservationDetailsEditRequest,
   GymReservationRecord,
   RequestedEquipmentItem,
   ReservationStatus,
@@ -44,6 +45,9 @@ import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-
 import { ReservationApproverTableSkeleton } from '../reservation-approver-table-skeleton';
 import { ReservationApproverMobileSkeleton } from '../reservation-approver-mobile-skeleton';
 import { downloadGymnasiumReservationForm } from './gymnasium-reservation-form-export.util';
+import { GymnasiumEditDetailsModal } from './gymnasium-edit-details-modal';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { isSuperAdmin } from '../../../../core/auth/roles';
 import {
   buildApprovedOverlapIds,
   parseEquipmentJson,
@@ -67,7 +71,7 @@ interface GymReservationViewRow extends GymReservationRecord {
 
 @Component({
   selector: 'app-gymnasium-reservations',
-  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, GymnasiumRescheduleCalendar, GymnasiumCoordinationCalendar, MaintenanceCalendarPicker, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
+  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, GymnasiumRescheduleCalendar, GymnasiumCoordinationCalendar, GymnasiumEditDetailsModal, MaintenanceCalendarPicker, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-none flex-col gap-4 md:min-h-0 md:flex-1' },
   template: `
@@ -206,6 +210,17 @@ interface GymReservationViewRow extends GymReservationRecord {
                   </div>
                   <div class="mt-3 flex flex-wrap gap-1.5">
                     @if (row.status === 'PENDING') {
+                      @if (isSuperAdminRole()) {
+                        <button
+                          type="button"
+                          (click)="openEditDetails(row)"
+                          [disabled]="acting() === row.id"
+                          class="flex items-center justify-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ui-icon name="edit" class="text-sm" />
+                          <span class="hidden sm:inline">Edit</span>
+                        </button>
+                      }
                       <button
                         type="button"
                         (click)="requestConfirm(row, 'APPROVED')"
@@ -225,6 +240,17 @@ interface GymReservationViewRow extends GymReservationRecord {
                         <span class="hidden sm:inline">Reject</span>
                       </button>
                     } @else if (row.status === 'CONFLICT') {
+                      @if (isSuperAdminRole()) {
+                        <button
+                          type="button"
+                          (click)="openEditDetails(row)"
+                          [disabled]="acting() === row.id"
+                          class="flex items-center justify-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ui-icon name="edit" class="text-sm" />
+                          <span class="hidden sm:inline">Edit</span>
+                        </button>
+                      }
                       <button
                         type="button"
                         (click)="requestConfirm(row, 'REJECTED')"
@@ -241,6 +267,17 @@ interface GymReservationViewRow extends GymReservationRecord {
                         (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
+                        @if (isSuperAdminRole()) {
+                          <button
+                            type="button"
+                            (click)="openEditDetails(row)"
+                            [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <ui-icon name="edit" class="text-sm" />
+                            Edit
+                          </button>
+                        }
                         <button
                           type="button"
                           (click)="printForm(row)"
@@ -402,6 +439,13 @@ interface GymReservationViewRow extends GymReservationRecord {
                   <td class="px-4 py-3 text-right">
                     @if (row.status === 'PENDING') {
                       <div class="flex items-center justify-end gap-1.5">
+                        @if (isSuperAdminRole()) {
+                          <button type="button" (click)="openEditDetails(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="edit" class="text-sm" />
+                            <span class="hidden sm:inline">Edit</span>
+                          </button>
+                        }
                         <button type="button" (click)="requestConfirm(row, 'APPROVED')" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                           <ui-icon name="check_circle" class="text-sm" />
@@ -415,6 +459,13 @@ interface GymReservationViewRow extends GymReservationRecord {
                       </div>
                     } @else if (row.status === 'CONFLICT') {
                       <div class="flex items-center justify-end gap-1.5">
+                        @if (isSuperAdminRole()) {
+                          <button type="button" (click)="openEditDetails(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="edit" class="text-sm" />
+                            <span class="hidden sm:inline">Edit</span>
+                          </button>
+                        }
                         <button type="button" (click)="requestConfirm(row, 'REJECTED')" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                           <ui-icon name="cancel" class="text-sm" />
@@ -428,6 +479,13 @@ interface GymReservationViewRow extends GymReservationRecord {
                         (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
+                        @if (isSuperAdminRole()) {
+                          <button type="button" (click)="openEditDetails(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="edit" class="text-sm" />
+                            Edit
+                          </button>
+                        }
                         <button type="button" (click)="printForm(row)" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                           <ui-icon name="download" class="text-sm" />
@@ -549,6 +607,15 @@ interface GymReservationViewRow extends GymReservationRecord {
       />
     }
 
+    @if (editTarget(); as editRow) {
+      <app-gymnasium-edit-details-modal
+        [reservation]="editRow"
+        [saving]="editSaving()"
+        (saved)="saveEditDetails($event)"
+        (cancelled)="closeEditDetails()"
+      />
+    }
+
     <!-- Reschedule Calendar Overlay -->
     @if (rescheduleTarget()) {
       <app-gymnasium-reschedule-calendar
@@ -582,8 +649,11 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
   private readonly maintSvc = inject(MaintenanceService);
   private readonly realtime = inject(ReservationRealtimeService);
   private readonly alerts = inject(ReservationAlertService);
+  private readonly auth = inject(AuthService);
   private wsSub?: Subscription;
   private pollSub?: Subscription;
+
+  protected readonly isSuperAdminRole = computed(() => isSuperAdmin(this.auth.user()?.role));
 
   protected readonly addReservationPath = adminAddReservationPath('gymnasium', this.router.url);
 
@@ -596,6 +666,8 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
   readonly acting = signal<number | null>(null);
   readonly confirm = signal<ConfirmState | null>(null);
   readonly detailsTarget = signal<GymReservationRecord | null>(null);
+  readonly editTarget = signal<GymReservationRecord | null>(null);
+  readonly editSaving = signal(false);
 
   protected readonly detailsSummaryEvent = computed(() => {
     const row = this.detailsTarget();
@@ -867,6 +939,56 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
         this.confirm.set(null);
         const body = err?.error;
         this.toast.set(body?.blockedReason ?? body?.message ?? 'An error occurred. Please try again.');
+      },
+    });
+  }
+
+  // ─── Edit details (Super Admin) ─────────────────────────────────
+  openEditDetails(row: GymReservationRecord): void {
+    if (!this.isSuperAdminRole()) return;
+    this.editTarget.set(row);
+  }
+
+  closeEditDetails(): void {
+    this.editTarget.set(null);
+    this.editSaving.set(false);
+  }
+
+  saveEditDetails(body: GymnasiumReservationDetailsEditRequest): void {
+    const target = this.editTarget();
+    if (!target) return;
+    this.editSaving.set(true);
+    this.svc.updateDetails(target.id, body).subscribe({
+      next: (res) => {
+        this.editSaving.set(false);
+        if (res.success) {
+          this.reservations.update((list) =>
+            list.map((r) =>
+              r.id === target.id
+                ? {
+                    ...r,
+                    eventTitle: body.eventTitle,
+                    department: body.department,
+                    organization: body.organization,
+                    contactPerson: body.contactPerson,
+                    contactEmail: body.contactEmail,
+                    contactNumber: body.contactNumber,
+                    numberOfAttendees: String(body.numberOfAttendees),
+                    additionalInstructions: body.additionalInstructions,
+                    requestedEquipment: JSON.stringify(body.requestedEquipment),
+                  }
+                : r,
+            ),
+          );
+          this.toast.set('Event details updated.');
+          this.closeEditDetails();
+        } else {
+          this.toast.set(res.message || 'Failed to update event details.');
+        }
+      },
+      error: (err) => {
+        this.editSaving.set(false);
+        this.toast.set(err?.error?.message ?? 'Failed to update event details.');
       },
     });
   }

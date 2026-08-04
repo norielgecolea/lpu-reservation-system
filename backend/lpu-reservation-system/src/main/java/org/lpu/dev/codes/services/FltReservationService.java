@@ -417,6 +417,76 @@ public class FltReservationService {
     }
 
     @Transactional
+    public ReservationActionResponse updateDetails(Long id, org.lpu.dev.codes.model.dto.FltReservationDetailsEditRequest req, String performedBy) {
+        ReservationActionResponse response = new ReservationActionResponse();
+        try {
+            var opt = fltReservationRepository.findById(id);
+            if (opt.isEmpty()) {
+                response.setSuccess(false);
+                response.setMessage("Reservation not found");
+                return response;
+            }
+            FltReservation r = opt.get();
+            String status = r.getStatus() != null ? r.getStatus() : "";
+            if (!Set.of("PENDING", "APPROVED", "CONFLICT").contains(status)) {
+                response.setSuccess(false);
+                response.setMessage("Only PENDING, APPROVED, or CONFLICT reservations can be edited");
+                return response;
+            }
+            if (isBlank(req.getEventTitle()) || isBlank(req.getEventType()) || isBlank(req.getDepartment())
+                    || isBlank(req.getOrganization()) || isBlank(req.getContactPerson())
+                    || isBlank(req.getContactEmail()) || isBlank(req.getContactNumber())
+                    || isBlank(req.getRoomType()) || req.getExpectedAttendees() == null) {
+                response.setSuccess(false);
+                response.setMessage("Required event fields are missing");
+                return response;
+            }
+
+            String previousTitle = r.getEventTitle();
+            r.setEventTitle(req.getEventTitle().trim());
+            r.setEventType(req.getEventType().trim());
+            r.setDepartment(req.getDepartment().trim());
+            r.setOrganization(req.getOrganization().trim());
+            r.setContactPerson(req.getContactPerson().trim());
+            r.setContactEmail(req.getContactEmail().trim());
+            r.setContactNumber(req.getContactNumber().trim());
+            r.setRoomType(req.getRoomType().trim());
+            r.setExpectedAttendees(req.getExpectedAttendees());
+            r.setAdditionalInstructions(blankToNull(req.getAdditionalInstructions()));
+            if (req.getRequestedEquipment() != null) {
+                r.setRequestedEquipment(objectMapper.writeValueAsString(req.getRequestedEquipment()));
+            }
+
+            publishStatusEvent("flt", id, "DETAILS_UPDATED", List.of());
+            auditService.log("FLT", "EDIT_DETAILS", performedBy, "reservation", id, r.getEventTitle(),
+                    AdminAuditService.detailsOf(
+                            "previousTitle", previousTitle,
+                            "eventTitle", r.getEventTitle(),
+                            "department", r.getDepartment(),
+                            "contactEmail", r.getContactEmail()));
+
+            response.setSuccess(true);
+            response.setMessage("Event details updated");
+            return response;
+        } catch (Exception e) {
+            logger.error("Failed to update FLT reservation {} details", id, e);
+            response.setSuccess(false);
+            response.setMessage("Failed to update event details");
+            return response;
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    @Transactional
     public boolean createReservation(FltReservationRequest req) {
         try {
             FltReservation reservation = new FltReservation();

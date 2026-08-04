@@ -43,6 +43,18 @@ export interface RescheduleRequest {
   reservedDates: ReservedDateSlot[];
 }
 
+export interface GymnasiumReservationDetailsEditRequest {
+  eventTitle: string;
+  department: string;
+  organization: string;
+  contactPerson: string;
+  contactEmail: string;
+  contactNumber: string;
+  numberOfAttendees: number;
+  additionalInstructions: string | null;
+  requestedEquipment: RequestedEquipmentItem[];
+}
+
 export interface GymAdminListResponse {
   success: boolean;
   message: string;

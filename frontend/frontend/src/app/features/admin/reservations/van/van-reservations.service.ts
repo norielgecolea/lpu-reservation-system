@@ -9,6 +9,7 @@ import {
   VanAdminActionResponse,
   VanAdminListResponse,
   VanApproveRequest,
+  VanReservationDetailsEditRequest,
 } from './van-reservations.models';
 
 @Injectable({ providedIn: 'root' })
@@ -85,6 +86,10 @@ export class VanReservationsService {
       `${this.base}/reservations/${id}/reschedule`,
       { reservedDates } satisfies RescheduleRequest,
     );
+  }
+
+  updateDetails(id: number, body: VanReservationDetailsEditRequest) {
+    return this.http.put<VanAdminActionResponse>(`${this.base}/reservations/${id}/details`, body);
   }
 }
 

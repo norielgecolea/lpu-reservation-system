@@ -45,6 +45,20 @@ export interface RescheduleRequest {
   reservedDates: ReservedDateSlot[];
 }
 
+export interface FltReservationDetailsEditRequest {
+  eventTitle: string;
+  eventType: string;
+  department: string;
+  organization: string;
+  contactPerson: string;
+  contactEmail: string;
+  contactNumber: string;
+  roomType: string;
+  expectedAttendees: number;
+  additionalInstructions: string | null;
+  requestedEquipment: RequestedEquipmentItem[];
+}
+
 export interface FltAdminListResponse {
   success: boolean;
   message: string;

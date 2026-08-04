@@ -176,6 +176,35 @@ public class FltAdminController {
         return ResponseEntity.ok(res);
     }
 
+    @PutMapping("/reservations/{id}/details")
+    public ResponseEntity<ReservationActionResponse> updateDetails(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id,
+            @RequestBody org.lpu.dev.codes.model.dto.FltReservationDetailsEditRequest body) {
+
+        ReservationActionResponse res = new ReservationActionResponse();
+        String token = authHeader.replace("LpuL ", "");
+
+        if (!auth.userActive(jwtService.getUsername(token))) {
+            res.setSuccess(false);
+            res.setMessage("USER NOT ACTIVE!");
+            return ResponseEntity.status(401).body(res);
+        }
+        if (!"SUPERADMIN".equals(jwtService.getRole(token))) {
+            res.setSuccess(false);
+            res.setMessage("Only Super Admin can edit event details");
+            return ResponseEntity.status(403).body(res);
+        }
+        if (!isAllowed(jwtService.getRole(token))) {
+            res.setSuccess(false);
+            res.setMessage("Access denied");
+            return ResponseEntity.status(403).body(res);
+        }
+
+        res = fltReservationService.updateDetails(id, body, jwtService.getUsername(token));
+        return ResponseEntity.ok(res);
+    }
+
     /** Role may access FLT if SUPERADMIN, FLTTECH, or assigned FLT service. */
     private boolean isAllowed(String role) {
         return roleAccessService.roleHasService(role, org.lpu.dev.codes.services.RoleAccessService.SERVICE_FLT);

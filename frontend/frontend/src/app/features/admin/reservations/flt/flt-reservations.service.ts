@@ -5,6 +5,7 @@ import { environment } from '../../../../../environments/environment';
 import {
   FltAdminActionResponse,
   FltAdminListResponse,
+  FltReservationDetailsEditRequest,
   ReservationStatus,
   RescheduleRequest,
   ReservedDateSlot,
@@ -48,6 +49,10 @@ export class FltReservationsService {
       `${this.base}/reservations/${id}/reschedule`,
       { reservedDates } satisfies RescheduleRequest,
     );
+  }
+
+  updateDetails(id: number, body: FltReservationDetailsEditRequest) {
+    return this.http.put<FltAdminActionResponse>(`${this.base}/reservations/${id}/details`, body);
   }
 }
 

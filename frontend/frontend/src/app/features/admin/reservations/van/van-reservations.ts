@@ -26,6 +26,7 @@ import { ReservationStatusPill } from '../reservation-status-pill';
 import {
   ReservationStatus,
   ReservedDateSlot,
+  VanReservationDetailsEditRequest,
   VanReservationRow,
 } from './van-reservations.models';
 import { VanReservationsService } from './van-reservations.service';
@@ -39,6 +40,9 @@ import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-
 import { ReservationApproverTableSkeleton } from '../reservation-approver-table-skeleton';
 import { ReservationApproverMobileSkeleton } from '../reservation-approver-mobile-skeleton';
 import { downloadVanReservationForm } from './van-reservation-form-export.util';
+import { VanEditDetailsModal } from './van-edit-details-modal';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { isSuperAdmin } from '../../../../core/auth/roles';
 import { parseReservedDatesJson } from '../reservation-row.util';
 
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
@@ -56,7 +60,7 @@ interface VanReservationViewRow extends VanReservationRow {
 
 @Component({
   selector: 'app-van-reservations',
-  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, VanRescheduleCalendar, VanApproveModal, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
+  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, VanRescheduleCalendar, VanApproveModal, VanEditDetailsModal, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-none flex-col gap-4 md:min-h-0 md:flex-1' },
   template: `
@@ -183,6 +187,13 @@ interface VanReservationViewRow extends VanReservationRow {
                   </div>
                   <div class="mt-3 flex flex-wrap gap-1.5">
                     @if (row.status === 'PENDING') {
+                      @if (isSuperAdminRole()) {
+                        <button type="button" (click)="openEditDetails(row)" [disabled]="acting() === row.id"
+                          class="flex items-center justify-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                          <ui-icon name="edit" class="text-sm" />
+                          <span class="hidden sm:inline">Edit</span>
+                        </button>
+                      }
                       <button type="button" (click)="openApprove(row)" [disabled]="acting() === row.id"
                         class="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                         <ui-icon name="check_circle" class="text-sm" />
@@ -194,6 +205,13 @@ interface VanReservationViewRow extends VanReservationRow {
                         <span class="hidden sm:inline">Reject</span>
                       </button>
                     } @else if (row.status === 'CONFLICT') {
+                      @if (isSuperAdminRole()) {
+                        <button type="button" (click)="openEditDetails(row)" [disabled]="acting() === row.id"
+                          class="flex items-center justify-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                          <ui-icon name="edit" class="text-sm" />
+                          <span class="hidden sm:inline">Edit</span>
+                        </button>
+                      }
                       <button type="button" (click)="requestConfirm(row, 'REJECTED')" [disabled]="acting() === row.id"
                         class="flex flex-1 items-center justify-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                         <ui-icon name="cancel" class="text-sm" />
@@ -206,6 +224,13 @@ interface VanReservationViewRow extends VanReservationRow {
                         (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
+                        @if (isSuperAdminRole()) {
+                          <button type="button" (click)="openEditDetails(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="edit" class="text-sm" />
+                            Edit
+                          </button>
+                        }
                         <button type="button" (click)="printForm(row)" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                           <ui-icon name="download" class="text-sm" />
@@ -336,6 +361,13 @@ interface VanReservationViewRow extends VanReservationRow {
                   <td class="px-4 py-3 text-right">
                     @if (row.status === 'PENDING') {
                       <div class="flex items-center justify-end gap-1.5">
+                        @if (isSuperAdminRole()) {
+                          <button type="button" (click)="openEditDetails(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="edit" class="text-sm" />
+                            <span class="hidden sm:inline">Edit</span>
+                          </button>
+                        }
                         <button type="button" (click)="openApprove(row)" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                           <ui-icon name="check_circle" class="text-sm" />
@@ -349,6 +381,13 @@ interface VanReservationViewRow extends VanReservationRow {
                       </div>
                     } @else if (row.status === 'CONFLICT') {
                       <div class="flex items-center justify-end gap-1.5">
+                        @if (isSuperAdminRole()) {
+                          <button type="button" (click)="openEditDetails(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="edit" class="text-sm" />
+                            <span class="hidden sm:inline">Edit</span>
+                          </button>
+                        }
                         <button type="button" (click)="requestConfirm(row, 'REJECTED')" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                           <ui-icon name="cancel" class="text-sm" />
@@ -362,6 +401,13 @@ interface VanReservationViewRow extends VanReservationRow {
                         (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
+                        @if (isSuperAdminRole()) {
+                          <button type="button" (click)="openEditDetails(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="edit" class="text-sm" />
+                            Edit
+                          </button>
+                        }
                         <button type="button" (click)="printForm(row)" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                           <ui-icon name="download" class="text-sm" />
@@ -486,6 +532,15 @@ interface VanReservationViewRow extends VanReservationRow {
         (cancelled)="closeReschedule()"
       />
     }
+
+    @if (editTarget(); as editRow) {
+      <app-van-edit-details-modal
+        [reservation]="editRow"
+        [saving]="editSaving()"
+        (saved)="saveEditDetails($event)"
+        (cancelled)="closeEditDetails()"
+      />
+    }
   `,
 })
 export class VanReservations implements OnInit, OnDestroy {
@@ -494,8 +549,11 @@ export class VanReservations implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly realtime = inject(ReservationRealtimeService);
   private readonly alerts = inject(ReservationAlertService);
+  private readonly auth = inject(AuthService);
   private wsSub?: Subscription;
   private pollSub?: Subscription;
+
+  protected readonly isSuperAdminRole = computed(() => isSuperAdmin(this.auth.user()?.role));
 
   protected readonly addReservationPath = adminAddReservationPath('van', this.router.url);
 
@@ -508,6 +566,8 @@ export class VanReservations implements OnInit, OnDestroy {
   readonly acting = signal<number | null>(null);
   readonly confirm = signal<ConfirmState | null>(null);
   readonly detailsTarget = signal<VanReservationRow | null>(null);
+  readonly editTarget = signal<VanReservationRow | null>(null);
+  readonly editSaving = signal(false);
 
   protected readonly detailsSummaryEvent = computed(() => {
     const row = this.detailsTarget();
@@ -666,6 +726,57 @@ export class VanReservations implements OnInit, OnDestroy {
   openReassign(row: VanReservationRow): void {
     this.assignMode.set('reassign');
     this.approveTarget.set(row);
+  }
+
+  openEditDetails(row: VanReservationRow): void {
+    if (!this.isSuperAdminRole()) return;
+    this.editTarget.set(row);
+  }
+
+  closeEditDetails(): void {
+    this.editTarget.set(null);
+    this.editSaving.set(false);
+  }
+
+  saveEditDetails(body: VanReservationDetailsEditRequest): void {
+    const target = this.editTarget();
+    if (!target) return;
+    this.editSaving.set(true);
+    this.svc.updateDetails(target.id, body).subscribe({
+      next: (res) => {
+        this.editSaving.set(false);
+        if (res.success) {
+          this.reservations.update((list) =>
+            list.map((r) =>
+              r.id === target.id
+                ? {
+                    ...r,
+                    school: body.school,
+                    department: body.department,
+                    organization: body.organization,
+                    travelDestination: body.travelDestination,
+                    passengerNames: body.passengerNames,
+                    numberOfPassengers: body.numberOfPassengers,
+                    contactPerson: body.contactPerson,
+                    contactEmail: body.contactEmail,
+                    contactNumber: body.contactNumber,
+                    additionalRemarks: body.additionalRemarks,
+                    requestedVehicleType: body.requestedVehicleType,
+                  }
+                : r,
+            ),
+          );
+          this.toast.set('Trip details updated.');
+          this.closeEditDetails();
+        } else {
+          this.toast.set(res.message || 'Failed to update trip details.');
+        }
+      },
+      error: (err) => {
+        this.editSaving.set(false);
+        this.toast.set(err?.error?.message ?? 'Failed to update trip details.');
+      },
+    });
   }
 
   closeApprove(): void {

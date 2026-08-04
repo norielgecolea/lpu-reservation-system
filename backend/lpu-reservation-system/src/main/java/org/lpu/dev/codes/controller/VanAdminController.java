@@ -293,4 +293,30 @@ public class VanAdminController {
         }
         return ResponseEntity.ok(res);
     }
+
+    @PutMapping("/reservations/{id}/details")
+    public ResponseEntity<ReservationActionResponse> updateDetails(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id,
+            @RequestBody org.lpu.dev.codes.model.dto.VanReservationDetailsEditRequest body) {
+        ReservationActionResponse res = new ReservationActionResponse();
+        String token = tok(authHeader);
+        if (!auth.userActive(jwtService.getUsername(token))) {
+            res.setSuccess(false);
+            res.setMessage("USER NOT ACTIVE!");
+            return ResponseEntity.status(401).body(res);
+        }
+        if (!"SUPERADMIN".equals(jwtService.getRole(token))) {
+            res.setSuccess(false);
+            res.setMessage("Only Super Admin can edit event details");
+            return ResponseEntity.status(403).body(res);
+        }
+        if (!isAllowed(token)) {
+            res.setSuccess(false);
+            res.setMessage("Access denied");
+            return ResponseEntity.status(403).body(res);
+        }
+        res = vanService.updateDetails(id, body, jwtService.getUsername(token));
+        return ResponseEntity.ok(res);
+    }
 }

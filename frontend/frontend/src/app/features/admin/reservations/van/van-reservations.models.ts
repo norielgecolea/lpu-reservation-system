@@ -73,6 +73,20 @@ export interface RescheduleRequest {
   reservedDates: ReservedDateSlot[];
 }
 
+export interface VanReservationDetailsEditRequest {
+  school: string;
+  department: string;
+  organization: string;
+  travelDestination: string;
+  passengerNames: string;
+  numberOfPassengers: number;
+  contactPerson: string;
+  contactEmail: string;
+  contactNumber: string;
+  additionalRemarks: string | null;
+  requestedVehicleType: string | null;
+}
+
 export interface VanAdminListResponse {
   success: boolean;
   message: string;

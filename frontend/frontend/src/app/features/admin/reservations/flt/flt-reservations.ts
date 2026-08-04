@@ -25,6 +25,7 @@ import {
 import { ReservationApproverStatusChips } from '../reservation-approver-status-chips';
 import { ReservationStatusPill } from '../reservation-status-pill';
 import {
+  FltReservationDetailsEditRequest,
   FltReservationRecord,
   RequestedEquipmentItem,
   ReservationStatus,
@@ -33,7 +34,7 @@ import {
 } from './flt-reservations.models';
 import { FltReservationsService } from './flt-reservations.service';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { isFltTech } from '../../../../core/auth/roles';
+import { isFltTech, isSuperAdmin } from '../../../../core/auth/roles';
 import { ReservationRealtimeService, ReservationWsEvent } from '../reservation-realtime.service';
 import { ReservationAlertService } from '../reservation-alert.service';
 import { applyRevertedIds, applyReservationWsEvent } from '../reservation-ws.util';
@@ -44,6 +45,7 @@ import { ReservationExportModal } from '../reservation-export-modal';
 import { exportFltReservationsCsv, ExportDateRange } from '../reservation-export.util';
 import { adminAddReservationPath } from '../admin-reservation-path.util';
 import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-menu';
+import { FltEditDetailsModal } from './flt-edit-details-modal';
 import {
   buildApprovedOverlapIds,
   parseEquipmentJson,
@@ -70,7 +72,7 @@ interface FltReservationViewRow extends FltReservationRecord {
 
 @Component({
   selector: 'app-flt-reservations',
-  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, FltRescheduleCalendar, FltCoordinationCalendar, MaintenanceCalendarPicker, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
+  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, FltRescheduleCalendar, FltCoordinationCalendar, FltEditDetailsModal, MaintenanceCalendarPicker, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-none flex-col gap-4 md:min-h-0 md:flex-1' },
   template: `
@@ -209,6 +211,17 @@ interface FltReservationViewRow extends FltReservationRecord {
                   </div>
                   <div class="mt-3 flex flex-wrap gap-1.5">
                     @if (!isFltTechRole() && row.status === 'PENDING') {
+                      @if (isSuperAdminRole()) {
+                        <button
+                          type="button"
+                          (click)="openEditDetails(row)"
+                          [disabled]="acting() === row.id"
+                          class="flex items-center justify-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ui-icon name="edit" class="text-sm" />
+                          <span class="hidden sm:inline">Edit</span>
+                        </button>
+                      }
                       <button
                         type="button"
                         (click)="requestConfirm(row, 'APPROVED')"
@@ -228,6 +241,17 @@ interface FltReservationViewRow extends FltReservationRecord {
                         <span class="hidden sm:inline">Reject</span>
                       </button>
                     } @else if (!isFltTechRole() && row.status === 'CONFLICT') {
+                      @if (isSuperAdminRole()) {
+                        <button
+                          type="button"
+                          (click)="openEditDetails(row)"
+                          [disabled]="acting() === row.id"
+                          class="flex items-center justify-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ui-icon name="edit" class="text-sm" />
+                          <span class="hidden sm:inline">Edit</span>
+                        </button>
+                      }
                       <button
                         type="button"
                         (click)="requestConfirm(row, 'REJECTED')"
@@ -244,6 +268,17 @@ interface FltReservationViewRow extends FltReservationRecord {
                         (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
+                        @if (isSuperAdminRole()) {
+                          <button
+                            type="button"
+                            (click)="openEditDetails(row)"
+                            [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <ui-icon name="edit" class="text-sm" />
+                            Edit
+                          </button>
+                        }
                         <button
                           type="button"
                           (click)="openCoordination(row)"
@@ -408,6 +443,17 @@ interface FltReservationViewRow extends FltReservationRecord {
                   <td class="px-4 py-3 text-right">
                     @if (!isFltTechRole() && row.status === 'PENDING') {
                       <div class="flex items-center justify-end gap-1.5">
+                        @if (isSuperAdminRole()) {
+                          <button
+                            type="button"
+                            (click)="openEditDetails(row)"
+                            [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <ui-icon name="edit" class="text-sm" />
+                            <span class="hidden sm:inline">Edit</span>
+                          </button>
+                        }
                         <button
                           type="button"
                           (click)="requestConfirm(row, 'APPROVED')"
@@ -429,6 +475,17 @@ interface FltReservationViewRow extends FltReservationRecord {
                       </div>
                     } @else if (!isFltTechRole() && row.status === 'CONFLICT') {
                       <div class="flex items-center justify-end gap-1.5">
+                        @if (isSuperAdminRole()) {
+                          <button
+                            type="button"
+                            (click)="openEditDetails(row)"
+                            [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <ui-icon name="edit" class="text-sm" />
+                            <span class="hidden sm:inline">Edit</span>
+                          </button>
+                        }
                         <button
                           type="button"
                           (click)="requestConfirm(row, 'REJECTED')"
@@ -446,6 +503,17 @@ interface FltReservationViewRow extends FltReservationRecord {
                         (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
+                        @if (isSuperAdminRole()) {
+                          <button
+                            type="button"
+                            (click)="openEditDetails(row)"
+                            [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <ui-icon name="edit" class="text-sm" />
+                            Edit
+                          </button>
+                        }
                         <button
                           type="button"
                           (click)="openCoordination(row)"
@@ -600,6 +668,15 @@ interface FltReservationViewRow extends FltReservationRecord {
       />
     }
 
+    @if (editTarget(); as editRow) {
+      <app-flt-edit-details-modal
+        [reservation]="editRow"
+        [saving]="editSaving()"
+        (saved)="saveEditDetails($event)"
+        (cancelled)="closeEditDetails()"
+      />
+    }
+
     <!-- ─── Reschedule Calendar Overlay ─── (outside admin-shell so it covers full viewport) -->
     @if (rescheduleTarget()) {
       <app-flt-reschedule-calendar
@@ -637,6 +714,7 @@ export class FltReservations implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
 
   protected readonly isFltTechRole = computed(() => isFltTech(this.auth.user()?.role));
+  protected readonly isSuperAdminRole = computed(() => isSuperAdmin(this.auth.user()?.role));
 
   protected readonly addReservationPath = adminAddReservationPath('flt', this.router.url);
   private wsSub?: Subscription;
@@ -653,6 +731,8 @@ export class FltReservations implements OnInit, OnDestroy {
   readonly acting = signal<number | null>(null);
   readonly confirm = signal<ConfirmState | null>(null);
   readonly detailsTarget = signal<FltReservationRecord | null>(null);
+  readonly editTarget = signal<FltReservationRecord | null>(null);
+  readonly editSaving = signal(false);
 
   protected readonly detailsSummaryEvent = computed(() => {
     const row = this.detailsTarget();
@@ -940,6 +1020,58 @@ export class FltReservations implements OnInit, OnDestroy {
         this.confirm.set(null);
         const body = err?.error;
         this.toast.set(body?.blockedReason ?? body?.message ?? 'An error occurred. Please try again.');
+      },
+    });
+  }
+
+  // ─── Edit details (Super Admin) ─────────────────────────────────
+  openEditDetails(row: FltReservationRecord): void {
+    if (!this.isSuperAdminRole()) return;
+    this.editTarget.set(row);
+  }
+
+  closeEditDetails(): void {
+    this.editTarget.set(null);
+    this.editSaving.set(false);
+  }
+
+  saveEditDetails(body: FltReservationDetailsEditRequest): void {
+    const target = this.editTarget();
+    if (!target) return;
+    this.editSaving.set(true);
+    this.svc.updateDetails(target.id, body).subscribe({
+      next: (res) => {
+        this.editSaving.set(false);
+        if (res.success) {
+          this.reservations.update((list) =>
+            list.map((r) =>
+              r.id === target.id
+                ? {
+                    ...r,
+                    eventTitle: body.eventTitle,
+                    eventType: body.eventType,
+                    department: body.department,
+                    organization: body.organization,
+                    contactPerson: body.contactPerson,
+                    contactEmail: body.contactEmail,
+                    contactNumber: body.contactNumber,
+                    roomType: body.roomType,
+                    expectedAttendees: String(body.expectedAttendees),
+                    additionalInstructions: body.additionalInstructions,
+                    requestedEquipment: JSON.stringify(body.requestedEquipment),
+                  }
+                : r,
+            ),
+          );
+          this.toast.set('Event details updated.');
+          this.closeEditDetails();
+        } else {
+          this.toast.set(res.message || 'Failed to update event details.');
+        }
+      },
+      error: (err) => {
+        this.editSaving.set(false);
+        this.toast.set(err?.error?.message ?? 'Failed to update event details.');
       },
     });
   }

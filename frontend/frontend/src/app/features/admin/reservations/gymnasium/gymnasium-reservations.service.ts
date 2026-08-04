@@ -5,6 +5,7 @@ import { environment } from '../../../../../environments/environment';
 import {
   GymAdminActionResponse,
   GymAdminListResponse,
+  GymnasiumReservationDetailsEditRequest,
   ReservationStatus,
   RescheduleRequest,
   ReservedDateSlot,
@@ -48,6 +49,10 @@ export class GymReservationsService {
       `${this.base}/reservations/${id}/reschedule`,
       { reservedDates } satisfies RescheduleRequest,
     );
+  }
+
+  updateDetails(id: number, body: GymnasiumReservationDetailsEditRequest) {
+    return this.http.put<GymAdminActionResponse>(`${this.base}/reservations/${id}/details`, body);
   }
 }
 
