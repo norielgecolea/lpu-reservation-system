@@ -1,159 +1,198 @@
 <section
-  class="relative overflow-hidden rounded-2xl bg-white/50 p-3 shadow-[0_20px_50px_-24px_rgba(24,24,27,0.35)] ring-1 ring-white/70 backdrop-blur-xl backdrop-saturate-150 animate-rise sm:p-6"
+  class="animate-rise overflow-hidden rounded-2xl bg-white/70 p-4 ring-1 ring-inset ring-black/5 sm:p-6"
 >
-  <div
-    class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl"
-  ></div>
-  <div
-    class="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-secondary/10 blur-3xl"
-  ></div>
-
-  <div class="relative mb-5 flex shrink-0 items-center justify-between gap-3 sm:mb-6">
-    <div class="flex items-center gap-3">
+  <div class="mb-5 flex flex-wrap items-start justify-between gap-3 sm:mb-6">
+    <div class="flex min-w-0 items-start gap-3">
       <div
-        class="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-primary to-secondary text-white shadow-lg shadow-primary/25"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/15"
       >
-        <ui-icon name="insights" class="text-xl" />
+        <ui-icon name="insights" class="text-2xl" />
       </div>
-      <div>
-        <h2 class="text-base font-bold text-gray-900 sm:text-lg">Data Analytics</h2>
-        <p class="text-[11px] font-medium text-gray-500 sm:text-xs">Performance insights</p>
+      <div class="min-w-0">
+        <h2 class="text-lg font-black tracking-tight text-gray-900">Data Analytics</h2>
+        <p class="mt-0.5 text-sm text-gray-500">
+          {{ activeService() }} performance for {{ monthLabel() }}
+        </p>
       </div>
     </div>
-    <span
-      class="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary ring-1 ring-primary/15 sm:text-xs"
-    >
-      {{ monthLabel() }}
-    </span>
+    @if (!isComingSoon() && !loading()) {
+      <div class="flex flex-wrap items-center gap-2">
+        <span
+          class="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-2.5 py-1.5 text-xs font-bold text-gray-700"
+        >
+          <ui-icon name="calendar_month" class="text-sm text-primary" />
+          {{ monthLabel() }}
+        </span>
+        <span
+          class="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-bold text-primary"
+        >
+          {{ analytics().month.total }} this month
+        </span>
+      </div>
+    }
   </div>
 
   @if (isComingSoon()) {
-    <p class="py-10 text-center text-sm text-gray-500">
-      {{ activeService() }} analytics coming soon.
-    </p>
+    <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50/80 px-4 py-12 text-center">
+      <ui-icon name="hourglass_empty" class="mx-auto text-3xl text-gray-300" />
+      <p class="mt-2 text-sm font-medium text-gray-500">
+        {{ activeService() }} analytics coming soon.
+      </p>
+    </div>
   } @else if (loading()) {
     <div class="space-y-4">
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         @for (_ of [1, 2, 3]; track $index) {
-          <div class="h-24 animate-pulse rounded-2xl bg-gray-200/60"></div>
+          <div class="h-24 animate-pulse rounded-xl bg-gray-200/70"></div>
         }
       </div>
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        @for (_ of [1, 2, 3]; track $index) {
-          <div class="h-44 animate-pulse rounded-2xl bg-gray-200/60"></div>
+      <div class="grid gap-4 lg:grid-cols-2">
+        @for (_ of [1, 2, 3, 4]; track $index) {
+          <div class="h-48 animate-pulse rounded-xl bg-gray-200/70"></div>
         }
       </div>
     </div>
   } @else {
-    <!-- Row A: All-time summary -->
-    <div class="relative mb-5 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-3">
-      <div
-        class="relative overflow-hidden rounded-2xl bg-linear-to-br from-sky-600 to-sky-900 p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_32px_-12px_rgba(14,116,144,0.55)] ring-1 ring-white/10"
-      >
-        <div class="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-2xl"></div>
-        <div class="relative flex items-start justify-between gap-2">
-          <span class="text-xs font-medium text-white/75">All Time Total</span>
-          <ui-icon name="monitoring" class="text-lg text-white/70" />
+    <!-- All-time KPIs -->
+    <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div class="rounded-xl bg-primary px-4 py-4 text-white shadow-sm sm:px-5">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-white/70">All-time total</p>
+          <ui-icon name="monitoring" class="text-lg text-white/60" />
         </div>
-        <p class="relative mt-2 text-3xl font-extrabold tracking-tight">
-          {{ analytics().allTime.total }}
-        </p>
+        <p class="mt-2 text-3xl font-black tracking-tight">{{ analytics().allTime.total }}</p>
+        <p class="mt-1 text-xs text-white/65">reservations on record</p>
       </div>
 
-      <div
-        class="relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-600 to-emerald-900 p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_32px_-12px_rgba(5,150,105,0.55)] ring-1 ring-white/10"
-      >
-        <div class="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-2xl"></div>
-        <div class="relative flex items-start justify-between gap-2">
-          <span class="text-xs font-medium text-white/75">All Time Approval Rate</span>
-          <ui-icon name="check_circle" class="text-lg text-white/70" />
+      <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-4 sm:px-5">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700/80">
+            Approval rate
+          </p>
+          <ui-icon name="check_circle" class="text-lg text-emerald-600/70" />
         </div>
-        <p class="relative mt-2 text-3xl font-extrabold tracking-tight">
+        <p class="mt-2 text-3xl font-black tracking-tight text-emerald-950">
           @if (analytics().allTime.approvalRate != null) {
             {{ analytics().allTime.approvalRate }}%
           } @else {
             —
           }
         </p>
+        <p class="mt-1 text-xs text-emerald-800/60">approved or completed vs decided</p>
       </div>
 
-      <div
-        class="relative overflow-hidden rounded-2xl bg-linear-to-br from-amber-600 to-amber-900 p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_32px_-12px_rgba(217,119,6,0.55)] ring-1 ring-white/10"
-      >
-        <div class="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-2xl"></div>
-        <div class="relative flex items-start justify-between gap-2">
-          <span class="text-xs font-medium text-white/75">All Time Avg Turnaround</span>
-          <ui-icon name="schedule" class="text-lg text-white/70" />
+      <div class="rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-4 sm:px-5">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-800/80">
+            Avg turnaround
+          </p>
+          <ui-icon name="schedule" class="text-lg text-amber-700/70" />
         </div>
-        <p class="relative mt-2 text-3xl font-extrabold tracking-tight">
+        <p class="mt-2 text-3xl font-black tracking-tight text-amber-950">
           {{ formatTurnaround(analytics().allTime.avgTurnaroundHours) }}
         </p>
+        <p class="mt-1 text-xs text-amber-900/55">request to approval</p>
       </div>
     </div>
 
     @if (analytics().month.total === 0) {
-      <div
-        class="rounded-2xl border border-dashed border-gray-200 bg-white/60 px-4 py-8 text-center shadow-inner"
-      >
-        <p class="text-sm font-medium text-gray-500">No reservation data for this month</p>
+      <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50/70 px-4 py-10 text-center">
+        <ui-icon name="inbox" class="mx-auto text-3xl text-gray-300" />
+        <p class="mt-2 text-sm font-medium text-gray-500">No reservation data for {{ monthLabel() }}</p>
       </div>
     } @else {
-      <!-- Row B: Month overview -->
-      <div class="mb-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div
-          class="rounded-2xl bg-white/75 p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-black/5 backdrop-blur-sm sm:p-5"
-        >
-          <div class="mb-4 flex items-center gap-2">
-            <div class="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb,59,130,246),0.8)]"></div>
-            <h3 class="text-sm font-bold text-gray-900">Status Breakdown</h3>
+      <div class="mb-4 flex items-center gap-2">
+        <h3 class="text-sm font-bold text-gray-900">This month</h3>
+        <div class="h-px flex-1 bg-gray-200/90"></div>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <!-- Status composition -->
+        <div class="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
+          <div class="mb-4 flex items-center justify-between gap-2">
+            <h4 class="text-sm font-bold text-gray-900">Status breakdown</h4>
+            <span class="text-xs font-semibold text-gray-400">{{ analytics().month.total }} total</span>
           </div>
-          <ul class="space-y-3">
+
+          <div class="mb-4 flex h-3 overflow-hidden rounded-full bg-gray-100">
             @for (item of analytics().month.statusBreakdown; track item.status) {
-              <li>
-                <div class="mb-1.5 flex items-center justify-between text-xs">
-                  <span class="font-semibold text-gray-700">{{ statusLabel(item.status) }}</span>
-                  <span class="font-bold text-gray-900">{{ item.count }} · {{ item.percent }}%</span>
-                </div>
-                <div
-                  class="h-2.5 overflow-hidden rounded-full bg-gray-100 shadow-inner ring-1 ring-black/5"
-                >
-                  <div
-                    class="h-full rounded-full shadow-sm transition-all duration-500"
+              <div
+                class="h-full transition-all duration-500 first:rounded-l-full last:rounded-r-full"
+                [class]="statusBarClass(item.status)"
+                [style.width.%]="item.percent"
+                [title]="statusLabel(item.status) + ': ' + item.count"
+              ></div>
+            }
+          </div>
+
+          <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            @for (item of analytics().month.statusBreakdown; track item.status) {
+              <li class="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2">
+                <span class="flex min-w-0 items-center gap-2 text-xs font-semibold text-gray-700">
+                  <span
+                    class="h-2.5 w-2.5 shrink-0 rounded-full"
                     [class]="statusBarClass(item.status)"
-                    [style.width.%]="item.percent"
-                  ></div>
-                </div>
+                  ></span>
+                  {{ statusLabel(item.status) }}
+                </span>
+                <span class="shrink-0 text-xs font-bold text-gray-900"
+                  >{{ item.count }}
+                  <span class="font-medium text-gray-400">({{ item.percent }}%)</span></span
+                >
               </li>
             }
           </ul>
         </div>
 
-        <div
-          class="rounded-2xl bg-white/75 p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-black/5 backdrop-blur-sm sm:p-5"
-        >
-          <div class="mb-4 flex items-center gap-2">
-            <div class="h-2 w-2 rounded-full bg-secondary shadow-[0_0_8px_rgba(var(--secondary-rgb,100,116,139),0.8)]"></div>
-            <h3 class="text-sm font-bold text-gray-900">Top Departments</h3>
+        <!-- Weekly activity -->
+        <div class="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
+          <div class="mb-4 flex items-center justify-between gap-2">
+            <h4 class="text-sm font-bold text-gray-900">Weekly activity</h4>
+            <span class="text-xs font-semibold text-gray-400">booked slots</span>
           </div>
+          <div class="flex h-40 items-end gap-2 sm:gap-3">
+            @for (week of analytics().month.weeklyActivity; track week.label) {
+              <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+                <span class="text-[11px] font-bold tabular-nums text-gray-800">{{ week.count }}</span>
+                <div class="relative flex h-28 w-full items-end justify-center">
+                  <div
+                    class="w-full max-w-10 rounded-t-md bg-primary/90 transition-all duration-500"
+                    [style.height.%]="week.percent > 0 ? Math.max(week.percent, 8) : 0"
+                    [class.opacity-30]="week.count === 0"
+                  ></div>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-wide text-gray-500">{{
+                  week.label
+                }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Top departments -->
+        <div class="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
+          <h4 class="mb-4 text-sm font-bold text-gray-900">Top departments</h4>
           @if (analytics().month.topDepartments.length) {
             <ul class="space-y-3">
               @for (item of analytics().month.topDepartments; track item.label; let i = $index) {
                 <li>
-                  <div class="mb-1.5 flex items-center justify-between gap-2 text-xs">
-                    <span class="min-w-0 truncate font-semibold text-gray-700">
+                  <div class="mb-1 flex items-center justify-between gap-2 text-xs">
+                    <span class="flex min-w-0 items-center gap-2 font-semibold text-gray-700">
                       <span
-                        class="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-md bg-gray-100 text-[10px] font-bold text-gray-600"
+                        class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
+                        [class.bg-primary]="i === 0"
+                        [class.text-white]="i === 0"
+                        [class.bg-gray-100]="i > 0"
+                        [class.text-gray-600]="i > 0"
                         >{{ i + 1 }}</span
                       >
-                      {{ item.label }}
+                      <span class="truncate">{{ item.label }}</span>
                     </span>
-                    <span class="shrink-0 font-bold text-gray-900">{{ item.count }}</span>
+                    <span class="shrink-0 font-bold tabular-nums text-gray-900">{{ item.count }}</span>
                   </div>
-                  <div
-                    class="h-2.5 overflow-hidden rounded-full bg-gray-100 shadow-inner ring-1 ring-black/5"
-                  >
+                  <div class="h-1.5 overflow-hidden rounded-full bg-gray-100">
                     <div
-                      class="h-full rounded-full bg-linear-to-r from-secondary to-primary shadow-sm transition-all duration-500"
+                      class="h-full rounded-full bg-secondary/80 transition-all duration-500"
                       [style.width.%]="item.percent"
                     ></div>
                   </div>
@@ -165,92 +204,64 @@
           }
         </div>
 
-        <div
-          class="rounded-2xl bg-white/75 p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-black/5 backdrop-blur-sm sm:p-5"
-        >
-          <div class="mb-4 flex items-center gap-2">
-            <div class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
-            <h3 class="text-sm font-bold text-gray-900">Weekly Activity</h3>
-          </div>
-          <div class="mb-1 flex items-end justify-between gap-2 sm:gap-3">
-            @for (week of analytics().month.weeklyActivity; track week.label) {
-              <div class="flex min-w-0 flex-1 flex-col items-center gap-2">
-                <span class="text-[11px] font-bold text-gray-800">{{ week.count }}</span>
+        <!-- Event mix -->
+        <div class="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
+          <h4 class="mb-4 text-sm font-bold text-gray-900">Calendar mix</h4>
+          @if (analytics().month.eventMix.length) {
+            <div class="mb-4 flex h-3 overflow-hidden rounded-full bg-gray-100">
+              @for (item of analytics().month.eventMix; track item.kind) {
                 <div
-                  class="relative flex h-28 w-full max-w-12 items-end justify-center overflow-hidden rounded-t-xl bg-gray-100/90 shadow-inner ring-1 ring-black/5 sm:h-32"
-                >
-                  <div
-                    class="w-3/5 min-w-5 rounded-t-lg bg-linear-to-t from-primary to-sky-400 shadow-[0_8px_16px_-8px_rgba(59,130,246,0.65)] transition-all duration-500 sm:w-2/3"
-                    [style.height.%]="week.percent > 0 ? Math.max(week.percent, 10) : 0"
-                  ></div>
-                </div>
-                <span class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{{
-                  week.label
-                }}</span>
-              </div>
-            }
-          </div>
+                  class="h-full transition-all duration-500 first:rounded-l-full last:rounded-r-full"
+                  [class]="eventMixBarClass(item.kind)"
+                  [style.width.%]="item.percent"
+                  [title]="item.label + ': ' + item.count"
+                ></div>
+              }
+            </div>
+            <ul class="space-y-2">
+              @for (item of analytics().month.eventMix; track item.kind) {
+                <li class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2.5">
+                  <span class="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <span
+                      class="h-2.5 w-2.5 shrink-0 rounded-full"
+                      [class]="eventMixBarClass(item.kind)"
+                    ></span>
+                    {{ item.label }}
+                  </span>
+                  <span class="text-xs font-bold tabular-nums text-gray-900"
+                    >{{ item.count }}
+                    <span class="font-medium text-gray-400">({{ item.percent }}%)</span></span
+                  >
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="text-xs text-gray-500">No events this month</p>
+          }
         </div>
-      </div>
 
-      <!-- Row C: Utilization -->
-      <div class="mb-4 grid gap-4 md:grid-cols-2">
-        <div
-          class="rounded-2xl bg-white/75 p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-black/5 backdrop-blur-sm sm:p-5"
-        >
-          <div class="mb-4 flex items-center gap-2">
-            <div class="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></div>
-            <h3 class="text-sm font-bold text-gray-900">Busiest Days</h3>
-          </div>
+        <!-- Busiest days -->
+        <div class="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 lg:col-span-2">
+          <h4 class="mb-4 text-sm font-bold text-gray-900">Busiest days</h4>
           @if (analytics().month.busiestDays.length) {
-            <ul class="space-y-2.5">
+            <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               @for (day of analytics().month.busiestDays; track day.date; let i = $index) {
                 <li
-                  class="flex items-center justify-between rounded-xl bg-gray-50/90 px-3 py-2.5 ring-1 ring-black/5"
+                  class="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-3"
                 >
-                  <div class="flex items-center gap-2.5">
-                    <span
-                      class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white text-xs font-bold text-primary shadow-sm ring-1 ring-black/5"
-                      >{{ i + 1 }}</span
-                    >
-                    <span class="text-xs font-semibold text-gray-700">Day {{ day.day }}</span>
+                  <div class="min-w-0">
+                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                      #{{ i + 1 }}
+                    </p>
+                    <p class="truncate text-xs font-bold text-gray-900">
+                      {{ formatAnalyticsDay(day.date) }}
+                    </p>
                   </div>
                   <span
-                    class="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary"
-                    >{{ day.count }} events</span
+                    class="shrink-0 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-bold tabular-nums text-primary"
                   >
-                </li>
-              }
-            </ul>
-          } @else {
-            <p class="text-xs text-gray-500">No events this month</p>
-          }
-        </div>
-
-        <div
-          class="rounded-2xl bg-white/75 p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-black/5 backdrop-blur-sm sm:p-5"
-        >
-          <div class="mb-4 flex items-center gap-2">
-            <div class="h-2 w-2 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]"></div>
-            <h3 class="text-sm font-bold text-gray-900">Event Mix</h3>
-          </div>
-          @if (analytics().month.eventMix.length) {
-            <ul class="space-y-3">
-              @for (item of analytics().month.eventMix; track item.kind) {
-                <li>
-                  <div class="mb-1.5 flex items-center justify-between text-xs">
-                    <span class="font-semibold text-gray-700">{{ item.label }}</span>
-                    <span class="font-bold text-gray-900">{{ item.count }} · {{ item.percent }}%</span>
-                  </div>
-                  <div
-                    class="h-2.5 overflow-hidden rounded-full bg-gray-100 shadow-inner ring-1 ring-black/5"
-                  >
-                    <div
-                      class="h-full rounded-full shadow-sm transition-all duration-500"
-                      [class]="eventMixBarClass(item.kind)"
-                      [style.width.%]="item.percent"
-                    ></div>
-                  </div>
+                    {{ day.count }}
+                  </span>
                 </li>
               }
             </ul>
@@ -260,32 +271,44 @@
         </div>
       </div>
 
-      <!-- Row D: Facility-specific -->
+      <!-- Facility-specific -->
       @if (fltAnalytics(); as flt) {
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="mt-6 mb-4 flex items-center gap-2">
+          <h3 class="text-sm font-bold text-gray-900">FLT insights</h3>
+          <div class="h-px flex-1 bg-gray-200/90"></div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-xl border border-primary/15 bg-primary/5 px-4 py-4 sm:col-span-2 xl:col-span-1">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-primary/80">
+              Avg attendees
+            </p>
+            <p class="mt-2 text-3xl font-black tracking-tight text-gray-900">
+              @if (flt.avgExpectedAttendees != null) {
+                {{ flt.avgExpectedAttendees }}
+              } @else {
+                —
+              }
+            </p>
+            <p class="mt-1 text-xs text-gray-500">expected per booking</p>
+          </div>
           @for (card of [
-            { title: 'Room Type Split', items: flt.roomTypeSplit, bar: 'from-sky-400 to-sky-600', empty: 'No room type data' },
-            { title: 'Event Type Split', items: flt.eventTypeSplit, bar: 'from-indigo-400 to-indigo-600', empty: 'No event type data' },
-            { title: 'Equipment Demand', items: flt.equipmentDemand, bar: 'from-amber-400 to-amber-600', empty: 'No equipment requests' }
+            { title: 'Room types', items: flt.roomTypeSplit, empty: 'No room type data' },
+            { title: 'Event types', items: flt.eventTypeSplit, empty: 'No event type data' },
+            { title: 'Equipment demand', items: flt.equipmentDemand, empty: 'No equipment requests' }
           ]; track card.title) {
-            <div
-              class="rounded-2xl bg-white/75 p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-black/5 backdrop-blur-sm sm:p-5"
-            >
-              <h3 class="mb-4 text-sm font-bold text-gray-900">{{ card.title }}</h3>
+            <div class="rounded-xl border border-gray-100 bg-white p-4">
+              <h4 class="mb-3 text-sm font-bold text-gray-900">{{ card.title }}</h4>
               @if (card.items.length) {
-                <ul class="space-y-3">
+                <ul class="space-y-2.5">
                   @for (item of card.items; track item.label) {
                     <li>
-                      <div class="mb-1.5 flex items-center justify-between text-xs">
-                        <span class="font-semibold text-gray-700">{{ item.label }}</span>
-                        <span class="font-bold text-gray-900">{{ item.count }}</span>
+                      <div class="mb-1 flex items-center justify-between gap-2 text-xs">
+                        <span class="min-w-0 truncate font-semibold text-gray-700">{{ item.label }}</span>
+                        <span class="shrink-0 font-bold tabular-nums text-gray-900">{{ item.count }}</span>
                       </div>
-                      <div
-                        class="h-2.5 overflow-hidden rounded-full bg-gray-100 shadow-inner ring-1 ring-black/5"
-                      >
+                      <div class="h-1.5 overflow-hidden rounded-full bg-gray-100">
                         <div
-                          class="h-full rounded-full bg-linear-to-r shadow-sm transition-all duration-500"
-                          [class]="'bg-linear-to-r ' + card.bar"
+                          class="h-full rounded-full bg-sky-500 transition-all duration-500"
                           [style.width.%]="item.percent"
                         ></div>
                       </div>
@@ -297,52 +320,54 @@
               }
             </div>
           }
-          <div
-            class="rounded-2xl bg-linear-to-br from-sky-50 to-white p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-sky-100 sm:p-5"
-          >
-            <h3 class="mb-3 text-sm font-bold text-gray-900">Attendance</h3>
-            <p class="text-3xl font-extrabold tracking-tight text-gray-900">
-              @if (flt.avgExpectedAttendees != null) {
-                {{ flt.avgExpectedAttendees }}
-              } @else {
-                —
-              }
-            </p>
-            <p class="mt-1 text-xs font-medium text-gray-500">average expected attendees</p>
-          </div>
         </div>
       } @else if (gymAnalytics(); as gym) {
-        <div class="grid gap-4 lg:grid-cols-2">
-          <div
-            class="rounded-2xl bg-linear-to-br from-emerald-50 to-white p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-emerald-100 sm:p-5"
-          >
-            <h3 class="mb-3 text-sm font-bold text-gray-900">Attendance</h3>
-            <p class="text-3xl font-extrabold tracking-tight text-gray-900">
+        <div class="mt-6 mb-4 flex items-center gap-2">
+          <h3 class="text-sm font-bold text-gray-900">Gymnasium insights</h3>
+          <div class="h-px flex-1 bg-gray-200/90"></div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-4">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-800/80">
+              Avg attendees
+            </p>
+            <p class="mt-2 text-3xl font-black tracking-tight text-emerald-950">
               @if (gym.avgAttendees != null) {
                 {{ gym.avgAttendees }}
               } @else {
                 —
               }
             </p>
-            <p class="mt-1 text-xs font-medium text-gray-500">average attendees</p>
           </div>
-          <div
-            class="rounded-2xl bg-white/75 p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-black/5 backdrop-blur-sm sm:p-5"
-          >
-            <h3 class="mb-4 text-sm font-bold text-gray-900">Equipment Demand</h3>
+          <div class="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">
+              Maintenance blocks
+            </p>
+            <p class="mt-2 text-3xl font-black tracking-tight text-zinc-900">
+              {{ gym.maintenanceBlockCount }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">
+              Hours blocked
+            </p>
+            <p class="mt-2 text-3xl font-black tracking-tight text-zinc-900">
+              {{ gym.maintenanceBlockedHours }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-100 bg-white p-4 sm:col-span-2 lg:col-span-1">
+            <h4 class="mb-3 text-sm font-bold text-gray-900">Equipment demand</h4>
             @if (gym.equipmentDemand.length) {
-              <ul class="space-y-3">
+              <ul class="space-y-2.5">
                 @for (item of gym.equipmentDemand; track item.label) {
                   <li>
-                    <div class="mb-1.5 flex items-center justify-between text-xs">
-                      <span class="font-semibold text-gray-700">{{ item.label }}</span>
-                      <span class="font-bold text-gray-900">{{ item.count }}</span>
+                    <div class="mb-1 flex items-center justify-between gap-2 text-xs">
+                      <span class="min-w-0 truncate font-semibold text-gray-700">{{ item.label }}</span>
+                      <span class="shrink-0 font-bold tabular-nums text-gray-900">{{ item.count }}</span>
                     </div>
-                    <div
-                      class="h-2.5 overflow-hidden rounded-full bg-gray-100 shadow-inner ring-1 ring-black/5"
-                    >
+                    <div class="h-1.5 overflow-hidden rounded-full bg-gray-100">
                       <div
-                        class="h-full rounded-full bg-linear-to-r from-emerald-400 to-emerald-600 shadow-sm transition-all duration-500"
+                        class="h-full rounded-full bg-emerald-500 transition-all duration-500"
                         [style.width.%]="item.percent"
                       ></div>
                     </div>
@@ -353,49 +378,46 @@
               <p class="text-xs text-gray-500">No equipment requests</p>
             }
           </div>
-          <div
-            class="rounded-2xl bg-white/75 p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-black/5 backdrop-blur-sm sm:p-5 lg:col-span-2"
-          >
-            <h3 class="mb-4 text-sm font-bold text-gray-900">Maintenance Impact</h3>
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div class="rounded-xl bg-zinc-50 px-4 py-3 ring-1 ring-black/5">
-                <p class="text-2xl font-extrabold text-gray-900">{{ gym.maintenanceBlockCount }}</p>
-                <p class="text-xs font-medium text-gray-500">blocks this month</p>
-              </div>
-              <div class="rounded-xl bg-zinc-50 px-4 py-3 ring-1 ring-black/5">
-                <p class="text-2xl font-extrabold text-gray-900">{{ gym.maintenanceBlockedHours }}</p>
-                <p class="text-xs font-medium text-gray-500">hours blocked</p>
-              </div>
-            </div>
-          </div>
         </div>
       } @else if (vanAnalytics(); as van) {
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="mt-6 mb-4 flex items-center gap-2">
+          <h3 class="text-sm font-bold text-gray-900">Van insights</h3>
+          <div class="h-px flex-1 bg-gray-200/90"></div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-xl border border-primary/15 bg-primary/5 px-4 py-4">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-primary/80">
+              Passenger volume
+            </p>
+            <p class="mt-2 text-3xl font-black tracking-tight text-gray-900">
+              {{ van.totalPassengers }}
+            </p>
+            <p class="mt-1 text-xs text-gray-500">
+              @if (van.avgPassengers != null) {
+                {{ van.avgPassengers }} avg per trip
+              } @else {
+                No passenger averages
+              }
+            </p>
+          </div>
           @for (card of [
-            { title: 'Top Destinations', items: van.topDestinations, bar: 'from-primary to-sky-500', empty: 'No destination data' },
-            { title: 'Vehicle Utilization', items: van.vehicleUtilization, bar: 'from-sky-500 to-indigo-500', empty: 'No vehicle data' },
-            { title: 'Driver Activity', items: van.driverActivity, bar: 'from-secondary to-primary', empty: 'No driver data' }
+            { title: 'Top destinations', items: van.topDestinations, empty: 'No destination data' },
+            { title: 'Vehicle use', items: van.vehicleUtilization, empty: 'No vehicle data' },
+            { title: 'Driver activity', items: van.driverActivity, empty: 'No driver data' }
           ]; track card.title) {
-            <div
-              class="rounded-2xl bg-white/75 p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-black/5 backdrop-blur-sm sm:p-5"
-            >
-              <h3 class="mb-4 text-sm font-bold text-gray-900">{{ card.title }}</h3>
+            <div class="rounded-xl border border-gray-100 bg-white p-4">
+              <h4 class="mb-3 text-sm font-bold text-gray-900">{{ card.title }}</h4>
               @if (card.items.length) {
-                <ul class="space-y-3">
+                <ul class="space-y-2.5">
                   @for (item of card.items; track item.label) {
                     <li>
-                      <div class="mb-1.5 flex items-center justify-between gap-2 text-xs">
-                        <span class="min-w-0 truncate font-semibold text-gray-700">{{
-                          item.label
-                        }}</span>
-                        <span class="shrink-0 font-bold text-gray-900">{{ item.count }}</span>
+                      <div class="mb-1 flex items-center justify-between gap-2 text-xs">
+                        <span class="min-w-0 truncate font-semibold text-gray-700">{{ item.label }}</span>
+                        <span class="shrink-0 font-bold tabular-nums text-gray-900">{{ item.count }}</span>
                       </div>
-                      <div
-                        class="h-2.5 overflow-hidden rounded-full bg-gray-100 shadow-inner ring-1 ring-black/5"
-                      >
+                      <div class="h-1.5 overflow-hidden rounded-full bg-gray-100">
                         <div
-                          class="h-full rounded-full bg-linear-to-r shadow-sm transition-all duration-500"
-                          [class]="'bg-linear-to-r ' + card.bar"
+                          class="h-full rounded-full bg-sky-500 transition-all duration-500"
                           [style.width.%]="item.percent"
                         ></div>
                       </div>
@@ -407,21 +429,6 @@
               }
             </div>
           }
-          <div
-            class="rounded-2xl bg-linear-to-br from-sky-50 to-white p-4 shadow-[0_10px_30px_-18px_rgba(24,24,27,0.35)] ring-1 ring-sky-100 sm:p-5"
-          >
-            <h3 class="mb-3 text-sm font-bold text-gray-900">Passenger Volume</h3>
-            <p class="text-3xl font-extrabold tracking-tight text-gray-900">
-              {{ van.totalPassengers }}
-            </p>
-            <p class="mt-1 text-xs font-medium text-gray-500">
-              @if (van.avgPassengers != null) {
-                {{ van.avgPassengers }} average per trip
-              } @else {
-                No passenger data
-              }
-            </p>
-          </div>
         </div>
       }
     }

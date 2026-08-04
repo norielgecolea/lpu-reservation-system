@@ -5,6 +5,7 @@ import { MaintenanceBlock } from '../maintenance/maintenance.service';
 import {
   buildDashboardAnalytics,
   eventMixBarClass,
+  formatAnalyticsDay,
   formatMonthLabel,
   formatTurnaround,
   statusBarClass,
@@ -65,5 +66,6 @@ export class DashboardAnalyticsSection {
   protected readonly statusBarClass = statusBarClass;
   protected readonly eventMixBarClass = eventMixBarClass;
   protected readonly formatTurnaround = formatTurnaround;
+  protected readonly formatAnalyticsDay = formatAnalyticsDay;
   protected readonly Math = Math;
 }

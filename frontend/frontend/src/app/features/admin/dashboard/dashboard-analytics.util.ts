@@ -438,21 +438,30 @@ export function statusLabel(status: string): string {
 
 export function statusBarClass(status: string): string {
   const classes: Record<string, string> = {
-    PENDING: 'bg-linear-to-r from-amber-400 to-amber-600',
-    APPROVED: 'bg-linear-to-r from-sky-400 to-sky-600',
-    COMPLETED: 'bg-linear-to-r from-emerald-400 to-emerald-600',
-    REJECTED: 'bg-linear-to-r from-rose-400 to-rose-600',
-    CANCELLED: 'bg-linear-to-r from-zinc-400 to-zinc-500',
-    CONFLICT: 'bg-linear-to-r from-orange-400 to-orange-600',
+    PENDING: 'bg-amber-500',
+    APPROVED: 'bg-sky-500',
+    COMPLETED: 'bg-emerald-500',
+    REJECTED: 'bg-rose-500',
+    CANCELLED: 'bg-zinc-400',
+    CONFLICT: 'bg-orange-500',
   };
-  return classes[status] ?? 'bg-linear-to-r from-primary to-secondary';
+  return classes[status] ?? 'bg-primary';
 }
 
 export function eventMixBarClass(kind: DashboardEventKind): string {
   const classes: Record<DashboardEventKind, string> = {
-    reservation: 'bg-linear-to-r from-sky-400 to-sky-600',
-    coordination: 'bg-linear-to-r from-amber-400 to-amber-600',
-    maintenance: 'bg-linear-to-r from-zinc-400 to-zinc-600',
+    reservation: 'bg-sky-500',
+    coordination: 'bg-amber-500',
+    maintenance: 'bg-zinc-500',
   };
   return classes[kind];
+}
+
+/** e.g. "2026-08-04" → "Tue, Aug 4" */
+export function formatAnalyticsDay(dateStr: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr.trim());
+  if (!match) return dateStr;
+  const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
