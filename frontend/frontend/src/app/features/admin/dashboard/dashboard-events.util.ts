@@ -718,6 +718,12 @@ export function createCalendarDays(value: string, events: DashboardEvent[]): Cal
           ? []
           : events
               .filter(event => event.date === formatDateKey(year, month, day))
+              .slice()
+              .sort((a, b) => {
+                const byStart = (a.startTime || '').localeCompare(b.startTime || '');
+                if (byStart !== 0) return byStart;
+                return (a.endTime || '').localeCompare(b.endTime || '');
+              })
               .map(event => ({
                 id: event.id,
                 title: event.title,
