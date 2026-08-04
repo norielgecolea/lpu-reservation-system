@@ -31,7 +31,7 @@ import { UiIcon, UiButton } from '../../../shared/ui';
         />
         <div class="flex flex-col gap-2">
           <h1 class="text-xl sm:text-3xl md:text-4xl font-black tracking-tight text-gray-900 drop-shadow-sm">LYCEUM OF THE PHILIPPINES UNIVERSITY - LAGUNA</h1>
-          <h2 class="text-sm sm:text-xl md:text-2xl font-light tracking-widest text-gray-700">RESERVATION SYSTEM</h2>
+          <h2 class="text-sm sm:text-xl md:text-2xl font-light tracking-widest text-gray-700">ONLINE RESERVATION SYSTEM (COMMON LEARNING SPACE)</h2>
         </div>
       </div>
 
