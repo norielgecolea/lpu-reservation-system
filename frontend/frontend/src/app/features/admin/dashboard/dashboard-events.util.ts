@@ -339,6 +339,75 @@ export function formatEventDay(dateStr: string): string {
   return d ? String(d.getDate()) : dateStr;
 }
 
+export function dashboardEventKindLabel(kind: DashboardEventKind): string {
+  switch (kind) {
+    case 'coordination':
+      return 'Coordination';
+    case 'maintenance':
+      return 'Maintenance';
+    default:
+      return 'Event';
+  }
+}
+
+export function dashboardEventKindIcon(kind: DashboardEventKind): string {
+  switch (kind) {
+    case 'coordination':
+      return 'handshake';
+    case 'maintenance':
+      return 'construction';
+    default:
+      return 'event';
+  }
+}
+
+/** Solid date-circle colors matching calendar legend kinds. */
+export function dashboardEventDateBadgeClass(
+  event: Pick<DashboardEvent, 'eventKind' | 'facility'>,
+): string {
+  if (event.eventKind === 'coordination') return 'bg-amber-500 text-white';
+  if (event.eventKind === 'maintenance') return 'bg-zinc-600 text-white';
+  if (event.facility === 'Gymnasium') return 'bg-emerald-600 text-white';
+  return 'bg-sky-600 text-white';
+}
+
+/** Compact kind chip for upcoming / day lists. */
+export function dashboardEventKindBadgeClass(
+  kind: DashboardEventKind,
+  facility?: DashboardService,
+): string {
+  switch (kind) {
+    case 'coordination':
+      return 'bg-amber-100 text-amber-900 ring-amber-200/80';
+    case 'maintenance':
+      return 'bg-zinc-200 text-zinc-800 ring-zinc-300/80';
+    default:
+      if (facility === 'Gymnasium') {
+        return 'bg-emerald-100 text-emerald-900 ring-emerald-200/80';
+      }
+      return 'bg-sky-100 text-sky-900 ring-sky-200/80';
+  }
+}
+
+/** Title without [Coord]/[Maint] prefixes when a kind badge is shown. */
+export function dashboardEventDisplayTitle(event: DashboardEvent): string {
+  if (event.eventKind === 'coordination') {
+    return (
+      event.eventTitle ||
+      event.organization ||
+      event.title.replace(/^\[Coord\]\s*/i, '')
+    );
+  }
+  if (event.eventKind === 'maintenance') {
+    return (
+      event.maintenanceReason ||
+      event.eventTitle ||
+      event.title.replace(/^\[Maint\]\s*/i, '')
+    );
+  }
+  return event.title;
+}
+
 export function parseReservedDates(
   json: string,
 ): Array<{ date: string; startTime: string; endTime: string }> {

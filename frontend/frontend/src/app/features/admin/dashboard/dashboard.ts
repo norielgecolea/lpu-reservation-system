@@ -41,6 +41,11 @@ import {
   buildServiceCalendarEvents,
   createCalendarDays,
   dashboardApproverRoute,
+  dashboardEventDateBadgeClass,
+  dashboardEventDisplayTitle,
+  dashboardEventKindBadgeClass,
+  dashboardEventKindIcon,
+  dashboardEventKindLabel,
   dashboardServiceFilterOptions,
   dashboardServicesFromRoleCodes,
   dashboardStatCardBg,
@@ -229,6 +234,11 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly formatEventMonth = formatEventMonth;
   protected readonly formatEventDay = formatEventDay;
+  protected readonly dashboardEventDateBadgeClass = dashboardEventDateBadgeClass;
+  protected readonly dashboardEventDisplayTitle = dashboardEventDisplayTitle;
+  protected readonly dashboardEventKindBadgeClass = dashboardEventKindBadgeClass;
+  protected readonly dashboardEventKindIcon = dashboardEventKindIcon;
+  protected readonly dashboardEventKindLabel = dashboardEventKindLabel;
 
   protected readonly selectedDayForModal = signal<CalendarDay | null>(null);
   protected readonly selectedEvent = signal<DashboardEvent | null>(null);

@@ -152,11 +152,13 @@
           } @else {
             @for (event of upcomingEvents(); track event.id) {
               <article
-                class="flex cursor-pointer items-start gap-3 border-b border-gray-100 pb-3 last:border-b-0 last:pb-0 hover:bg-gray-50/80"
+                class="mb-2 flex cursor-pointer items-start gap-3 rounded-lg border-l-4 px-2.5 py-2.5 shadow-sm last:mb-0 hover:brightness-[0.98]"
+                [class]="event.colorClass"
                 (click)="openEventSummary(event)"
               >
                 <div
-                  class="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-full bg-primary text-white shadow-sm"
+                  class="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-full shadow-sm"
+                  [class]="dashboardEventDateBadgeClass(event)"
                 >
                   <span class="text-[10px] font-medium leading-tight">{{
                     formatEventMonth(event.date)
@@ -164,14 +166,21 @@
                   <span class="text-lg font-bold leading-none">{{ formatEventDay(event.date) }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <h3 class="min-w-0 truncate text-xs font-semibold text-gray-900">
-                    {{ event.title }}
+                  <span
+                    class="mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset"
+                    [class]="dashboardEventKindBadgeClass(event.eventKind, event.facility)"
+                  >
+                    <ui-icon [name]="dashboardEventKindIcon(event.eventKind)" class="text-[12px]" />
+                    {{ dashboardEventKindLabel(event.eventKind) }}
+                  </span>
+                  <h3 class="min-w-0 truncate text-xs font-semibold">
+                    {{ dashboardEventDisplayTitle(event) }}
                   </h3>
-                  <time class="mt-1 block text-[11px] font-medium text-gray-500">
-                    {{ event.date }} - {{ event.time }}
+                  <time class="mt-1 block text-[11px] font-medium opacity-75">
+                    {{ event.date }} · {{ event.time }}
                   </time>
                   @if (event.description) {
-                    <p class="mt-1 text-[11px] leading-snug text-gray-500">{{ event.description }}</p>
+                    <p class="mt-1 text-[11px] leading-snug opacity-70">{{ event.description }}</p>
                   }
                 </div>
               </article>
@@ -233,12 +242,20 @@
           <ul class="space-y-2">
             @for (reservation of selectedDay.reservations; track reservation.id) {
               <li
-                class="cursor-pointer rounded-lg border border-gray-100 p-3 shadow-sm hover:bg-gray-50"
+                class="cursor-pointer rounded-lg border-l-4 p-3 shadow-sm hover:brightness-[0.98]"
+                [class]="reservation.colorClass"
                 (click)="openEventSummary(reservation.event)"
               >
-                <span class="block font-bold text-primary">{{ reservation.time }}</span>
-                <span class="mt-1 block text-sm font-medium text-gray-900">
-                  {{ reservation.title }}
+                <span
+                  class="mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset"
+                  [class]="dashboardEventKindBadgeClass(reservation.event.eventKind, reservation.event.facility)"
+                >
+                  <ui-icon [name]="dashboardEventKindIcon(reservation.event.eventKind)" class="text-[12px]" />
+                  {{ dashboardEventKindLabel(reservation.event.eventKind) }}
+                </span>
+                <span class="block text-xs font-bold opacity-80">{{ reservation.time }}</span>
+                <span class="mt-0.5 block text-sm font-semibold">
+                  {{ dashboardEventDisplayTitle(reservation.event) }}
                 </span>
               </li>
             }
