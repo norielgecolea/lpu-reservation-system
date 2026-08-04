@@ -649,7 +649,8 @@ export class GymnasiumReservation implements OnInit {
     const end = this.selectedTimeEnd();
     if (start === null) return false;
     if (end === null) return hour === start;
-    return hour >= start && hour < end;
+    // Inclusive of end clock time so clicking 6:00 PM highlights that row
+    return hour >= start && hour <= end;
   }
 
   isSlotInBasket(hourStr: string): boolean {
@@ -660,7 +661,7 @@ export class GymnasiumReservation implements OnInit {
       const hour = parseInt(hourStr, 10);
       const start = parseInt(s.startTime, 10);
       const end = parseInt(s.endTime, 10);
-      return hour >= start && hour < end;
+      return hour >= start && hour <= end;
     });
   }
 

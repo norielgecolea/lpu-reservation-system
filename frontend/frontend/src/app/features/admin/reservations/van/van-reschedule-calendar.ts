@@ -440,7 +440,7 @@ export class VanRescheduleCalendar implements OnChanges {
     return this.basket().some(s => {
       if (s.date !== day) return false;
       const hour = parseInt(hourStr, 10);
-      return hour >= parseInt(s.startTime, 10) && hour < parseInt(s.endTime, 10);
+      return hour >= parseInt(s.startTime, 10) && hour <= parseInt(s.endTime, 10);
     });
   }
 

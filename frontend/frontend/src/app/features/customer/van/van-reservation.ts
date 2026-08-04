@@ -688,7 +688,7 @@ export class VanReservation implements OnInit {
       const hour = parseInt(hourStr, 10);
       const start = parseInt(s.startTime, 10);
       const end = parseInt(s.endTime, 10);
-      return hour >= start && hour < end;
+      return hour >= start && hour <= end;
     });
   }
 

@@ -496,7 +496,8 @@ export class MaintenanceCalendarPicker {
     const end = this.selEnd();
     if (start === null) return false;
     if (end === null) return hour === start;
-    return hour >= start && hour < end;
+    // Inclusive of end clock time so clicking 6:00 PM highlights that row
+    return hour >= start && hour <= end;
   }
 
   toggleHour(hourStr: string): void {
