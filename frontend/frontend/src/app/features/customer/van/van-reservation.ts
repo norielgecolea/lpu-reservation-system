@@ -348,7 +348,7 @@ interface CalendarCell {
                   <div class="flex-1 px-3 py-2.5 bg-orange-50 flex items-center gap-2">
                     <div class="flex-1 min-w-0">
                       <p class="text-xs font-bold text-orange-700 truncate">🔧 {{ mb.reason || 'Under Maintenance' }}</p>
-                      <p class="text-[10px] text-orange-500">{{ mb.startTime }} – {{ mb.endTime }} · Not Available</p>
+                      <p class="text-[10px] text-orange-500">{{ formatTimeShort(mb.startTime) }} – {{ formatTimeShort(mb.endTime) }} · Not Available</p>
                     </div>
                     <ui-icon name="construction" class="text-sm shrink-0 text-orange-400" />
                   </div>

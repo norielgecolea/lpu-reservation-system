@@ -20,6 +20,7 @@ import {
   advanceNoticeText,
   getMinBookableDateStr,
 } from '../reservation-advance.util';
+import { formatReadableTime } from '../../../shared/utils/datetime.util';
 
 type View = 'calendar' | 'timeslots' | 'notice' | 'form';
 
@@ -164,7 +165,7 @@ interface CalendarCell {
                                 class="block truncate font-bold"
                                 [class.text-sky-700]="ev.eventKind !== 'COORDINATION'"
                                 [class.text-amber-700]="ev.eventKind === 'COORDINATION'"
-                              >{{ ev.startTime }}–{{ ev.endTime }}</span>
+                              >{{ formatTimeShort(ev.startTime) }}–{{ formatTimeShort(ev.endTime) }}</span>
                               <span
                                 class="block truncate"
                                 [class.text-sky-900]="ev.eventKind !== 'COORDINATION'"
@@ -241,7 +242,7 @@ interface CalendarCell {
                 @for (slot of basket(); track slot.date) {
                   <div class="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary">
                     <ui-icon name="event" class="text-sm" />
-                    {{ formatDateShort(slot.date) }} {{ slot.startTime }}–{{ slot.endTime }}
+                    {{ formatDateShort(slot.date) }} {{ formatTimeShort(slot.startTime) }}–{{ formatTimeShort(slot.endTime) }}
                     <button type="button" (click)="removeFromBasket(slot.date)" class="ml-1 hover:text-red-500 cursor-pointer transition-colors">
                       <ui-icon name="close" class="text-sm" />
                     </button>
@@ -319,7 +320,7 @@ interface CalendarCell {
                   <div class="flex-1 px-3 py-2.5 bg-orange-50 flex items-center gap-2">
                     <div class="flex-1 min-w-0">
                       <p class="text-xs font-bold text-orange-700 truncate">🔧 {{ mb.reason || 'Under Maintenance' }}</p>
-                      <p class="text-[10px] text-orange-500">{{ mb.startTime }} – {{ mb.endTime }} · Not Available</p>
+                      <p class="text-[10px] text-orange-500">{{ formatTimeShort(mb.startTime) }} – {{ formatTimeShort(mb.endTime) }} · Not Available</p>
                     </div>
                     <ui-icon name="construction" class="text-sm shrink-0 text-orange-400" />
                   </div>
@@ -345,7 +346,7 @@ interface CalendarCell {
                         class="text-[10px]"
                         [class.text-sky-500]="ev.eventKind !== 'COORDINATION'"
                         [class.text-amber-500]="ev.eventKind === 'COORDINATION'"
-                      >{{ ev.startTime }} – {{ ev.endTime }} · {{ ev.eventKind === 'COORDINATION' ? 'Blocked' : 'Reserved' }}</p>
+                      >{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Blocked' : 'Reserved' }}</p>
                     </div>
                     <ui-icon
                       [name]="ev.eventKind === 'COORDINATION' ? 'handshake' : 'lock'"
@@ -442,7 +443,7 @@ interface CalendarCell {
               <div class="flex flex-wrap gap-2 mb-3">
                 @for (s of basket(); track s.date) {
                   <div class="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary">
-                    {{ formatDateShort(s.date) }} {{ s.startTime }}–{{ s.endTime }}
+                    {{ formatDateShort(s.date) }} {{ formatTimeShort(s.startTime) }}–{{ formatTimeShort(s.endTime) }}
                     <button type="button" (click)="removeFromBasket(s.date)" class="ml-1 hover:text-red-500 cursor-pointer transition-colors">
                       <ui-icon name="close" class="text-sm" />
                     </button>
@@ -809,5 +810,9 @@ export class FltReservation implements OnInit {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  formatTimeShort(timeStr: string): string {
+    return formatReadableTime(timeStr);
   }
 }
