@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -12,13 +13,14 @@ import org.springframework.stereotype.Service;
 import jakarta.mail.internet.MimeMessage;
 
 @Service
+@PropertySource("classpath:application.properties")
 public class PasswordResetEmailService {
 
     private static final Logger logger = LogManager.getLogger(PasswordResetEmailService.class);
 
     @Autowired private JavaMailSender mailSender;
     @Value("${spring.mail.username}") private String fromAddress;
-    @Value("${app.frontend.url:http://localhost:4200}") private String frontendUrl;
+    @Value("${app.frontend.url:https://reservation.lpulaguna.com}") private String frontendUrl;
 
     @Async
     public void sendPasswordResetEmail(String toEmail, String fullname, String token) {
