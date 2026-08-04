@@ -26,7 +26,8 @@ import { UiIcon, UiButton } from '../../../shared/ui';
           width="128"
           height="128"
           fetchpriority="high"
-          class="w-20 h-20 md:w-32 md:h-32 object-contain drop-shadow-xl"
+          decoding="async"
+          class="w-20 h-20 md:w-32 md:h-32 object-contain drop-shadow-xl aspect-square"
         />
         <div class="flex flex-col gap-2">
           <h1 class="text-xl sm:text-3xl md:text-4xl font-black tracking-tight text-gray-900 drop-shadow-sm">LYCEUM OF THE PHILIPPINES UNIVERSITY - LAGUNA</h1>
@@ -38,35 +39,47 @@ import { UiIcon, UiButton } from '../../../shared/ui';
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 max-w-7xl w-full mx-auto flex-1 content-start md:content-stretch">
 
         <a routerLink="/customer/van" class="facility-card group">
-          <ui-icon name="airport_shuttle" class="text-3xl md:text-[80px] opacity-80 group-hover:opacity-100 transition-opacity" />
-          <span class="font-bold text-base md:text-2xl">University Van</span>
+          <span class="facility-card-icon" aria-hidden="true">
+            <ui-icon name="airport_shuttle" class="text-3xl md:text-[80px] opacity-80 group-hover:opacity-100 transition-opacity" />
+          </span>
+          <span class="facility-card-label">University Van</span>
         </a>
 
         <a routerLink="/customer/flt" class="facility-card group">
-          <ui-icon name="stadium" class="text-3xl md:text-[80px] opacity-80 group-hover:opacity-100 transition-opacity" />
-          <span class="font-bold text-base md:text-2xl">FLT Theater</span>
+          <span class="facility-card-icon" aria-hidden="true">
+            <ui-icon name="stadium" class="text-3xl md:text-[80px] opacity-80 group-hover:opacity-100 transition-opacity" />
+          </span>
+          <span class="facility-card-label">FLT Theater</span>
         </a>
 
         <a routerLink="/customer/gymnasium" class="facility-card group">
-          <ui-icon name="sports_basketball" class="text-3xl md:text-[80px] opacity-80 group-hover:opacity-100 transition-opacity" />
-          <span class="font-bold text-base md:text-2xl">Gymnasium</span>
+          <span class="facility-card-icon" aria-hidden="true">
+            <ui-icon name="sports_basketball" class="text-3xl md:text-[80px] opacity-80 group-hover:opacity-100 transition-opacity" />
+          </span>
+          <span class="facility-card-label">Gymnasium</span>
         </a>
 
         <div class="facility-card--disabled">
-          <ui-icon name="groups" class="text-3xl md:text-[80px] opacity-80" />
-          <span class="font-bold text-base md:text-2xl">Boardroom</span>
+          <span class="facility-card-icon" aria-hidden="true">
+            <ui-icon name="groups" class="text-3xl md:text-[80px] opacity-80" />
+          </span>
+          <span class="facility-card-label">Boardroom</span>
           <span class="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600">Coming soon</span>
         </div>
 
         <div class="facility-card--disabled">
-          <ui-icon name="co_present" class="text-3xl md:text-[80px] opacity-80" />
-          <span class="font-bold text-base md:text-2xl">Nexus Room</span>
+          <span class="facility-card-icon" aria-hidden="true">
+            <ui-icon name="co_present" class="text-3xl md:text-[80px] opacity-80" />
+          </span>
+          <span class="facility-card-label">Nexus Room</span>
           <span class="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600">Coming soon</span>
         </div>
 
         <div class="facility-card--disabled">
-          <ui-icon name="meeting_room" class="text-3xl md:text-[80px] opacity-80" />
-          <span class="font-bold text-base md:text-2xl">Conference Room</span>
+          <span class="facility-card-icon" aria-hidden="true">
+            <ui-icon name="meeting_room" class="text-3xl md:text-[80px] opacity-80" />
+          </span>
+          <span class="facility-card-label">Conference Room</span>
           <span class="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600">Coming soon</span>
         </div>
 

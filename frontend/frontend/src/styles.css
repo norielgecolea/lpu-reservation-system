@@ -43,7 +43,7 @@
   }
 
   .material-symbols-outlined {
-    font-family: 'Material Symbols Outlined';
+    font-family: 'Material Symbols Outlined', sans-serif;
     font-weight: normal;
     font-style: normal;
     line-height: 1;
@@ -51,6 +51,13 @@
     white-space: nowrap;
     direction: ltr;
     font-size: inherit;
+    display: inline-block;
+    /* Reserve glyph box so icon ligature names don't stretch layout while the font loads */
+    width: 1em;
+    height: 1em;
+    overflow: hidden;
+    vertical-align: middle;
+    -webkit-font-smoothing: antialiased;
     font-variation-settings:
       'FILL' 0,
       'wght' 400,
@@ -116,6 +123,14 @@
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.8),
       0 16px 40px -12px rgba(24, 24, 27, 0.18);
+  }
+
+  .facility-card-icon {
+    @apply shrink-0 flex items-center justify-center overflow-hidden w-8 h-8 md:w-20 md:h-20;
+  }
+
+  .facility-card-label {
+    @apply font-bold text-base md:text-2xl leading-tight min-w-0;
   }
 
   .facility-card--disabled {

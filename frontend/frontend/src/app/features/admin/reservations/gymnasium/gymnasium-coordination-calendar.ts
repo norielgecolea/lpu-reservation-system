@@ -239,6 +239,11 @@ type PickerView = 'calendar' | 'timeslots';
                     @if (isHourInSelection(slot.value)) {
                       <ui-icon name="check" class="text-amber-600 text-base shrink-0" />
                       <span class="text-xs font-semibold text-amber-700">Selected</span>
+                    } @else if (getCoordinationOnSlot(slot.value); as coord) {
+                      <ui-icon name="handshake" class="text-amber-400 text-sm shrink-0" />
+                      <span class="text-xs text-amber-700 font-medium truncate">
+                        Existing coordination {{ coord.startTime }}–{{ coord.endTime }} — still available
+                      </span>
                     } @else {
                       <span class="text-xs text-gray-400 group-hover:text-amber-600 transition-colors">Available — click to select</span>
                     }
@@ -349,8 +354,20 @@ export class GymnasiumCoordinationCalendar {
     const day = this.selectedDay();
     if (!day) return null;
     const hour = parseInt(hourStr, 10);
+    // Reservations / target event block the slot; other coordination meetings may overlap
     return this.events.find(ev => {
-      if (ev.date !== day) return false;
+      if (ev.date !== day || ev.eventKind === 'COORDINATION') return false;
+      return hour >= parseInt(ev.startTime, 10) && hour < parseInt(ev.endTime, 10);
+    }) ?? null;
+  }
+
+  /** Existing coordination on this hour (informational — does not block selection). */
+  getCoordinationOnSlot(hourStr: string): GymRescheduleEvent | null {
+    const day = this.selectedDay();
+    if (!day) return null;
+    const hour = parseInt(hourStr, 10);
+    return this.events.find(ev => {
+      if (ev.date !== day || ev.eventKind !== 'COORDINATION') return false;
       return hour >= parseInt(ev.startTime, 10) && hour < parseInt(ev.endTime, 10);
     }) ?? null;
   }
@@ -381,10 +398,11 @@ export class GymnasiumCoordinationCalendar {
       const [lo, hi] = hour > start ? [start, hour] : [hour, start];
       const conflict = this.events.find(ev => {
         if (ev.date !== this.selectedDay()) return false;
+        if (ev.eventKind === 'COORDINATION') return false;
         return lo < parseInt(ev.endTime, 10) && hi > parseInt(ev.startTime, 10);
       });
       if (conflict) {
-        this.timeSlotError.set('Selection overlaps with an existing event or coordination meeting.');
+        this.timeSlotError.set('Selection overlaps with an existing reservation.');
         return;
       }
       this.selStart.set(lo); this.selEnd.set(hi); this.timeSlotError.set('');
