@@ -580,7 +580,14 @@ export class VanReservation implements OnInit {
         dateStr,
         isToday: dateStr === todayStr,
         isPast,
-        events: events.filter(e => e.date === dateStr),
+        events: events
+          .filter(e => e.date === dateStr)
+          .slice()
+          .sort((a, b) => {
+            const byStart = (a.startTime || '').localeCompare(b.startTime || '');
+            if (byStart !== 0) return byStart;
+            return (a.endTime || '').localeCompare(b.endTime || '');
+          }),
       };
     });
   });
