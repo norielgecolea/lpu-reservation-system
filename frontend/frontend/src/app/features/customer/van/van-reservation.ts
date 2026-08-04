@@ -710,11 +710,8 @@ export class VanReservation implements OnInit {
         return;
       }
 
-      const lo = start;
-      const hi = hour + 1;
-
-      this.selectedTimeStart.set(lo);
-      this.selectedTimeEnd.set(hi);
+      this.selectedTimeStart.set(start);
+      this.selectedTimeEnd.set(hour);
       return;
     }
 

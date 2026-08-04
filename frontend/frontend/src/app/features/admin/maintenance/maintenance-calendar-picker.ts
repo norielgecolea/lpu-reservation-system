@@ -510,7 +510,7 @@ export class MaintenanceCalendarPicker {
       this.selStart.set(null);
       this.selEnd.set(null);
     } else {
-      const [lo, hi] = hour > start ? [start, hour + 1] : [hour, start + 1];
+      const [lo, hi] = hour > start ? [start, hour] : [hour, start];
       const day = this.selectedDay();
       // Check conflict with maintenance blocks
       const blockConflict = this._blocks().find(b => {

@@ -425,7 +425,7 @@ export class GymnasiumRescheduleCalendar implements OnChanges {
     } else if (hour === start) {
       this.selectedTimeStart.set(null); this.selectedTimeEnd.set(null);
     } else {
-      const [lo, hi] = hour > start ? [start, hour + 1] : [hour, start + 1];
+      const [lo, hi] = hour > start ? [start, hour] : [hour, start];
       const conflict = this._events().find(ev => {
         if (ev.date !== this.selectedDay()) return false;
         return lo < parseInt(ev.endTime, 10) && hi > parseInt(ev.startTime, 10);

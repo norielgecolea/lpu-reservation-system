@@ -735,9 +735,9 @@ export class FltReservation implements OnInit {
       return;
     }
 
-    // Second click: set end
+    // Second click: set end clock time (same slot = 1-hour booking)
     const lo = Math.min(start, hour);
-    const hi = Math.max(start, hour) + 1;
+    const hi = start === hour ? hour + 1 : Math.max(start, hour);
 
     // Check that no booked slot falls in [lo, hi)
     const day = this.selectedDay()!;

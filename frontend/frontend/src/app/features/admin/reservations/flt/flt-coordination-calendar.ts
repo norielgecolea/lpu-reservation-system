@@ -408,7 +408,7 @@ export class FltCoordinationCalendar {
       this.selStart.set(null);
       this.selEnd.set(null);
     } else {
-      const [lo, hi] = hour > start ? [start, hour + 1] : [hour, start + 1];
+      const [lo, hi] = hour > start ? [start, hour] : [hour, start];
       const conflict = this.events.find(ev => {
         if (ev.date !== this.selectedDay()) return false;
         const es = parseInt(ev.startTime, 10);

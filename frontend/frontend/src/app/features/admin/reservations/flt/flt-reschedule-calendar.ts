@@ -462,7 +462,7 @@ export class FltRescheduleCalendar implements OnChanges {
       this.selectedTimeStart.set(null);
       this.selectedTimeEnd.set(null);
     } else {
-      const [lo, hi] = hour > start ? [start, hour + 1] : [hour, start + 1];
+      const [lo, hi] = hour > start ? [start, hour] : [hour, start];
       // Check no event blocks this range
       const conflict = this._events().find(ev => {
         if (ev.date !== this.selectedDay()) return false;

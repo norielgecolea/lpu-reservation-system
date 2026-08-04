@@ -13,7 +13,7 @@ const INTERNAL_DEPARTMENTS = [
   'PURCHASING',
   'PALAESTRA',
   'SAFETY OFFICE',
-  'PLANNING',
+  'PQA',
   'LIBRARY',
   'OSAS',
   'CAM',

@@ -349,10 +349,11 @@ export class UiCalendar {
     if (end) {
       const d = new Date(end);
       update.endDate = this.formatDate(d);
-      update.endTime = `${String(d.getHours() + 1).padStart(2, '0')}:00`;
+      update.endTime = `${String(d.getHours()).padStart(2, '0')}:00`;
     } else if (start) {
       const d = new Date(start);
       update.endDate = update.startDate;
+      // Single-slot selection defaults to a 1-hour booking
       update.endTime = `${String(d.getHours() + 1).padStart(2, '0')}:00`;
     }
     this.selectionChanged.emit(update);

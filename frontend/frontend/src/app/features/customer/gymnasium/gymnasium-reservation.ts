@@ -676,7 +676,8 @@ export class GymnasiumReservation implements OnInit {
     }
 
     const lo = Math.min(start, hour);
-    const hi = Math.max(start, hour) + 1;
+    // End is the clicked clock time (same slot = 1-hour booking)
+    const hi = start === hour ? hour + 1 : Math.max(start, hour);
 
     const day = this.selectedDay()!;
     const hasConflict = this.approvedEvents().some(ev => {

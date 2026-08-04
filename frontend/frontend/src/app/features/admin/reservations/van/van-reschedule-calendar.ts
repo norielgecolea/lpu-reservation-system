@@ -462,19 +462,17 @@ export class VanRescheduleCalendar implements OnChanges {
         return;
       }
 
-      const lo = start;
-      const hi = hour + 1;
       const conflict = this._events().find(ev => {
         if (ev.date !== this.selectedDay()) return false;
-        return lo < parseInt(ev.endTime, 10) && hi > parseInt(ev.startTime, 10);
+        return start < parseInt(ev.endTime, 10) && hour > parseInt(ev.startTime, 10);
       });
       if (conflict) {
         this.timeSlotError.set('Selection overlaps with an existing approved trip.');
         return;
       }
 
-      this.selectedTimeStart.set(lo);
-      this.selectedTimeEnd.set(hi);
+      this.selectedTimeStart.set(start);
+      this.selectedTimeEnd.set(hour);
       return;
     }
 
