@@ -158,7 +158,7 @@ type PickerView = 'calendar' | 'timeslots';
               <span class="inline-block w-3 h-3 rounded border-l-2 border-amber-500 bg-amber-50"></span>
               Coordination Meeting
             </span>
-            <span class="ml-auto text-[11px] italic">Click a date to select the coordination time slot (overlaps allowed)</span>
+            <span class="ml-auto text-[11px] italic">Coordination may overlap other coordinations, but not events</span>
           </div>
 
           @if (selectedSlot()) {
@@ -198,47 +198,62 @@ type PickerView = 'calendar' | 'timeslots';
           <div class="min-h-0 flex-1 overflow-y-auto py-3 flex flex-col gap-4" style="scrollbar-width: thin">
           <div class="rounded-xl overflow-hidden ring-1 ring-black/5 shadow-sm bg-white">
             @for (slot of timeSlots; track slot.value) {
-              <!-- All hours stay selectable — coordination may overlap other events -->
-              <div
-                class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
-                [class.ring-2]="isHourInSelection(slot.value)"
-                [class.ring-amber-500]="isHourInSelection(slot.value)"
-                [class.bg-amber-50]="isHourInSelection(slot.value)"
-                (click)="toggleHour(slot.value)"
-              >
-                <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
-                  {{ slot.label }}
-                </div>
-                <div class="flex-1 px-3 py-2.5 flex items-center gap-2 group-hover:bg-amber-50 transition-colors">
-                  @if (isHourInSelection(slot.value)) {
-                    <ui-icon name="check" class="text-amber-600 text-base shrink-0" />
-                    <span class="text-xs font-semibold text-amber-700">Selected</span>
-                  } @else if (getSlotEvent(slot.value); as ev) {
+              @if (getBlockingEvent(slot.value); as ev) {
+                <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
+                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                    {{ slot.label }}
+                  </div>
+                  <div
+                    class="flex-1 px-3 py-2.5 flex items-center gap-2"
+                    [class.bg-emerald-50]="ev.eventKind === 'TARGET'"
+                    [class.bg-sky-50]="ev.eventKind === 'RESERVATION'"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <p
+                        class="text-xs font-bold truncate"
+                        [class.text-emerald-700]="ev.eventKind === 'TARGET'"
+                        [class.text-sky-700]="ev.eventKind === 'RESERVATION'"
+                      >{{ ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department }}</p>
+                      <p
+                        class="text-[10px]"
+                        [class.text-emerald-500]="ev.eventKind === 'TARGET'"
+                        [class.text-sky-500]="ev.eventKind === 'RESERVATION'"
+                      >{{ ev.startTime }} – {{ ev.endTime }} · Reserved</p>
+                    </div>
                     <ui-icon
-                      [name]="ev.eventKind === 'COORDINATION' ? 'handshake' : ev.eventKind === 'TARGET' ? 'event' : 'lock'"
+                      [name]="ev.eventKind === 'TARGET' ? 'event' : 'lock'"
                       class="text-sm shrink-0"
-                      [class.text-amber-500]="ev.eventKind === 'COORDINATION'"
-                      [class.text-emerald-500]="ev.eventKind === 'TARGET'"
-                      [class.text-sky-500]="ev.eventKind === 'RESERVATION'"
+                      [class.text-emerald-400]="ev.eventKind === 'TARGET'"
+                      [class.text-sky-400]="ev.eventKind === 'RESERVATION'"
                     />
-                    <span class="text-xs font-medium truncate"
-                      [class.text-amber-700]="ev.eventKind === 'COORDINATION'"
-                      [class.text-emerald-700]="ev.eventKind === 'TARGET'"
-                      [class.text-sky-700]="ev.eventKind === 'RESERVATION'"
-                    >
-                      @if (ev.eventKind === 'COORDINATION') {
-                        Existing coordination {{ ev.startTime }}–{{ ev.endTime }} — click to overlap
-                      } @else if (ev.eventKind === 'TARGET') {
-                        {{ ev.eventTitle || eventTitle }} {{ ev.startTime }}–{{ ev.endTime }} — still selectable
-                      } @else {
-                        {{ ev.department }} {{ ev.startTime }}–{{ ev.endTime }} — still selectable
-                      }
-                    </span>
-                  } @else {
-                    <span class="text-xs text-gray-400 group-hover:text-amber-600 transition-colors">Available — click to select</span>
-                  }
+                  </div>
                 </div>
-              </div>
+              } @else {
+                <div
+                  class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
+                  [class.ring-2]="isHourInSelection(slot.value)"
+                  [class.ring-amber-500]="isHourInSelection(slot.value)"
+                  [class.bg-amber-50]="isHourInSelection(slot.value)"
+                  (click)="toggleHour(slot.value)"
+                >
+                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                    {{ slot.label }}
+                  </div>
+                  <div class="flex-1 px-3 py-2.5 flex items-center gap-2 group-hover:bg-amber-50 transition-colors">
+                    @if (isHourInSelection(slot.value)) {
+                      <ui-icon name="check" class="text-amber-600 text-base shrink-0" />
+                      <span class="text-xs font-semibold text-amber-700">Selected</span>
+                    } @else if (getCoordinationOnSlot(slot.value); as coord) {
+                      <ui-icon name="handshake" class="text-amber-400 text-sm shrink-0" />
+                      <span class="text-xs text-amber-700 font-medium truncate">
+                        Existing coordination {{ coord.startTime }}–{{ coord.endTime }} — click to overlap
+                      </span>
+                    } @else {
+                      <span class="text-xs text-gray-400 group-hover:text-amber-600 transition-colors">Available — click to select</span>
+                    }
+                  </div>
+                </div>
+              }
             }
           </div>
 
@@ -339,17 +354,27 @@ export class GymnasiumCoordinationCalendar {
     this.pickerView.set('timeslots');
   }
 
-  getSlotEvent(hourStr: string): GymRescheduleEvent | null {
+  /** Reserved event hours that must not be overlapped (RESERVATION / TARGET). */
+  getBlockingEvent(hourStr: string): GymRescheduleEvent | null {
     const day = this.selectedDay();
     if (!day) return null;
     const hour = parseInt(hourStr, 10);
-    const onHour = this.events.filter(ev => {
+    return this.events.find(ev => {
       if (ev.date !== day) return false;
+      if (ev.eventKind !== 'RESERVATION' && ev.eventKind !== 'TARGET') return false;
       return hour >= parseInt(ev.startTime, 10) && hour < parseInt(ev.endTime, 10);
-    });
-    return onHour.find(ev => ev.eventKind === 'COORDINATION')
-      ?? onHour[0]
-      ?? null;
+    }) ?? null;
+  }
+
+  /** Existing coordination on this hour — informational only; selection is allowed. */
+  getCoordinationOnSlot(hourStr: string): GymRescheduleEvent | null {
+    const day = this.selectedDay();
+    if (!day) return null;
+    const hour = parseInt(hourStr, 10);
+    return this.events.find(ev => {
+      if (ev.date !== day || ev.eventKind !== 'COORDINATION') return false;
+      return hour >= parseInt(ev.startTime, 10) && hour < parseInt(ev.endTime, 10);
+    }) ?? null;
   }
 
   isTargetEventDate(dateStr: string | null): boolean {
@@ -363,7 +388,6 @@ export class GymnasiumCoordinationCalendar {
     const end = this.selEnd();
     if (start === null) return false;
     if (end === null) return hour === start;
-    // Inclusive of end clock time so clicking 6:00 PM highlights that row
     return hour >= start && hour <= end;
   }
 
@@ -378,8 +402,16 @@ export class GymnasiumCoordinationCalendar {
       this.selStart.set(null);
       this.selEnd.set(null);
     } else {
-      // Coordination meetings are allowed to overlap any existing event
       const [lo, hi] = hour > start ? [start, hour] : [hour, start];
+      const conflict = this.events.find(ev => {
+        if (ev.date !== this.selectedDay()) return false;
+        if (ev.eventKind !== 'RESERVATION' && ev.eventKind !== 'TARGET') return false;
+        return lo < parseInt(ev.endTime, 10) && hi > parseInt(ev.startTime, 10);
+      });
+      if (conflict) {
+        this.timeSlotError.set('Selection overlaps with an existing event. Coordination cannot overlap events.');
+        return;
+      }
       this.selStart.set(lo);
       this.selEnd.set(hi);
     }
