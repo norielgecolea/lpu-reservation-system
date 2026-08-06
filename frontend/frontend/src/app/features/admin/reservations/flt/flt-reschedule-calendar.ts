@@ -436,7 +436,8 @@ export class FltRescheduleCalendar implements OnChanges {
     const hour = parseInt(hourStr, 10);
     return this._events().find(ev => {
       if (ev.date !== day) return false;
-      return hour >= parseInt(ev.startTime, 10) && hour < parseInt(ev.endTime, 10);
+      // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
+      return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
     }) ?? null;
   }
 
