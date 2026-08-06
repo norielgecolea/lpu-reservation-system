@@ -245,124 +245,121 @@ type PickerView = 'calendar' | 'timeslots';
 
       <!-- ── Time-slot view ── -->
       @if (pickerView() === 'timeslots') {
-        <div class="flex-1 min-h-0 overflow-auto max-w-screen-md mx-auto w-full px-4 sm:px-6 py-6 flex flex-col gap-4">
-          <div class="flex items-center gap-2 shrink-0">
+        <div class="flex min-h-0 flex-1 flex-col max-w-screen-md mx-auto w-full px-3 sm:px-6 pt-3 sm:pt-4">
+          <div class="flex shrink-0 items-center gap-2 px-1">
             <ui-icon name="calendar_today" class="text-orange-600 text-base" />
             <span class="text-sm font-bold text-gray-800">{{ formatDateLong(selectedDay()) }}</span>
-            <span class="ml-auto text-xs text-gray-400 italic">Select start then end hour to block</span>
+            <span class="ml-auto hidden text-xs text-gray-400 italic sm:inline">Select start then end hour</span>
           </div>
 
-          <!-- Existing blocks on this date with remove buttons -->
-          @if (blocksOnSelectedDay().length > 0) {
-            <div class="rounded-xl border border-orange-200 bg-orange-50/60 p-3 flex flex-col gap-2">
-              <p class="text-xs font-bold uppercase tracking-wide text-orange-600 flex items-center gap-1.5">
-                <ui-icon name="construction" class="text-sm" />
-                Existing Blocks on This Date
-              </p>
-              @for (b of blocksOnSelectedDay(); track b.id) {
-                <div class="flex items-center gap-3 rounded-lg bg-white border border-orange-200 px-3 py-2">
-                  <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-orange-700">{{ b.startTime }} – {{ b.endTime }}</p>
-                    <p class="text-[11px] text-orange-500 truncate">{{ b.reason || 'Under Maintenance' }}</p>
-                  </div>
-                  <button type="button" (click)="removeSlot.emit(b.id)"
-                    class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors cursor-pointer">
-                    <ui-icon name="delete" class="text-sm" />
-                    Remove
-                  </button>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- Time slots -->
-          <div class="rounded-xl overflow-hidden ring-1 ring-black/5 shadow-sm bg-white">
-            @for (slot of timeSlots; track slot.value) {
-              @if (getBlockForSlot(slot.value); as mb) {
-                <!-- Existing maintenance block -->
-                <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
-                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
-                    {{ slot.label }}
-                  </div>
-                  <div class="flex-1 px-3 py-2.5 bg-orange-50 flex items-center gap-2">
+          <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3 flex flex-col gap-3" style="scrollbar-width: thin">
+            @if (blocksOnSelectedDay().length > 0) {
+              <div class="rounded-xl border border-orange-200 bg-orange-50/60 p-3 flex flex-col gap-2">
+                <p class="text-xs font-bold uppercase tracking-wide text-orange-600 flex items-center gap-1.5">
+                  <ui-icon name="construction" class="text-sm" />
+                  Existing Blocks on This Date
+                </p>
+                @for (b of blocksOnSelectedDay(); track b.id) {
+                  <div class="flex items-center gap-3 rounded-lg bg-white border border-orange-200 px-3 py-2">
                     <div class="flex-1 min-w-0">
-                      <p class="text-xs font-bold text-orange-700 truncate">🔧 {{ mb.reason || 'Under Maintenance' }}</p>
-                      <p class="text-[10px] text-orange-500">{{ mb.startTime }} – {{ mb.endTime }} · Blocked</p>
+                      <p class="text-xs font-semibold text-orange-700">{{ b.startTime }} – {{ b.endTime }}</p>
+                      <p class="text-[11px] text-orange-500 truncate">{{ b.reason || 'Under Maintenance' }}</p>
                     </div>
-                    <button type="button" (click)="removeSlot.emit(mb.id)"
-                      class="flex items-center gap-1 rounded-md bg-red-50 border border-red-200 px-2 py-1 text-[10px] font-bold text-red-600 hover:bg-red-100 transition-colors cursor-pointer shrink-0">
-                      <ui-icon name="delete" class="text-xs" />
+                    <button type="button" (click)="removeSlot.emit(b.id)"
+                      class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors cursor-pointer">
+                      <ui-icon name="delete" class="text-sm" />
                       Remove
                     </button>
                   </div>
-                </div>
-              } @else if (getEventForSlot(slot.value); as ev) {
-                <!-- Approved reservation or coordination — not selectable -->
-                <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
-                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
-                    {{ slot.label }}
-                  </div>
-                  <div class="flex-1 px-3 py-2.5 flex items-center gap-2"
-                    [class.bg-sky-50]="ev.eventKind === 'RESERVATION'"
-                    [class.bg-amber-50]="ev.eventKind === 'COORDINATION'"
-                  >
-                    <div class="flex-1 min-w-0">
-                      <p class="text-xs font-bold truncate"
-                        [class.text-sky-700]="ev.eventKind === 'RESERVATION'"
-                        [class.text-amber-700]="ev.eventKind === 'COORDINATION'"
-                      >{{ ev.eventKind === 'COORDINATION' ? '📋 Coordination Meeting' : ev.department }}</p>
-                      <p class="text-[10px]"
-                        [class.text-sky-500]="ev.eventKind === 'RESERVATION'"
-                        [class.text-amber-500]="ev.eventKind === 'COORDINATION'"
-                      >{{ ev.startTime }} – {{ ev.endTime }} · {{ ev.eventKind === 'COORDINATION' ? 'Blocked' : 'Reserved' }}</p>
+                }
+              </div>
+            }
+
+            <div class="rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
+              @for (slot of timeSlots; track slot.value) {
+                @if (getBlockForSlot(slot.value); as mb) {
+                  <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
                     </div>
-                    <ui-icon
-                      [name]="ev.eventKind === 'COORDINATION' ? 'handshake' : 'lock'"
-                      class="text-sm shrink-0"
-                      [class.text-sky-400]="ev.eventKind === 'RESERVATION'"
-                      [class.text-amber-400]="ev.eventKind === 'COORDINATION'"
-                    />
+                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-orange-50 flex items-center gap-2">
+                      <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-orange-700 truncate">🔧 {{ mb.reason || 'Under Maintenance' }}</p>
+                        <p class="text-[10px] text-orange-500">{{ mb.startTime }} – {{ mb.endTime }} · Blocked</p>
+                      </div>
+                      <button type="button" (click)="removeSlot.emit(mb.id)"
+                        class="flex items-center gap-1 rounded-md bg-red-50 border border-red-200 px-2 py-1 text-[10px] font-bold text-red-600 hover:bg-red-100 transition-colors cursor-pointer shrink-0">
+                        <ui-icon name="delete" class="text-xs" />
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                </div>
-              } @else {
-                <!-- Available — selectable -->
-                <div
-                  class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
-                  [class.ring-2]="isHourInSelection(slot.value)"
-                  [class.ring-orange-500]="isHourInSelection(slot.value)"
-                  [class.bg-orange-50]="isHourInSelection(slot.value)"
-                  (click)="toggleHour(slot.value)"
-                >
-                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
-                    {{ slot.label }}
+                } @else if (getEventForSlot(slot.value); as ev) {
+                  <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
+                    </div>
+                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2"
+                      [class.bg-sky-50]="ev.eventKind === 'RESERVATION'"
+                      [class.bg-amber-50]="ev.eventKind === 'COORDINATION'"
+                    >
+                      <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold truncate"
+                          [class.text-sky-700]="ev.eventKind === 'RESERVATION'"
+                          [class.text-amber-700]="ev.eventKind === 'COORDINATION'"
+                        >{{ ev.eventKind === 'COORDINATION' ? '📋 Coordination Meeting' : ev.department }}</p>
+                        <p class="text-[10px]"
+                          [class.text-sky-500]="ev.eventKind === 'RESERVATION'"
+                          [class.text-amber-500]="ev.eventKind === 'COORDINATION'"
+                        >{{ ev.startTime }} – {{ ev.endTime }} · {{ ev.eventKind === 'COORDINATION' ? 'Blocked' : 'Reserved' }}</p>
+                      </div>
+                      <ui-icon
+                        [name]="ev.eventKind === 'COORDINATION' ? 'handshake' : 'lock'"
+                        class="text-sm shrink-0"
+                        [class.text-sky-400]="ev.eventKind === 'RESERVATION'"
+                        [class.text-amber-400]="ev.eventKind === 'COORDINATION'"
+                      />
+                    </div>
                   </div>
-                  <div class="flex-1 px-3 py-2.5 flex items-center gap-2 group-hover:bg-orange-50 transition-colors">
-                    @if (isHourInSelection(slot.value)) {
-                      <ui-icon name="check" class="text-orange-600 text-base shrink-0" />
-                      <span class="text-xs font-semibold text-orange-700">Selected</span>
-                    } @else {
-                      <span class="text-xs text-gray-400 group-hover:text-orange-600 transition-colors">Available — click to select</span>
-                    }
+                } @else {
+                  <div
+                    class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
+                    [class.ring-2]="isHourInSelection(slot.value)"
+                    [class.ring-orange-500]="isHourInSelection(slot.value)"
+                    [class.bg-orange-50]="isHourInSelection(slot.value)"
+                    (click)="toggleHour(slot.value)"
+                  >
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
+                    </div>
+                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2 group-hover:bg-orange-50 transition-colors">
+                      @if (isHourInSelection(slot.value)) {
+                        <ui-icon name="check" class="text-orange-600 text-base shrink-0" />
+                        <span class="text-xs font-semibold text-orange-700">Selected</span>
+                      } @else {
+                        <span class="text-xs text-gray-400 group-hover:text-orange-600 transition-colors">Available — click to select</span>
+                      }
+                    </div>
                   </div>
-                </div>
+                }
               }
+            </div>
+
+            @if (timeSlotError()) {
+              <p class="text-sm text-red-500 flex items-center gap-1.5">
+                <ui-icon name="warning" class="text-base" />{{ timeSlotError() }}
+              </p>
             }
           </div>
 
-          @if (timeSlotError()) {
-            <p class="text-sm text-red-500 flex items-center gap-1.5">
-              <ui-icon name="warning" class="text-base" />{{ timeSlotError() }}
-            </p>
-          }
-
-          <div class="flex gap-3 mt-2">
+          <div class="shrink-0 flex gap-2 sm:gap-3 border-t border-gray-200 bg-gray-50 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <button type="button" (click)="pickerView.set('calendar')"
-              class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-              <ui-icon name="arrow_back" class="text-base" /> Back to Calendar
+              class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-semibold text-gray-700 hover:bg-white transition-colors cursor-pointer">
+              <ui-icon name="arrow_back" class="text-base" /> Back
             </button>
             <button type="button" (click)="confirmTimeSlot()"
               [disabled]="selStart() === null"
-              class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white hover:bg-orange-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
+              class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-bold text-white hover:bg-orange-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
               <ui-icon name="check" class="text-base" /> Confirm Slot
             </button>
           </div>

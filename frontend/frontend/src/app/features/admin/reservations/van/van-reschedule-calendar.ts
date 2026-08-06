@@ -182,127 +182,136 @@ type PickerView = 'calendar' | 'timeslots';
       }
 
       @if (pickerView() === 'timeslots') {
-        <div class="flex-1 min-h-0 overflow-auto max-w-screen-md mx-auto w-full px-4 sm:px-6 py-6 flex flex-col gap-4">
-          <div class="flex items-center gap-2 shrink-0">
-            <ui-icon name="calendar_today" class="text-primary text-base" />
-            <span class="text-sm font-bold text-gray-800">{{ formatDateLong(selectedDay()) }}</span>
-          </div>
+        <div class="flex min-h-0 flex-1 flex-col max-w-screen-md mx-auto w-full px-3 sm:px-6 pt-3 sm:pt-4">
+          <div class="flex shrink-0 flex-col gap-2 px-1">
+            <div class="flex items-center gap-2">
+              <ui-icon name="calendar_today" class="text-primary text-base" />
+              <span class="text-sm font-bold text-gray-800">{{ formatDateLong(selectedDay()) }}</span>
+              <span class="ml-auto hidden text-xs text-gray-400 sm:inline">Scroll for later hours</span>
+            </div>
 
-          <div class="rounded-xl bg-primary/5 border border-primary/20 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 text-sm">
-            <div class="flex items-center gap-2 flex-1">
-              <ui-icon name="flight_takeoff" class="text-primary shrink-0" />
-              <div>
-                <span class="text-[10px] font-bold uppercase tracking-wide text-sky-500">Departure</span>
-                <span class="block font-semibold text-gray-800">{{ selectedDepartureLabel() }}</span>
+            <div class="rounded-xl bg-primary/5 border border-primary/20 px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm">
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <ui-icon name="flight_takeoff" class="text-primary shrink-0" />
+                <div class="min-w-0">
+                  <span class="text-[10px] font-bold uppercase tracking-wide text-sky-500">Departure</span>
+                  <span class="block font-semibold text-gray-800 truncate">{{ selectedDepartureLabel() }}</span>
+                </div>
+              </div>
+              <ui-icon name="arrow_forward" class="text-gray-300 hidden sm:block shrink-0" />
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <ui-icon name="flight_land" class="text-primary shrink-0" />
+                <div class="min-w-0">
+                  <span class="text-[10px] font-bold uppercase tracking-wide text-sky-500">Return</span>
+                  <span class="block font-semibold text-gray-800 truncate">{{ selectedReturnLabel() }}</span>
+                </div>
               </div>
             </div>
-            <ui-icon name="arrow_forward" class="text-gray-300 hidden sm:block" />
-            <div class="flex items-center gap-2 flex-1">
-              <ui-icon name="flight_land" class="text-primary shrink-0" />
-              <div>
-                <span class="text-[10px] font-bold uppercase tracking-wide text-sky-500">Return</span>
-                <span class="block font-semibold text-gray-800">{{ selectedReturnLabel() }}</span>
-              </div>
-            </div>
-          </div>
-          <p class="text-xs text-gray-400 text-center -mt-2">
-            @if (selectedTimeStart() === null) {
-              Click an available slot to set your <strong>Departure</strong> time.
-            } @else if (selectedTimeEnd() === null) {
-              Click an available slot to set your <strong>Return</strong> time (must be after departure).
-            } @else {
-              Departure and Return times selected. Click "Add This Date" to confirm.
-            }
-          </p>
-
-          <div class="rounded-xl overflow-hidden ring-1 ring-black/5 shadow-sm bg-white">
-            @for (slot of timeSlots; track slot.value) {
-              @if (getSlotEvent(slot.value); as ev) {
-                <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
-                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
-                    {{ slot.label }}
-                  </div>
-                  <div class="flex-1 px-3 py-2.5 flex items-center gap-2 bg-sky-50">
-                    <div class="flex-1 min-w-0">
-                      <p class="text-xs font-bold truncate text-sky-700">{{ ev.travelDestination || ev.department }}</p>
-                      <p class="text-[10px] text-sky-500">{{ ev.startTime }} – {{ ev.endTime }} · Reserved</p>
-                    </div>
-                    <ui-icon name="lock" class="text-sm shrink-0 text-sky-400" />
-                  </div>
-                </div>
-              } @else if (isSlotInBasket(slot.value)) {
-                <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
-                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
-                    {{ slot.label }}
-                  </div>
-                  <div class="flex-1 px-3 py-2.5 bg-primary/5 flex items-center gap-2">
-                    <ui-icon name="check_circle" class="text-primary text-base shrink-0" />
-                    <span class="text-xs font-semibold text-primary">Your selection</span>
-                  </div>
-                </div>
+            <p class="text-xs text-gray-400 text-center">
+              @if (selectedTimeStart() === null) {
+                Click an available slot to set your <strong>Departure</strong> time.
+              } @else if (selectedTimeEnd() === null) {
+                Click an available slot to set your <strong>Return</strong> time (must be after departure).
               } @else {
-                <div class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
-                  [class.ring-2]="isSlotSelected(slot.value)"
-                  [class.ring-primary]="isSlotSelected(slot.value)"
-                  [class.bg-primary/5]="isSlotSelected(slot.value)"
-                  (click)="toggleTimeSlot(slot.value)">
-                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
-                    {{ slot.label }}
-                  </div>
-                  <div class="flex-1 px-3 py-2.5 flex items-center gap-2 group-hover:bg-emerald-50 transition-colors">
-                    @if (isSlotSelected(slot.value)) {
-                      <ui-icon name="check" class="text-primary text-base shrink-0" />
-                      <span class="text-xs font-semibold text-primary">
-                        @if (isDepartureSlot(slot.value)) { Departure } @else { Return }
-                      </span>
-                    } @else {
-                      <span class="text-xs text-gray-400 group-hover:text-emerald-600 transition-colors">Available</span>
-                    }
-                  </div>
-                </div>
+                Departure and Return times selected. Click "Add Date" to confirm.
               }
-            }
-          </div>
-
-          @if (timeSlotError()) {
-            <p class="text-sm text-red-500 flex items-center gap-1.5">
-              <ui-icon name="warning" class="text-base" />{{ timeSlotError() }}
             </p>
-          }
-
-          <div class="flex gap-3 mt-2">
-            <button type="button" (click)="pickerView.set('calendar')"
-              class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-              <ui-icon name="arrow_back" class="text-base" /> Back to Calendar
-            </button>
-            <button type="button" (click)="addToBasket()" [disabled]="selectedTimeStart() === null || selectedTimeEnd() === null"
-              class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
-              <ui-icon name="add" class="text-base" /> Add This Date
-            </button>
           </div>
 
-          @if (basket().length > 0) {
-            <div class="mt-1">
-              <p class="text-xs font-semibold text-gray-500 mb-2">Selected dates:</p>
-              <div class="flex flex-wrap gap-2 mb-3">
-                @for (s of basket(); track s.date) {
-                  <div class="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary">
-                    {{ formatDateShort(s.date) }} Dep {{ formatTimeShort(s.startTime) }} – Ret {{ formatTimeShort(s.endTime) }}
-                    <button type="button" (click)="removeFromBasket(s.date)"
-                      class="ml-1 hover:text-red-500 cursor-pointer transition-colors">
-                      <ui-icon name="close" class="text-sm" />
-                    </button>
+          <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3" style="scrollbar-width: thin">
+            <div class="rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
+              @for (slot of timeSlots; track slot.value) {
+                @if (getSlotEvent(slot.value); as ev) {
+                  <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
+                    </div>
+                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2 bg-sky-50">
+                      <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold truncate text-sky-700">{{ ev.travelDestination || ev.department }}</p>
+                        <p class="text-[10px] text-sky-500">{{ ev.startTime }} – {{ ev.endTime }} · Reserved</p>
+                      </div>
+                      <ui-icon name="lock" class="text-sm shrink-0 text-sky-400" />
+                    </div>
+                  </div>
+                } @else if (isSlotInBasket(slot.value)) {
+                  <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
+                    </div>
+                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-primary/5 flex items-center gap-2">
+                      <ui-icon name="check_circle" class="text-primary text-base shrink-0" />
+                      <span class="text-xs font-semibold text-primary">Your selection</span>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
+                    [class.ring-2]="isSlotSelected(slot.value)"
+                    [class.ring-primary]="isSlotSelected(slot.value)"
+                    [class.bg-primary/5]="isSlotSelected(slot.value)"
+                    (click)="toggleTimeSlot(slot.value)">
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
+                    </div>
+                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2 group-hover:bg-emerald-50 transition-colors">
+                      @if (isSlotSelected(slot.value)) {
+                        <ui-icon name="check" class="text-primary text-base shrink-0" />
+                        <span class="text-xs font-semibold text-primary">
+                          @if (isDepartureSlot(slot.value)) { Departure } @else { Return }
+                        </span>
+                      } @else {
+                        <span class="text-xs text-gray-400 group-hover:text-emerald-600 transition-colors">Available</span>
+                      }
+                    </div>
                   </div>
                 }
+              }
+            </div>
+
+            @if (timeSlotError()) {
+              <p class="mt-3 text-sm text-red-500 flex items-center gap-1.5">
+                <ui-icon name="warning" class="text-base" />{{ timeSlotError() }}
+              </p>
+            }
+
+            @if (basket().length > 0) {
+              <div class="mt-4">
+                <p class="text-xs font-semibold text-gray-500 mb-2">Selected dates:</p>
+                <div class="flex flex-wrap gap-2">
+                  @for (s of basket(); track s.date) {
+                    <div class="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary">
+                      {{ formatDateShort(s.date) }} Dep {{ formatTimeShort(s.startTime) }} – Ret {{ formatTimeShort(s.endTime) }}
+                      <button type="button" (click)="removeFromBasket(s.date)"
+                        class="ml-1 hover:text-red-500 cursor-pointer transition-colors">
+                        <ui-icon name="close" class="text-sm" />
+                      </button>
+                    </div>
+                  }
+                </div>
               </div>
-              <button type="button" (click)="save()" [disabled]="saving()"
-                class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                @if (saving()) { <ui-icon name="autorenew" class="text-base animate-spin" /> }
-                @else { <ui-icon name="save" class="text-base" /> }
-                Save Reschedule
+            }
+          </div>
+
+          <div class="shrink-0 flex flex-col gap-2 border-t border-gray-200 bg-gray-50 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div class="flex gap-2 sm:gap-3">
+              <button type="button" (click)="pickerView.set('calendar')"
+                class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-semibold text-gray-700 hover:bg-white transition-colors cursor-pointer">
+                <ui-icon name="arrow_back" class="text-base" /> Back
+              </button>
+              <button type="button" (click)="addToBasket()" [disabled]="selectedTimeStart() === null || selectedTimeEnd() === null"
+                class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
+                <ui-icon name="add" class="text-base" /> Add Date
               </button>
             </div>
-          }
+            @if (basket().length > 0) {
+              <button type="button" (click)="save()" [disabled]="saving()"
+                class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 sm:py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                @if (saving()) { <ui-icon name="autorenew" class="text-base animate-spin" /> }
+                @else { <ui-icon name="save" class="text-base" /> }
+                Save Reschedule ({{ basket().length }})
+              </button>
+            }
+          </div>
         </div>
       }
     </div>
