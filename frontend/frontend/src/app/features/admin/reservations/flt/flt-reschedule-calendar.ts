@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { UiIcon } from '../../../../shared/ui';
+import { formatReadableTime } from '../../../../shared/utils/datetime.util';
 import { ReservedDateSlot } from './flt-reservations.models';
 
 export interface RescheduleEvent {
@@ -136,7 +137,7 @@ type PickerView = 'calendar' | 'timeslots';
                               class="block truncate font-bold"
                               [class.text-sky-700]="ev.eventKind !== 'COORDINATION'"
                               [class.text-amber-700]="ev.eventKind === 'COORDINATION'"
-                            >{{ ev.startTime }}–{{ ev.endTime }}</span>
+                            >{{ formatTimeShort(ev.startTime) }}–{{ formatTimeShort(ev.endTime) }}</span>
                             <span
                               class="block truncate"
                               [class.text-sky-900]="ev.eventKind !== 'COORDINATION'"
@@ -188,7 +189,7 @@ type PickerView = 'calendar' | 'timeslots';
                 @for (slot of basket(); track slot.date) {
                   <div class="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary">
                     <ui-icon name="event" class="text-sm" />
-                    {{ formatDateShort(slot.date) }} {{ slot.startTime }}–{{ slot.endTime }}
+                    {{ formatDateShort(slot.date) }} {{ formatTimeShort(slot.startTime) }}–{{ formatTimeShort(slot.endTime) }}
                     <button type="button" (click)="removeFromBasket(slot.date)"
                       class="ml-1 hover:text-red-500 cursor-pointer transition-colors">
                       <ui-icon name="close" class="text-sm" />
@@ -244,7 +245,7 @@ type PickerView = 'calendar' | 'timeslots';
                           class="text-[10px]"
                           [class.text-sky-500]="ev.eventKind !== 'COORDINATION'"
                           [class.text-amber-500]="ev.eventKind === 'COORDINATION'"
-                        >{{ ev.startTime }} – {{ ev.endTime }} · {{ ev.eventKind === 'COORDINATION' ? 'Blocked' : 'Reserved' }}</p>
+                        >{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Blocked' : 'Reserved' }}</p>
                       </div>
                       <ui-icon
                         [name]="ev.eventKind === 'COORDINATION' ? 'handshake' : 'lock'"
@@ -302,7 +303,7 @@ type PickerView = 'calendar' | 'timeslots';
                 <div class="flex flex-wrap gap-2">
                   @for (s of basket(); track s.date) {
                     <div class="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary">
-                      {{ formatDateShort(s.date) }} {{ s.startTime }}–{{ s.endTime }}
+                      {{ formatDateShort(s.date) }} {{ formatTimeShort(s.startTime) }}–{{ formatTimeShort(s.endTime) }}
                       <button type="button" (click)="removeFromBasket(s.date)"
                         class="ml-1 hover:text-red-500 cursor-pointer transition-colors">
                         <ui-icon name="close" class="text-sm" />
@@ -517,6 +518,10 @@ export class FltRescheduleCalendar implements OnChanges {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  formatTimeShort(timeStr: string): string {
+    return formatReadableTime(timeStr);
   }
 
   formatDateLong(dateStr: string | null): string {

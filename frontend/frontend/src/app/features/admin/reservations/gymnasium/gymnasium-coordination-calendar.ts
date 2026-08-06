@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { UiIcon } from '../../../../shared/ui';
+import { formatReadableTime } from '../../../../shared/utils/datetime.util';
 import { GymRescheduleEvent } from './gymnasium-reschedule-calendar';
 
 export interface GymCoordinationSlot {
@@ -126,7 +127,7 @@ type PickerView = 'calendar' | 'timeslots';
                               [class.text-emerald-700]="ev.eventKind === 'TARGET'"
                               [class.text-sky-700]="ev.eventKind === 'RESERVATION'"
                               [class.text-amber-700]="ev.eventKind === 'COORDINATION'"
-                            >{{ ev.startTime }}–{{ ev.endTime }}</span>
+                            >{{ formatTimeShort(ev.startTime) }}–{{ formatTimeShort(ev.endTime) }}</span>
                             <span class="block truncate"
                               [class.text-emerald-900]="ev.eventKind === 'TARGET'"
                               [class.text-sky-900]="ev.eventKind === 'RESERVATION'"
@@ -166,7 +167,7 @@ type PickerView = 'calendar' | 'timeslots';
               <div class="max-w-screen-2xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3">
                 <div class="flex items-center gap-2 text-sm font-semibold text-amber-700">
                   <ui-icon name="handshake" class="text-base text-amber-500" />
-                  {{ formatDateShort(selectedSlot()!.date) }} · {{ selectedSlot()!.startTime }}–{{ selectedSlot()!.endTime }}
+                  {{ formatDateShort(selectedSlot()!.date) }} · {{ formatTimeShort(selectedSlot()!.startTime) }}–{{ formatTimeShort(selectedSlot()!.endTime) }}
                 </div>
                 <div class="flex gap-2 sm:ml-auto">
                   <button type="button" (click)="selectedSlot.set(null)"
@@ -218,7 +219,7 @@ type PickerView = 'calendar' | 'timeslots';
                         class="text-[10px]"
                         [class.text-emerald-500]="ev.eventKind === 'TARGET'"
                         [class.text-sky-500]="ev.eventKind === 'RESERVATION'"
-                      >{{ ev.startTime }} – {{ ev.endTime }} · Reserved</p>
+                      >{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · Reserved</p>
                     </div>
                     <ui-icon
                       [name]="ev.eventKind === 'TARGET' ? 'event' : 'lock'"
@@ -246,7 +247,7 @@ type PickerView = 'calendar' | 'timeslots';
                     } @else if (getCoordinationOnSlot(slot.value); as coord) {
                       <ui-icon name="handshake" class="text-amber-400 text-sm shrink-0" />
                       <span class="text-xs text-amber-700 font-medium truncate">
-                        Existing coordination {{ coord.startTime }}–{{ coord.endTime }} — click to overlap
+                        Existing coordination {{ formatTimeShort(coord.startTime) }}–{{ formatTimeShort(coord.endTime) }} — click to overlap
                       </span>
                     } @else {
                       <span class="text-xs text-gray-400 group-hover:text-amber-600 transition-colors">Available — click to select</span>
@@ -362,7 +363,8 @@ export class GymnasiumCoordinationCalendar {
     return this.events.find(ev => {
       if (ev.date !== day) return false;
       if (ev.eventKind !== 'RESERVATION' && ev.eventKind !== 'TARGET') return false;
-      return hour >= parseInt(ev.startTime, 10) && hour < parseInt(ev.endTime, 10);
+      // Inclusive of end clock time (same as reservation time-picker highlight)
+      return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
     }) ?? null;
   }
 
@@ -373,7 +375,8 @@ export class GymnasiumCoordinationCalendar {
     const hour = parseInt(hourStr, 10);
     return this.events.find(ev => {
       if (ev.date !== day || ev.eventKind !== 'COORDINATION') return false;
-      return hour >= parseInt(ev.startTime, 10) && hour < parseInt(ev.endTime, 10);
+      // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
+      return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
     }) ?? null;
   }
 
@@ -388,6 +391,7 @@ export class GymnasiumCoordinationCalendar {
     const end = this.selEnd();
     if (start === null) return false;
     if (end === null) return hour === start;
+    // Inclusive of end clock time so clicking 12:00 highlights that row
     return hour >= start && hour <= end;
   }
 
@@ -440,6 +444,10 @@ export class GymnasiumCoordinationCalendar {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  formatTimeShort(timeStr: string): string {
+    return formatReadableTime(timeStr);
   }
 
   formatDateLong(dateStr: string | null): string {

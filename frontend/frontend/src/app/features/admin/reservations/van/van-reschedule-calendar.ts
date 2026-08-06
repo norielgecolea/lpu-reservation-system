@@ -120,7 +120,7 @@ type PickerView = 'calendar' | 'timeslots';
                       <ul class="flex flex-col gap-0.5 overflow-hidden">
                         @for (ev of cell.events.slice(0, 3); track ev.department + ev.startTime) {
                           <li class="min-w-0 rounded border-l-2 border-sky-500 px-1 py-0.5 text-[10px] leading-tight bg-sky-50">
-                            <span class="block truncate font-bold text-sky-700">{{ ev.startTime }}–{{ ev.endTime }}</span>
+                            <span class="block truncate font-bold text-sky-700">{{ formatTimeShort(ev.startTime) }}–{{ formatTimeShort(ev.endTime) }}</span>
                             <span class="block truncate text-sky-900">{{ ev.travelDestination || ev.department }}</span>
                           </li>
                         }
@@ -229,7 +229,7 @@ type PickerView = 'calendar' | 'timeslots';
                     <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2 bg-sky-50">
                       <div class="flex-1 min-w-0">
                         <p class="text-xs font-bold truncate text-sky-700">{{ ev.travelDestination || ev.department }}</p>
-                        <p class="text-[10px] text-sky-500">{{ ev.startTime }} – {{ ev.endTime }} · Reserved</p>
+                        <p class="text-[10px] text-sky-500">{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · Reserved</p>
                       </div>
                       <ui-icon name="lock" class="text-sm shrink-0 text-sky-400" />
                     </div>
