@@ -194,13 +194,14 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                   </div>
                   <div class="grid grid-cols-7">
                     @for (cell of scheduleCells(); track $index) {
-                      <div class="min-h-14 border-r border-b border-gray-100 bg-white p-1"
+                      <div class="flex min-h-14 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1"
                         [class.bg-gray-50]="cell.day === null"
                         [class.bg-emerald-50]="cell.requested.length > 0"
                       >
                         @if (cell.day !== null) {
-                          <span class="text-[10px] font-semibold text-gray-600">{{ cell.day }}</span>
-                          @for (ev of cell.vehicleEvents.slice(0, 2); track ev.date + ev.startTime + ev.travelDestination) {
+                          <span class="text-[10px] font-semibold text-gray-600 shrink-0">{{ cell.day }}</span>
+                          <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain" style="scrollbar-width: thin">
+                          @for (ev of cell.vehicleEvents; track ev.date + ev.startTime + ev.travelDestination) {
                             <div class="mt-0.5 rounded border-l-2 border-sky-500 bg-sky-100 px-0.5 text-[9px] leading-tight truncate text-sky-700" [title]="ev.travelDestination">
                               {{ formatTime(ev.startTime) }}–{{ formatTime(ev.endTime) }} · {{ ev.department }}
                             </div>
@@ -210,6 +211,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                               Requested
                             </div>
                           }
+                          </div>
                         }
                       </div>
                     }

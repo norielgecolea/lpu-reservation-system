@@ -84,7 +84,7 @@
           >
             @for (day of calendarDays(); track day.id) {
               <div
-                class="flex min-h-0 flex-col border-r border-b border-gray-100 bg-white p-1.5 last:border-r-0 sm:p-2"
+                class="flex min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1.5 last:border-r-0 sm:p-2"
                 [class.bg-gray-100]="day.rowTone === 'muted'"
                 [class.bg-gray-50]="day.rowTone === 'soft'"
               >
@@ -94,13 +94,18 @@
                     [class.bg-primary]="day.isToday"
                     [class.text-white]="day.isToday"
                     [class.shadow-sm]="day.isToday"
+                    [class.cursor-pointer]="day.reservations.length > 0"
+                    [class.hover:ring-2]="day.reservations.length > 0"
+                    [class.hover:ring-primary/30]="day.reservations.length > 0"
+                    [title]="day.reservations.length > 0 ? 'View all events for this day' : null"
+                    (click)="day.reservations.length ? openDayModal(day) : null"
                   >
                     {{ day.day }}
                   </span>
                   @if (day.reservations.length) {
-                    <ul class="mt-2 flex-1 space-y-1 overflow-hidden text-left">
+                    <ul class="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain text-left" style="scrollbar-width: thin">
                       @for (
-                        reservation of day.reservations | slice: 0 : 3;
+                        reservation of day.reservations;
                         track reservation.id
                       ) {
                         <li
@@ -114,14 +119,6 @@
                         </li>
                       }
                     </ul>
-                    @if (day.reservations.length > 3) {
-                      <button
-                        class="mt-1 w-full shrink-0 cursor-pointer text-left text-[11px] font-bold text-primary hover:underline"
-                        (click)="openDayModal(day)"
-                      >
-                        +{{ day.reservations.length - 3 }} more
-                      </button>
-                    }
                   }
                 }
               </div>

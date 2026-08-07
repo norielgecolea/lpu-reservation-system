@@ -206,7 +206,7 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   );
 
   protected readonly calendarDateRows = computed(
-    () => `repeat(${this.calendarDays().length / DAYS_PER_WEEK}, minmax(min-content, 1fr))`,
+    () => `repeat(${this.calendarDays().length / DAYS_PER_WEEK}, minmax(5.5rem, auto))`,
   );
 
   protected readonly upcomingEvents = computed(() =>

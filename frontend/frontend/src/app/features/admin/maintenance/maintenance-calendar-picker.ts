@@ -124,7 +124,7 @@ type PickerView = 'calendar' | 'timeslots';
               <div class="flex-1 grid grid-cols-7 overflow-auto" [style.grid-template-rows]="calendarRows()">
                 @for (cell of calendarCells(); track $index) {
                   <div
-                    class="flex flex-col border-r border-b border-gray-100 bg-white p-1 sm:p-2 min-h-16 sm:min-h-20 transition-colors"
+                    class="flex min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-2 min-h-16 sm:min-h-20 transition-colors"
                     [class.bg-gray-50]="cell.day !== null && !cell.isToday"
                     [class.bg-gray-100]="cell.day === null"
                     [class.bg-orange-50]="cell.isToday"
@@ -145,8 +145,8 @@ type PickerView = 'calendar' | 'timeslots';
 
                       <!-- All blocking items (events + maintenance) sorted by time -->
                       @if (cell.items.length > 0) {
-                        <ul class="flex flex-col gap-0.5 overflow-hidden">
-                          @for (item of cell.items.slice(0, 3); track item.key) {
+                        <ul class="mt-0.5 min-h-0 flex-1 flex flex-col gap-0.5 overflow-y-auto overscroll-contain" style="scrollbar-width: thin">
+                          @for (item of cell.items; track item.key) {
                             @if (item.kind === 'event') {
                               <li
                                 class="min-w-0 rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight"
@@ -180,12 +180,6 @@ type PickerView = 'calendar' | 'timeslots';
                                 </button>
                               </li>
                             }
-                          }
-                          @if (cell.items.length > 3) {
-                            <li class="text-[10px] font-bold text-orange-600 pl-1 cursor-pointer hover:underline"
-                              (click)="$event.stopPropagation(); selectDay(cell.dateStr!)">
-                              +{{ cell.items.length - 3 }} more — click to manage
-                            </li>
                           }
                         </ul>
                       }
@@ -437,7 +431,7 @@ export class MaintenanceCalendarPicker {
   });
 
   readonly calendarRows = computed(() =>
-    `repeat(${this.calendarCells().length / 7}, minmax(5rem, 1fr))`
+    `repeat(${this.calendarCells().length / 7}, minmax(5.5rem, auto))`
   );
 
   readonly blocksOnSelectedDay = computed(() => {
