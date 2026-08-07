@@ -81,17 +81,17 @@ type PickerView = 'calendar' | 'timeslots';
 
       <!-- Calendar view -->
       @if (pickerView() === 'calendar') {
-        <div class="flex-1 flex flex-col max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-4 gap-3 overflow-auto">
-          <div class="flex-1 flex flex-col overflow-hidden rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
+        <div class="flex min-h-0 flex-1 flex-col max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-4 gap-3">
+          <div class="min-h-0 flex-1 flex flex-col overflow-hidden rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
             <div class="grid grid-cols-7 bg-amber-600 text-center text-sm font-bold text-white shrink-0">
               @for (wd of weekdays; track wd) {
                 <div class="border-r border-white/30 px-1 py-2.5 last:border-r-0 text-xs sm:text-sm">{{ wd }}</div>
               }
             </div>
-            <div class="flex-1 grid grid-cols-7 overflow-auto" [style.grid-template-rows]="calendarRows()">
+            <div class="min-h-0 flex-1 grid grid-cols-7 overflow-hidden" [style.grid-template-rows]="calendarRows()">
               @for (cell of calendarCells(); track $index) {
                 <div
-                  class="flex min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-2 min-h-16 sm:min-h-20 transition-colors"
+                  class="flex h-full min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-1.5 transition-colors"
                   [class.bg-gray-50]="cell.day !== null && !cell.isToday"
                   [class.bg-gray-100]="cell.day === null"
                   [class.bg-amber-50]="cell.isToday"
@@ -107,33 +107,30 @@ type PickerView = 'calendar' | 'timeslots';
                 >
                   @if (cell.day !== null) {
                     <span
-                      class="mx-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs sm:text-sm font-semibold mb-1"
+                      class="mx-auto mb-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6 sm:text-xs font-semibold"
                       [class.bg-amber-500]="cell.isToday"
                       [class.text-white]="cell.isToday"
                       [class.text-gray-700]="!cell.isToday"
                     >{{ cell.day }}</span>
                     @if (cell.events.length > 0) {
-                      <ul class="mt-0.5 min-h-0 flex-1 flex flex-col gap-0.5 overflow-y-auto overscroll-contain" style="scrollbar-width: thin">
-                        @for (ev of cell.events; track ev.department + ev.startTime) {
-                          <li class="min-w-0 rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight"
+                      <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
+                        @for (ev of cell.events.slice(0, 2); track ev.department + ev.startTime + ev.endTime + ev.eventKind) {
+                          <li
+                            class="min-w-0 truncate rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight font-semibold"
                             [class.border-emerald-500]="ev.eventKind === 'TARGET'"
                             [class.bg-emerald-50]="ev.eventKind === 'TARGET'"
+                            [class.text-emerald-800]="ev.eventKind === 'TARGET'"
                             [class.border-sky-500]="ev.eventKind === 'RESERVATION'"
                             [class.bg-sky-50]="ev.eventKind === 'RESERVATION'"
+                            [class.text-sky-800]="ev.eventKind === 'RESERVATION'"
                             [class.border-amber-500]="ev.eventKind === 'COORDINATION'"
                             [class.bg-amber-50]="ev.eventKind === 'COORDINATION'"
-                          >
-                            <span class="block truncate font-bold"
-                              [class.text-emerald-700]="ev.eventKind === 'TARGET'"
-                              [class.text-sky-700]="ev.eventKind === 'RESERVATION'"
-                              [class.text-amber-700]="ev.eventKind === 'COORDINATION'"
-                            >{{ formatTimeShort(ev.startTime) }}–{{ formatTimeShort(ev.endTime) }}</span>
-                            <span class="block truncate"
-                              [class.text-emerald-900]="ev.eventKind === 'TARGET'"
-                              [class.text-sky-900]="ev.eventKind === 'RESERVATION'"
-                              [class.text-amber-900]="ev.eventKind === 'COORDINATION'"
-                            >{{ ev.eventKind === 'COORDINATION' ? '📋 Coordination' : ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department }}</span>
-                          </li>
+                            [class.text-amber-800]="ev.eventKind === 'COORDINATION'"
+                            [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department)"
+                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department }}</li>
+                        }
+                        @if (cell.events.length > 2) {
+                          <li class="truncate text-[10px] font-bold text-amber-600 pl-1">+{{ cell.events.length - 2 }} more</li>
                         }
                       </ul>
                     }
@@ -186,89 +183,89 @@ type PickerView = 'calendar' | 'timeslots';
 
       <!-- Time-slot view -->
       @if (pickerView() === 'timeslots') {
-        <div class="flex min-h-0 flex-1 flex-col max-w-screen-md mx-auto w-full px-4 sm:px-6 py-4">
-          <div class="flex shrink-0 items-center gap-2">
+        <div class="flex min-h-0 flex-1 flex-col max-w-screen-md mx-auto w-full px-3 sm:px-6 pt-3 sm:pt-4">
+          <div class="flex shrink-0 items-center gap-2 px-1">
             <ui-icon name="calendar_today" class="text-amber-600 text-base" />
             <span class="text-sm font-bold text-gray-800">{{ formatDateLong(selectedDay()) }}</span>
-            <span class="ml-auto text-xs text-gray-400 italic">Select start then end hour</span>
+            <span class="ml-auto hidden text-xs text-gray-400 sm:inline">Scroll for later hours</span>
           </div>
 
-          <div class="min-h-0 flex-1 overflow-y-auto py-3 flex flex-col gap-4" style="scrollbar-width: thin">
-          <div class="rounded-xl overflow-hidden ring-1 ring-black/5 shadow-sm bg-white">
-            @for (slot of timeSlots; track slot.value) {
-              @if (getBlockingEvent(slot.value); as ev) {
-                <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
-                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
-                    {{ slot.label }}
-                  </div>
-                  <div
-                    class="flex-1 px-3 py-2.5 flex items-center gap-2"
-                    [class.bg-emerald-50]="ev.eventKind === 'TARGET'"
-                    [class.bg-sky-50]="ev.eventKind === 'RESERVATION'"
-                  >
-                    <div class="flex-1 min-w-0">
-                      <p
-                        class="text-xs font-bold truncate"
-                        [class.text-emerald-700]="ev.eventKind === 'TARGET'"
-                        [class.text-sky-700]="ev.eventKind === 'RESERVATION'"
-                      >{{ ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department }}</p>
-                      <p
-                        class="text-[10px]"
-                        [class.text-emerald-500]="ev.eventKind === 'TARGET'"
-                        [class.text-sky-500]="ev.eventKind === 'RESERVATION'"
-                      >{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · Reserved</p>
+          <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3" style="scrollbar-width: thin">
+            <div class="rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
+              @for (slot of timeSlots; track slot.value) {
+                @if (getBlockingEvent(slot.value); as ev) {
+                  <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
                     </div>
-                    <ui-icon
-                      [name]="ev.eventKind === 'TARGET' ? 'event' : 'lock'"
-                      class="text-sm shrink-0"
-                      [class.text-emerald-400]="ev.eventKind === 'TARGET'"
-                      [class.text-sky-400]="ev.eventKind === 'RESERVATION'"
-                    />
+                    <div
+                      class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2"
+                      [class.bg-emerald-50]="ev.eventKind === 'TARGET'"
+                      [class.bg-sky-50]="ev.eventKind === 'RESERVATION'"
+                    >
+                      <div class="flex-1 min-w-0">
+                        <p
+                          class="text-xs font-bold truncate"
+                          [class.text-emerald-700]="ev.eventKind === 'TARGET'"
+                          [class.text-sky-700]="ev.eventKind === 'RESERVATION'"
+                        >{{ ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department }}</p>
+                        <p
+                          class="text-[10px]"
+                          [class.text-emerald-500]="ev.eventKind === 'TARGET'"
+                          [class.text-sky-500]="ev.eventKind === 'RESERVATION'"
+                        >{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · Reserved</p>
+                      </div>
+                      <ui-icon
+                        [name]="ev.eventKind === 'TARGET' ? 'event' : 'lock'"
+                        class="text-sm shrink-0"
+                        [class.text-emerald-400]="ev.eventKind === 'TARGET'"
+                        [class.text-sky-400]="ev.eventKind === 'RESERVATION'"
+                      />
+                    </div>
                   </div>
-                </div>
-              } @else {
-                <div
-                  class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
-                  [class.ring-2]="isHourInSelection(slot.value)"
-                  [class.ring-amber-500]="isHourInSelection(slot.value)"
-                  [class.bg-amber-50]="isHourInSelection(slot.value)"
-                  (click)="toggleHour(slot.value)"
-                >
-                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
-                    {{ slot.label }}
+                } @else {
+                  <div
+                    class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
+                    [class.ring-2]="isHourInSelection(slot.value)"
+                    [class.ring-amber-500]="isHourInSelection(slot.value)"
+                    [class.bg-amber-50]="isHourInSelection(slot.value)"
+                    (click)="toggleHour(slot.value)"
+                  >
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
+                    </div>
+                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2 group-hover:bg-amber-50 transition-colors">
+                      @if (isHourInSelection(slot.value)) {
+                        <ui-icon name="check" class="text-amber-600 text-base shrink-0" />
+                        <span class="text-xs font-semibold text-amber-700">Selected</span>
+                      } @else if (getCoordinationOnSlot(slot.value); as coord) {
+                        <ui-icon name="handshake" class="text-amber-400 text-sm shrink-0" />
+                        <span class="text-xs text-amber-700 font-medium truncate">
+                          Existing coordination {{ formatTimeShort(coord.startTime) }}–{{ formatTimeShort(coord.endTime) }} — click to overlap
+                        </span>
+                      } @else {
+                        <span class="text-xs text-gray-400 group-hover:text-amber-600 transition-colors">Available — click to select</span>
+                      }
+                    </div>
                   </div>
-                  <div class="flex-1 px-3 py-2.5 flex items-center gap-2 group-hover:bg-amber-50 transition-colors">
-                    @if (isHourInSelection(slot.value)) {
-                      <ui-icon name="check" class="text-amber-600 text-base shrink-0" />
-                      <span class="text-xs font-semibold text-amber-700">Selected</span>
-                    } @else if (getCoordinationOnSlot(slot.value); as coord) {
-                      <ui-icon name="handshake" class="text-amber-400 text-sm shrink-0" />
-                      <span class="text-xs text-amber-700 font-medium truncate">
-                        Existing coordination {{ formatTimeShort(coord.startTime) }}–{{ formatTimeShort(coord.endTime) }} — click to overlap
-                      </span>
-                    } @else {
-                      <span class="text-xs text-gray-400 group-hover:text-amber-600 transition-colors">Available — click to select</span>
-                    }
-                  </div>
-                </div>
+                }
               }
+            </div>
+
+            @if (timeSlotError()) {
+              <p class="mt-3 text-sm text-red-500 flex items-center gap-1.5">
+                <ui-icon name="warning" class="text-base" />{{ timeSlotError() }}
+              </p>
             }
           </div>
 
-          @if (timeSlotError()) {
-            <p class="text-sm text-red-500 flex items-center gap-1.5">
-              <ui-icon name="warning" class="text-base" />{{ timeSlotError() }}
-            </p>
-          }
-          </div>
-
-          <div class="shrink-0 flex gap-3 border-t border-gray-200 bg-gray-50 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div class="shrink-0 flex gap-2 sm:gap-3 border-t border-gray-200 bg-gray-50 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <button type="button" (click)="pickerView.set('calendar')"
-              class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+              class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-semibold text-gray-700 hover:bg-white transition-colors cursor-pointer">
               <ui-icon name="arrow_back" class="text-base" /> Back
             </button>
-            <button type="button" (click)="confirmTimeSlot()" [disabled]="selStart() === null"
-              class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-white hover:bg-amber-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
+            <button type="button" (click)="confirmTimeSlot()" [disabled]="selStart() === null || selEnd() === null"
+              class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-bold text-white hover:bg-amber-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
               <ui-icon name="check" class="text-base" /> Confirm Slot
             </button>
           </div>
@@ -338,7 +335,7 @@ export class GymnasiumCoordinationCalendar {
     });
   });
 
-  readonly calendarRows = computed(() => `repeat(${this.calendarCells().length / 7}, minmax(5.5rem, auto))`);
+  readonly calendarRows = computed(() => `repeat(${this.calendarCells().length / 7}, minmax(4.75rem, 1fr))`);
 
   prevMonth(): void {
     if (this.activeMonth() === 0) { this.activeMonth.set(11); this.activeYear.update(y => y - 1); }
@@ -427,8 +424,8 @@ export class GymnasiumCoordinationCalendar {
   confirmTimeSlot(): void {
     const day = this.selectedDay();
     const start = this.selStart();
-    if (!day || start === null) return;
-    const end = this.selEnd() ?? start + 1;
+    const end = this.selEnd();
+    if (!day || start === null || end === null) return;
     this.selectedSlot.set({
       date: day,
       startTime: `${String(start).padStart(2, '0')}:00`,

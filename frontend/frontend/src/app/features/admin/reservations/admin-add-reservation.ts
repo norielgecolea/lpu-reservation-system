@@ -33,14 +33,17 @@ const RESERVATION_LOADERS: Record<
 /** Admin add-reservation route: shell + dynamically loaded public booking flow. */
 @Component({
   selector: 'app-admin-add-reservation',
+  host: { class: 'contents' },
   imports: [AdminAddReservationPage, NgComponentOutlet, UiIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-admin-add-reservation-page>
       @if (reservationComponent(); as component) {
-        <ng-container *ngComponentOutlet="component; inputs: reservationInputs()" />
+        <div class="flex min-h-0 flex-1 flex-col">
+          <ng-container *ngComponentOutlet="component; inputs: reservationInputs()" />
+        </div>
       } @else {
-        <div class="flex flex-1 items-center justify-center gap-3 py-20 text-gray-400">
+        <div class="flex min-h-0 flex-1 items-center justify-center gap-3 text-gray-400">
           <ui-icon name="autorenew" class="animate-spin text-3xl" />
           <span class="text-sm">Loading scheduler...</span>
         </div>

@@ -40,14 +40,16 @@ interface CalendarCell {
   imports: [RouterLink, UiIcon, FltStepper, ExternalEventNoticeStep],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'flex flex-col',
+    class: 'flex min-h-0 flex-col',
   },
   template: `
     <!-- ─── VIEW 1: Full-screen Calendar ─── -->
     @if (view() === 'calendar') {
       <div
-        class="flex flex-col"
+        class="flex min-h-0 flex-col"
         [class.min-h-screen]="!adminMode()"
+        [class.flex-1]="adminMode()"
+        [class.h-full]="adminMode()"
       >
 
         <!-- Header -->
@@ -83,7 +85,22 @@ interface CalendarCell {
                   <ui-icon name="chevron_right" class="text-xl" />
                 </button>
               </div>
-              <a [routerLink]="returnPath()" class="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors cursor-pointer shrink-0">
+              <a
+                [routerLink]="returnPath()"
+                class="inline-flex shrink-0 items-center gap-1.5 cursor-pointer transition"
+                [class.rounded-lg]="adminMode()"
+                [class.bg-white]="adminMode()"
+                [class.px-3]="adminMode()"
+                [class.py-1.5]="adminMode()"
+                [class.text-sm]="adminMode()"
+                [class.font-semibold]="adminMode()"
+                [class.text-primary]="adminMode()"
+                [class.shadow-sm]="adminMode()"
+                [class.hover:bg-white/90]="adminMode()"
+                [class.text-xs]="!adminMode()"
+                [class.text-white/70]="!adminMode()"
+                [class.hover:text-white]="!adminMode()"
+              >
                 <ui-icon name="arrow_back" class="text-base" />
                 {{ adminMode() ? 'Back to list' : 'Back' }}
               </a>
@@ -93,25 +110,20 @@ interface CalendarCell {
 
         <!-- Calendar grid -->
         <div
-          class="select-none flex flex-col max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-4 gap-3"
-          [class.flex-1]="!adminMode()"
-          [class.min-h-0]="!adminMode()"
+          class="select-none flex min-h-0 flex-1 flex-col max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-4 gap-3"
         >
           @if (loadingEvents()) {
             <div
               class="flex items-center justify-center gap-3 text-gray-400"
-              [class.flex-1]="!adminMode()"
-              [class.py-20]="adminMode()"
+              [class.flex-1]="true"
+              [class.py-20]="!adminMode()"
             >
               <ui-icon name="autorenew" class="text-3xl animate-spin" />
               <span class="text-sm">Loading schedule...</span>
             </div>
           } @else {
             <div
-              class="flex flex-col rounded-xl ring-1 ring-black/5 shadow-sm bg-white"
-              [class.flex-1]="!adminMode()"
-              [class.min-h-0]="!adminMode()"
-              [class.overflow-hidden]="!adminMode()"
+              class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl ring-1 ring-black/5 shadow-sm bg-white"
             >
               <!-- Day-of-week header -->
               <div class="grid grid-cols-7 bg-primary text-center text-sm font-bold text-white shrink-0">
@@ -121,15 +133,12 @@ interface CalendarCell {
               </div>
               <!-- Day cells -->
               <div
-                class="grid grid-cols-7"
-                [class.flex-1]="!adminMode()"
-                [class.min-h-0]="!adminMode()"
-                [class.overflow-auto]="!adminMode()"
+                class="min-h-0 flex-1 grid grid-cols-7 overflow-hidden"
                 [style.grid-template-rows]="calendarRows()"
               >
                 @for (cell of calendarCells(); track cell.dateStr ?? ('pad-' + $index)) {
                   <div
-                    class="flex min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-2 min-h-16 sm:min-h-20 transition-colors"
+                    class="flex h-full min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-1.5 transition-colors"
                     [class.bg-gray-50]="cell.day !== null && !cell.isToday && !basket().some(s => s.date === cell.dateStr)"
                     [class.bg-gray-100]="cell.day === null"
                     [class.bg-primary/5]="cell.isToday"
@@ -144,7 +153,7 @@ interface CalendarCell {
                   >
                     @if (cell.day !== null) {
                       <span
-                        class="mx-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs sm:text-sm font-semibold mb-1"
+                        class="mx-auto mb-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6 sm:text-xs font-semibold"
                         [class.bg-primary]="cell.isToday"
                         [class.text-white]="cell.isToday"
                         [class.bg-emerald-500]="!cell.isToday && basket().some(s => s.date === cell.dateStr)"
@@ -152,31 +161,24 @@ interface CalendarCell {
                         [class.text-gray-700]="!cell.isToday && !basket().some(s => s.date === cell.dateStr)"
                       >{{ cell.day }}</span>
                       @if (cell.events.length > 0 || dateHasMaintenance(cell.dateStr!)) {
-                        <ul class="mt-0.5 min-h-0 flex-1 flex flex-col gap-0.5 overflow-y-auto overscroll-contain" style="scrollbar-width: thin">
-                          @for (ev of cell.events; track ev.eventTitle + ev.startTime) {
+                        <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
+                          @for (ev of cell.events.slice(0, 2); track ev.eventTitle + ev.startTime) {
                             <li
-                              class="min-w-0 rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight"
+                              class="min-w-0 truncate rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight font-semibold"
                               [class.border-sky-500]="ev.eventKind !== 'COORDINATION'"
                               [class.bg-sky-50]="ev.eventKind !== 'COORDINATION'"
+                              [class.text-sky-800]="ev.eventKind !== 'COORDINATION'"
                               [class.border-amber-500]="ev.eventKind === 'COORDINATION'"
                               [class.bg-amber-50]="ev.eventKind === 'COORDINATION'"
-                            >
-                              <span
-                                class="block truncate font-bold"
-                                [class.text-sky-700]="ev.eventKind !== 'COORDINATION'"
-                                [class.text-amber-700]="ev.eventKind === 'COORDINATION'"
-                              >{{ formatTimeShort(ev.startTime) }}–{{ formatTimeShort(ev.endTime) }}</span>
-                              <span
-                                class="block truncate"
-                                [class.text-sky-900]="ev.eventKind !== 'COORDINATION'"
-                                [class.text-amber-900]="ev.eventKind === 'COORDINATION'"
-                              >{{ ev.eventKind === 'COORDINATION' ? '📋 Coordination' : ev.department }}</span>
-                            </li>
+                              [class.text-amber-800]="ev.eventKind === 'COORDINATION'"
+                              [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.department)"
+                            >{{ formatTimeShort(ev.startTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.department }}</li>
+                          }
+                          @if (cell.events.length > 2) {
+                            <li class="truncate text-[10px] font-bold text-primary pl-1">+{{ cell.events.length - 2 }} more</li>
                           }
                           @if (dateHasMaintenance(cell.dateStr!)) {
-                            <li class="min-w-0 rounded border-l-2 border-orange-500 bg-orange-50 px-1 py-0.5 text-[10px] leading-tight">
-                              <span class="block truncate font-bold text-orange-700">🔧 Maintenance</span>
-                            </li>
+                            <li class="min-w-0 truncate rounded border-l-2 border-orange-500 bg-orange-50 px-1 py-0.5 text-[10px] leading-tight font-semibold text-orange-800">🔧 Maintenance</li>
                           }
                         </ul>
                       }
@@ -263,8 +265,10 @@ interface CalendarCell {
     <!-- ─── VIEW 2: Day Time Slots ─── -->
     @if (view() === 'timeslots') {
       <div
-        class="select-none flex flex-col"
+        class="select-none flex min-h-0 flex-col"
         [class.min-h-screen]="!adminMode()"
+        [class.flex-1]="adminMode()"
+        [class.h-full]="adminMode()"
       >
 
         <!-- Header -->
@@ -284,12 +288,16 @@ interface CalendarCell {
             </button>
             <div class="flex-1 min-w-0 text-center">
               <h2 class="text-base sm:text-xl font-black tracking-tight truncate">{{ formatDateLong(selectedDay()) }}</h2>
-              <p class="text-white/60 text-xs hidden sm:block">FLT Theater — Select your time slot</p>
+              <p class="text-white/60 text-xs hidden sm:block">FLT Theater — Select start and end time</p>
             </div>
             @if (adminMode()) {
-              <a [routerLink]="returnPath()" class="flex shrink-0 items-center gap-1 text-xs text-white/70 hover:text-white transition-colors cursor-pointer" title="Back to list">
+              <a
+                [routerLink]="returnPath()"
+                title="Back to list"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90 cursor-pointer"
+              >
                 <ui-icon name="arrow_back" class="text-base" />
-                <span class="hidden sm:inline">Back to list</span>
+                Back to list
               </a>
             } @else {
               <div class="w-24"></div>
@@ -299,13 +307,13 @@ interface CalendarCell {
 
         <!-- Time slots -->
         <div
-          class="max-w-screen-md mx-auto w-full px-4 sm:px-6 flex flex-col gap-3 min-h-0"
+          class="max-w-screen-md mx-auto w-full px-4 sm:px-6 flex min-h-0 flex-1 flex-col"
           [class.py-3]="adminMode()"
           [class.py-6]="!adminMode()"
         >
+          <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain" style="scrollbar-width: thin">
           <div
-            class="rounded-xl ring-1 ring-black/5 shadow-sm bg-white"
-            [class.overflow-hidden]="!adminMode()"
+            class="rounded-xl ring-1 ring-black/5 shadow-sm bg-white overflow-hidden"
           >
             @for (slot of timeSlots; track slot.value) {
               @if (getMaintenanceSlot(slot.value); as mb) {
@@ -397,21 +405,10 @@ interface CalendarCell {
             </p>
           }
 
+          </div>
+
           <div
-            class="shrink-0 flex flex-col gap-3"
-            [class.border-t]="adminMode()"
-            [class.border-gray-200]="adminMode()"
-            [class.pt-3]="adminMode()"
-            [class.sticky]="adminMode()"
-            [class.bottom-0]="adminMode()"
-            [class.z-10]="adminMode()"
-            [class.bg-gray-50]="adminMode()"
-            [class.pb-[max(1rem,env(safe-area-inset-bottom))]]="adminMode()"
-            [class.shadow-[0_-4px_12px_rgba(0,0,0,0.06)]]="adminMode()"
-            [class.lg:static]="adminMode()"
-            [class.lg:shadow-none]="adminMode()"
-            [class.lg:pb-0]="adminMode()"
-            [class.lg:bg-transparent]="adminMode()"
+            class="shrink-0 flex flex-col gap-3 border-t border-gray-200 bg-gray-50 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
           >
           <!-- Add Date button -->
           <div class="flex flex-col sm:flex-row gap-3" [class.mt-2]="!adminMode()">
@@ -426,7 +423,7 @@ interface CalendarCell {
             <button
               type="button"
               (click)="addToBasket()"
-              [disabled]="selectedTimeStart() === null"
+              [disabled]="selectedTimeStart() === null || selectedTimeEnd() === null"
               class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
             >
               <ui-icon name="add" class="text-base" />
@@ -474,10 +471,12 @@ interface CalendarCell {
     <!-- ─── VIEW 4: Stepper Form ─── -->
     @if (view() === 'form') {
       <div
-        class="flex flex-col"
+        class="flex min-h-0 flex-col"
         [class.min-h-screen]="!adminMode()"
         [class.md:h-screen]="!adminMode()"
         [class.md:min-h-0]="!adminMode()"
+        [class.flex-1]="adminMode()"
+        [class.h-full]="adminMode()"
       >
         <!-- Thin maroon top bar -->
         <div class="bg-primary bg-[linear-gradient(135deg,#7a2342,#5f1830_55%,#8d2546)] text-white shrink-0 px-4 sm:px-6 py-3 flex items-center gap-4 shadow">
@@ -497,7 +496,10 @@ interface CalendarCell {
               </button>
             }
             @if (adminMode()) {
-              <a [routerLink]="returnPath()" class="flex items-center gap-1.5 text-white/70 hover:text-white text-xs transition-colors cursor-pointer">
+              <a
+                [routerLink]="returnPath()"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90 cursor-pointer"
+              >
                 <ui-icon name="arrow_back" class="text-base" />
                 Back to list
               </a>
@@ -505,11 +507,8 @@ interface CalendarCell {
           </div>
         </div>
         <div
-          class="flex flex-col"
-          [class.flex-1]="!adminMode()"
-          [class.min-h-0]="!adminMode()"
-          [class.overflow-y-auto]="!adminMode()"
-          [style.scrollbar-width]="!adminMode() ? 'thin' : null"
+          class="flex min-h-0 flex-1 flex-col overflow-y-auto"
+          style="scrollbar-width: thin"
         >
           @if (equipmentLoading()) {
             <div
@@ -544,6 +543,26 @@ export class FltReservation implements OnInit {
 
   @HostBinding('class.min-h-screen') get fullHeight(): boolean {
     return !this.adminMode();
+  }
+
+  @HostBinding('class.h-full') get adminFillHeight(): boolean {
+    return this.adminMode();
+  }
+
+  @HostBinding('class.min-h-0') get adminMinH0(): boolean {
+    return this.adminMode();
+  }
+
+  @HostBinding('class.flex-1') get adminFlex1(): boolean {
+    return this.adminMode();
+  }
+
+  @HostBinding('class.flex') get adminFlex(): boolean {
+    return this.adminMode();
+  }
+
+  @HostBinding('class.flex-col') get adminFlexCol(): boolean {
+    return this.adminMode();
   }
 
   @HostBinding('class.bg-gray-50') get lightBg(): boolean {
@@ -625,7 +644,7 @@ export class FltReservation implements OnInit {
 
   readonly calendarRows = computed(() => {
     const rows = this.calendarCells().length / 7;
-    return `repeat(${rows}, minmax(5.5rem, auto))`;
+    return `repeat(${rows}, minmax(4.75rem, 1fr))`;
   });
 
   ngOnInit(): void {
@@ -686,7 +705,8 @@ export class FltReservation implements OnInit {
       if (ev.date !== day) return false;
       const start = parseInt(ev.startTime, 10);
       const end = parseInt(ev.endTime, 10);
-      return hour >= start && hour < end;
+      // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
+      return hour >= start && hour <= end;
     }) ?? null;
   }
 
@@ -699,7 +719,8 @@ export class FltReservation implements OnInit {
       if (b.blockDate !== day) return false;
       const start = parseInt(b.startTime, 10);
       const end = parseInt(b.endTime, 10);
-      return hour >= start && hour < end;
+      // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
+      return hour >= start && hour <= end;
     }) ?? null;
   }
 
@@ -769,10 +790,10 @@ export class FltReservation implements OnInit {
     const day = this.selectedDay();
     const start = this.selectedTimeStart();
     const end = this.selectedTimeEnd();
-    if (!day || start === null) return;
+    if (!day || start === null || end === null) return;
 
     const startStr = `${String(start).padStart(2, '0')}:00`;
-    const endStr = `${String(end ?? start + 1).padStart(2, '0')}:00`;
+    const endStr = `${String(end).padStart(2, '0')}:00`;
 
     this.basket.update(b => {
       const without = b.filter(s => s.date !== day);

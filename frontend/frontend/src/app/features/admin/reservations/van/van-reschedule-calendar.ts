@@ -47,7 +47,7 @@ type PickerView = 'calendar' | 'timeslots';
   imports: [UiIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 z-50 flex flex-col bg-gray-50">
+    <div class="fixed inset-0 z-50 flex min-h-0 flex-col bg-gray-50">
       <div class="bg-primary bg-[linear-gradient(135deg,#7a2342,#5f1830_55%,#8d2546)] text-white shadow-lg shrink-0">
         <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div class="flex items-center gap-3 flex-1">
@@ -85,17 +85,17 @@ type PickerView = 'calendar' | 'timeslots';
       </div>
 
       @if (pickerView() === 'calendar') {
-        <div class="flex-1 flex flex-col max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-4 gap-3 overflow-auto">
-          <div class="flex-1 flex flex-col overflow-hidden rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
+        <div class="flex min-h-0 flex-1 flex-col max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-4 gap-3">
+          <div class="min-h-0 flex-1 flex flex-col overflow-hidden rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
             <div class="grid grid-cols-7 bg-primary text-center text-sm font-bold text-white shrink-0">
               @for (wd of weekdays; track wd) {
                 <div class="border-r border-white/30 px-1 py-2.5 last:border-r-0 text-xs sm:text-sm">{{ wd }}</div>
               }
             </div>
-            <div class="flex-1 grid grid-cols-7 overflow-auto" [style.grid-template-rows]="calendarRows()">
+            <div class="min-h-0 flex-1 grid grid-cols-7 overflow-hidden" [style.grid-template-rows]="calendarRows()">
               @for (cell of calendarCells(); track $index) {
                 <div
-                  class="flex min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-2 min-h-16 sm:min-h-20 transition-colors"
+                  class="flex h-full min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-1.5 transition-colors"
                   [class.bg-gray-50]="cell.day !== null && !cell.isToday && !basket().some(s => s.date === cell.dateStr)"
                   [class.bg-gray-100]="cell.day === null"
                   [class.bg-primary/5]="cell.isToday"
@@ -110,19 +110,22 @@ type PickerView = 'calendar' | 'timeslots';
                 >
                   @if (cell.day !== null) {
                     <span
-                      class="mx-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs sm:text-sm font-semibold mb-1"
+                      class="mx-auto mb-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6 sm:text-xs font-semibold"
                       [class.bg-primary]="cell.isToday"
                       [class.text-white]="cell.isToday || basket().some(s => s.date === cell.dateStr)"
                       [class.bg-emerald-500]="!cell.isToday && basket().some(s => s.date === cell.dateStr)"
                       [class.text-gray-700]="!cell.isToday && !basket().some(s => s.date === cell.dateStr)"
                     >{{ cell.day }}</span>
                     @if (cell.events.length > 0) {
-                      <ul class="mt-0.5 min-h-0 flex-1 flex flex-col gap-0.5 overflow-y-auto overscroll-contain" style="scrollbar-width: thin">
-                        @for (ev of cell.events; track ev.department + ev.startTime) {
-                          <li class="min-w-0 rounded border-l-2 border-sky-500 px-1 py-0.5 text-[10px] leading-tight bg-sky-50">
-                            <span class="block truncate font-bold text-sky-700">{{ formatTimeShort(ev.startTime) }}–{{ formatTimeShort(ev.endTime) }}</span>
-                            <span class="block truncate text-sky-900">{{ ev.travelDestination || ev.department }}</span>
-                          </li>
+                      <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
+                        @for (ev of cell.events.slice(0, 2); track ev.department + ev.startTime + ev.endTime) {
+                          <li
+                            class="min-w-0 truncate rounded border-l-2 border-sky-500 bg-sky-50 px-1 py-0.5 text-[10px] leading-tight font-semibold text-sky-800"
+                            [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.travelDestination || ev.department)"
+                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.travelDestination || ev.department }}</li>
+                        }
+                        @if (cell.events.length > 2) {
+                          <li class="truncate text-[10px] font-bold text-primary pl-1">+{{ cell.events.length - 2 }} more</li>
                         }
                       </ul>
                     }
@@ -374,7 +377,7 @@ export class VanRescheduleCalendar implements OnChanges {
     });
   });
 
-  readonly calendarRows = computed(() => `repeat(${this.calendarCells().length / 7}, minmax(5.5rem, auto))`);
+  readonly calendarRows = computed(() => `repeat(${this.calendarCells().length / 7}, minmax(4.75rem, 1fr))`);
 
   prevMonth(): void {
     if (this.activeMonth() === 0) { this.activeMonth.set(11); this.activeYear.update(y => y - 1); }

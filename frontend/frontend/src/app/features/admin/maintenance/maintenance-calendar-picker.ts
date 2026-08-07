@@ -113,18 +113,18 @@ type PickerView = 'calendar' | 'timeslots';
       <!-- ── Calendar view ── -->
       @if (pickerView() === 'calendar') {
         <div class="flex min-h-0 flex-1 flex-col max-w-screen-2xl w-full mx-auto">
-          <div class="min-h-0 flex-1 flex flex-col px-4 sm:px-6 py-4 gap-3 overflow-auto">
-            <div class="flex-1 flex flex-col overflow-hidden rounded-xl ring-1 ring-black/5 shadow-sm bg-white min-h-[20rem]">
+          <div class="min-h-0 flex-1 flex flex-col px-4 sm:px-6 py-4 gap-3">
+            <div class="min-h-0 flex-1 flex flex-col overflow-hidden rounded-xl ring-1 ring-black/5 shadow-sm bg-white min-h-[20rem]">
               <div class="grid grid-cols-7 bg-orange-600 text-center text-sm font-bold text-white shrink-0">
                 @for (wd of weekdays; track wd) {
                   <div class="border-r border-white/30 px-1 py-2.5 last:border-r-0 text-xs sm:text-sm">{{ wd }}</div>
                 }
               </div>
 
-              <div class="flex-1 grid grid-cols-7 overflow-auto" [style.grid-template-rows]="calendarRows()">
+              <div class="min-h-0 flex-1 grid grid-cols-7 overflow-hidden" [style.grid-template-rows]="calendarRows()">
                 @for (cell of calendarCells(); track $index) {
                   <div
-                    class="flex min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-2 min-h-16 sm:min-h-20 transition-colors"
+                    class="flex h-full min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-1.5 transition-colors"
                     [class.bg-gray-50]="cell.day !== null && !cell.isToday"
                     [class.bg-gray-100]="cell.day === null"
                     [class.bg-orange-50]="cell.isToday"
@@ -137,41 +137,33 @@ type PickerView = 'calendar' | 'timeslots';
                   >
                     @if (cell.day !== null) {
                       <span
-                        class="mx-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs sm:text-sm font-semibold mb-1"
+                        class="mx-auto mb-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6 sm:text-xs font-semibold"
                         [class.bg-orange-500]="cell.isToday"
                         [class.text-white]="cell.isToday"
                         [class.text-gray-700]="!cell.isToday"
                       >{{ cell.day }}</span>
 
-                      <!-- All blocking items (events + maintenance) sorted by time -->
+                      <!-- Caps at 2 chips so dense days keep a stable calendar grid -->
                       @if (cell.items.length > 0) {
-                        <ul class="mt-0.5 min-h-0 flex-1 flex flex-col gap-0.5 overflow-y-auto overscroll-contain" style="scrollbar-width: thin">
-                          @for (item of cell.items; track item.key) {
+                        <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
+                          @for (item of cell.items.slice(0, 2); track item.key) {
                             @if (item.kind === 'event') {
                               <li
-                                class="min-w-0 rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight"
+                                class="min-w-0 truncate rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight font-semibold"
                                 [class.border-sky-500]="item.event.eventKind === 'RESERVATION'"
                                 [class.bg-sky-50]="item.event.eventKind === 'RESERVATION'"
+                                [class.text-sky-800]="item.event.eventKind === 'RESERVATION'"
                                 [class.border-amber-500]="item.event.eventKind === 'COORDINATION'"
                                 [class.bg-amber-50]="item.event.eventKind === 'COORDINATION'"
-                              >
-                                <span
-                                  class="block truncate font-bold"
-                                  [class.text-sky-700]="item.event.eventKind === 'RESERVATION'"
-                                  [class.text-amber-700]="item.event.eventKind === 'COORDINATION'"
-                                >{{ formatTimeShort(item.event.startTime) }}–{{ formatTimeShort(item.event.endTime) }}</span>
-                                <span
-                                  class="block truncate"
-                                  [class.text-sky-900]="item.event.eventKind === 'RESERVATION'"
-                                  [class.text-amber-900]="item.event.eventKind === 'COORDINATION'"
-                                >{{ item.event.eventKind === 'COORDINATION' ? '📋 Coordination' : item.event.department }}</span>
-                              </li>
+                                [class.text-amber-800]="item.event.eventKind === 'COORDINATION'"
+                                [title]="formatTimeShort(item.event.startTime) + '–' + formatTimeShort(item.event.endTime) + ' · ' + (item.event.eventKind === 'COORDINATION' ? 'Coordination' : item.event.department)"
+                              >{{ formatTimeShort(item.event.startTime) }} · {{ item.event.eventKind === 'COORDINATION' ? 'Coordination' : item.event.department }}</li>
                             } @else {
-                              <li class="min-w-0 rounded border-l-2 border-orange-500 bg-orange-50 px-1 py-0.5 text-[10px] leading-tight flex items-center gap-1">
-                                <span class="flex-1 min-w-0">
-                                  <span class="block truncate font-bold text-orange-700">{{ formatTimeShort(item.block.startTime) }}–{{ formatTimeShort(item.block.endTime) }}</span>
-                                  <span class="block truncate text-orange-600">🔧 {{ item.block.reason || 'Maintenance' }}</span>
-                                </span>
+                              <li
+                                class="min-w-0 flex items-center gap-1 truncate rounded border-l-2 border-orange-500 bg-orange-50 px-1 py-0.5 text-[10px] leading-tight font-semibold text-orange-800"
+                                [title]="formatTimeShort(item.block.startTime) + '–' + formatTimeShort(item.block.endTime) + ' · ' + (item.block.reason || 'Maintenance')"
+                              >
+                                <span class="min-w-0 flex-1 truncate">🔧 {{ formatTimeShort(item.block.startTime) }} · {{ item.block.reason || 'Maintenance' }}</span>
                                 <button type="button"
                                   (click)="$event.stopPropagation(); removeSlot.emit(item.block.id)"
                                   class="shrink-0 h-4 w-4 flex items-center justify-center rounded hover:bg-red-100 text-orange-500 hover:text-red-600 cursor-pointer transition-colors"
@@ -180,6 +172,9 @@ type PickerView = 'calendar' | 'timeslots';
                                 </button>
                               </li>
                             }
+                          }
+                          @if (cell.items.length > 2) {
+                            <li class="truncate text-[10px] font-bold text-orange-600 pl-1">+{{ cell.items.length - 2 }} more</li>
                           }
                         </ul>
                       }
@@ -241,7 +236,7 @@ type PickerView = 'calendar' | 'timeslots';
           <div class="flex shrink-0 items-center gap-2 px-1">
             <ui-icon name="calendar_today" class="text-orange-600 text-base" />
             <span class="text-sm font-bold text-gray-800">{{ formatDateLong(selectedDay()) }}</span>
-            <span class="ml-auto hidden text-xs text-gray-400 sm:inline">Scroll for later hours</span>
+            <span class="ml-auto hidden text-xs text-gray-400 sm:inline">Select start and end hour</span>
           </div>
 
           <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3 flex flex-col gap-3" style="scrollbar-width: thin">
@@ -350,7 +345,7 @@ type PickerView = 'calendar' | 'timeslots';
               <ui-icon name="arrow_back" class="text-base" /> Back
             </button>
             <button type="button" (click)="confirmTimeSlot()"
-              [disabled]="selStart() === null"
+              [disabled]="selStart() === null || selEnd() === null"
               class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-bold text-white hover:bg-orange-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
               <ui-icon name="check" class="text-base" /> Confirm Slot
             </button>
@@ -431,7 +426,7 @@ export class MaintenanceCalendarPicker {
   });
 
   readonly calendarRows = computed(() =>
-    `repeat(${this.calendarCells().length / 7}, minmax(5.5rem, auto))`
+    `repeat(${this.calendarCells().length / 7}, minmax(4.75rem, 1fr))`
   );
 
   readonly blocksOnSelectedDay = computed(() => {
@@ -533,8 +528,8 @@ export class MaintenanceCalendarPicker {
   confirmTimeSlot(): void {
     const day = this.selectedDay();
     const start = this.selStart();
-    if (!day || start === null) return;
-    const end = this.selEnd() ?? start + 1;
+    const end = this.selEnd();
+    if (!day || start === null || end === null) return;
     this.pendingSlot.set({
       date: day,
       startTime: `${String(start).padStart(2, '0')}:00`,

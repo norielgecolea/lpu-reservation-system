@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-/** Admin add-reservation shell: content grows naturally; admin main scrolls. */
+/** Full-screen admin add-reservation shell (same pattern as coordination/reschedule overlays). */
 @Component({
   selector: 'app-admin-add-reservation-page',
-  host: { class: 'block' },
+  host: { class: 'contents' },
   imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="overflow-hidden rounded-2xl bg-gray-50 ring-1 ring-black/5">
+    <div class="fixed inset-0 z-50 flex min-h-0 flex-col bg-gray-50">
       <ng-content />
     </div>
   `,
