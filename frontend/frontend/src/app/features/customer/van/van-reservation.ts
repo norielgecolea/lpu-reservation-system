@@ -26,12 +26,21 @@ type View = 'calendar' | 'timeslots' | 'form';
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const VAN_HEADER = 'bg-primary bg-[linear-gradient(135deg,#7a2342,#5f1830_55%,#8d2546)]';
 
+interface CalendarPlot {
+  kind: 'EVENT' | 'COORDINATION' | 'MAINTENANCE';
+  startTime: string;
+  endTime: string;
+  label: string;
+  title: string;
+  trackKey: string;
+}
+
 interface CalendarCell {
   day: number | null;
   dateStr: string | null;
   isToday: boolean;
   isPast: boolean;
-  events: VanApprovedEvent[];
+  plots: CalendarPlot[];
 }
 
 @Component({
@@ -155,22 +164,25 @@ interface CalendarCell {
                         [class.bg-emerald-500]="!cell.isToday && basket().some(s => s.date === cell.dateStr)"
                         [class.text-gray-700]="!cell.isToday && !basket().some(s => s.date === cell.dateStr)"
                       >{{ cell.day }}</span>
-                      @if (cell.events.length > 0 || dateHasMaintenance(cell.dateStr!)) {
+                      @if (cell.plots.length > 0) {
                         <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
-                          @for (ev of cell.events.slice(0, 2); track ev.vehicleLabel + ev.startTime + ev.date) {
+                          @for (plot of cell.plots.slice(0, 2); track plot.trackKey) {
                             <li
-                              class="min-w-0 truncate rounded border-l-2 border-sky-500 bg-sky-50 px-1 py-0.5 text-[10px] leading-tight font-semibold text-sky-800"
-                              [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.vehicleLabel || ev.department)"
-                            >{{ formatTimeShort(ev.startTime) }}–{{ formatTimeShort(ev.endTime) }} · {{ ev.vehicleLabel || ev.department }}</li>
+                              class="min-w-0 truncate rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight font-semibold"
+                              [class.border-sky-500]="plot.kind === 'EVENT'"
+                              [class.bg-sky-50]="plot.kind === 'EVENT'"
+                              [class.text-sky-800]="plot.kind === 'EVENT'"
+                              [class.border-amber-500]="plot.kind === 'COORDINATION'"
+                              [class.bg-amber-50]="plot.kind === 'COORDINATION'"
+                              [class.text-amber-800]="plot.kind === 'COORDINATION'"
+                              [class.border-orange-500]="plot.kind === 'MAINTENANCE'"
+                              [class.bg-orange-50]="plot.kind === 'MAINTENANCE'"
+                              [class.text-orange-800]="plot.kind === 'MAINTENANCE'"
+                              [title]="formatTimeShort(plot.startTime) + '–' + formatTimeShort(plot.endTime) + ' · ' + plot.title"
+                            >{{ formatTimeShort(plot.startTime) }}–{{ formatTimeShort(plot.endTime) }} · {{ plot.label }}</li>
                           }
-                          @if (cell.events.length > 2) {
-                            <li class="truncate text-[10px] font-bold text-primary pl-1">+{{ cell.events.length - 2 }} more</li>
-                          }
-                          @for (mb of maintenanceForDate(cell.dateStr!); track mb.id) {
-                            <li
-                              class="min-w-0 truncate rounded border-l-2 border-orange-500 bg-orange-50 px-1 py-0.5 text-[10px] leading-tight font-semibold text-orange-800"
-                              [title]="formatTimeShort(mb.startTime) + '–' + formatTimeShort(mb.endTime) + ' · ' + (mb.reason || 'Maintenance')"
-                            >{{ formatTimeShort(mb.startTime) }}–{{ formatTimeShort(mb.endTime) }} · Maint</li>
+                          @if (cell.plots.length > 2) {
+                            <li class="truncate text-[10px] font-bold text-primary pl-1">+{{ cell.plots.length - 2 }} more</li>
                           }
                         </ul>
                       }
@@ -589,28 +601,52 @@ export class VanReservation implements OnInit {
     const rowCount = Math.max(5, Math.ceil((firstWeekday + daysInMonth) / 7));
     const cellCount = rowCount * 7;
     const events = this.approvedEvents();
+    const maintenance = this.maintenanceBlocks();
 
     return Array.from({ length: cellCount }, (_, i) => {
       const dayOffset = i - firstWeekday;
       if (dayOffset < 0 || dayOffset >= daysInMonth) {
-        return { day: null, dateStr: null, isToday: false, isPast: false, events: [] };
+        return { day: null, dateStr: null, isToday: false, isPast: false, plots: [] };
       }
       const day = dayOffset + 1;
       const dateStr = this.formatDate(new Date(year, month, day));
       const isPast = dateStr < minBookableStr;
+      const plots: CalendarPlot[] = [
+        ...events
+          .filter((e) => e.date === dateStr)
+          .map((e) => {
+            const isCoord = e.eventKind === 'COORDINATION';
+            const label = isCoord ? 'Coordination' : (e.vehicleLabel || e.department);
+            return {
+              kind: (isCoord ? 'COORDINATION' : 'EVENT') as CalendarPlot['kind'],
+              startTime: e.startTime,
+              endTime: e.endTime,
+              label,
+              title: label,
+              trackKey: `ev-${e.vehicleLabel}-${e.startTime}-${e.endTime}-${e.date}`,
+            };
+          }),
+        ...maintenance
+          .filter((b) => b.blockDate === dateStr)
+          .map((b) => ({
+            kind: 'MAINTENANCE' as const,
+            startTime: b.startTime,
+            endTime: b.endTime,
+            label: 'Maint',
+            title: b.reason || 'Maintenance',
+            trackKey: `mb-${b.id}`,
+          })),
+      ].sort((a, b) => {
+        const byStart = (a.startTime || '').localeCompare(b.startTime || '');
+        if (byStart !== 0) return byStart;
+        return (a.endTime || '').localeCompare(b.endTime || '');
+      });
       return {
         day,
         dateStr,
         isToday: dateStr === todayStr,
         isPast,
-        events: events
-          .filter(e => e.date === dateStr)
-          .slice()
-          .sort((a, b) => {
-            const byStart = (a.startTime || '').localeCompare(b.startTime || '');
-            if (byStart !== 0) return byStart;
-            return (a.endTime || '').localeCompare(b.endTime || '');
-          }),
+        plots,
       };
     });
   });
@@ -686,17 +722,6 @@ export class VanReservation implements OnInit {
       // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
       return hour >= start && hour <= end;
     }) ?? null;
-  }
-
-  dateHasMaintenance(dateStr: string): boolean {
-    return this.maintenanceBlocks().some(b => b.blockDate === dateStr);
-  }
-
-  /** Maintenance blocks for a calendar day, sorted by start time */
-  maintenanceForDate(dateStr: string): MaintenanceBlock[] {
-    return this.maintenanceBlocks()
-      .filter((b) => b.blockDate === dateStr)
-      .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
   }
 
   isSlotSelected(hourStr: string): boolean {
