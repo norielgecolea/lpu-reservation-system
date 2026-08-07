@@ -3,6 +3,7 @@ package org.lpu.dev.codes.services;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.VanReservation;
+import org.lpu.dev.codes.util.EmailTimeFormat;
 import org.lpu.dev.codes.util.ReservationEmailThreadUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -132,7 +133,7 @@ public class VanEmailService {
             + detailRow("Passengers", r.getPassengerNames())
             + detailRow("Number of Passengers", r.getNumberOfPassengers() != null ? String.valueOf(r.getNumberOfPassengers()) : null)
             + detailRow("Scheduled Date(s)", formatDates(r.getReservedDates()))
-            + detailRow("Return Time", r.getReturnTime())
+            + detailRow("Return Time", EmailTimeFormat.format12(r.getReturnTime()))
             + detailRow("Contact Person", r.getContactPerson())
             + detailRow("Contact Number", r.getContactNumber())
             + detailRow("Additional Remarks", r.getAdditionalRemarks())
@@ -163,7 +164,10 @@ public class VanEmailService {
                 String end = slot.has("endTime") ? slot.get("endTime").asText() : "";
                 if (!date.isEmpty()) {
                     if (sb.length() > 0) sb.append("; ");
-                    sb.append(date).append(" ").append(start).append("–").append(end);
+                    sb.append(date);
+                    if (!start.isEmpty()) {
+                        sb.append(" ").append(EmailTimeFormat.formatRange(start, end));
+                    }
                 }
             }
             return sb.length() > 0 ? sb.toString() : "—";

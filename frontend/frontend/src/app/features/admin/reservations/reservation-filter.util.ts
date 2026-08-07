@@ -1,3 +1,5 @@
+import { parseAppDateTime } from '../../../shared/utils/datetime.util';
+
 /** Check if a reservation row matches the approver status filter (PENDING includes CONFLICT). */
 export function reservationMatchesStatusFilter(filter: string, status: string): boolean {
   if (filter === 'All') return true;
@@ -51,7 +53,10 @@ export function sortApproverReservations<T extends { status: string; createdAt: 
       status === 'PENDING' || status === 'CONFLICT' ? 0 : 1;
     const byStatus = rank(a.status) - rank(b.status);
     if (byStatus !== 0) return byStatus;
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    return (
+      (parseAppDateTime(a.createdAt)?.getTime() ?? 0) -
+      (parseAppDateTime(b.createdAt)?.getTime() ?? 0)
+    );
   });
 }
 

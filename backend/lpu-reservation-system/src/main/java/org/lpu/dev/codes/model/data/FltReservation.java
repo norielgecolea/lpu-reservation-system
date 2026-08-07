@@ -1,5 +1,7 @@
 package org.lpu.dev.codes.model.data;
 
+import org.lpu.dev.codes.util.AppDateTimes;
+
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -86,7 +88,7 @@ public class FltReservation {
     @PrePersist
     protected void onCreate() {
         if (this.status == null) this.status = "PENDING";
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = AppDateTimes.nowUtc();
     }
 
     public Long getId() { return id; }

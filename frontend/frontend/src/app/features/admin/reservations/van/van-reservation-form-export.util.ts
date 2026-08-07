@@ -1,7 +1,7 @@
 import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from 'pdf-lib';
 
 import { DashboardEvent } from '../../dashboard/dashboard-events.util';
-import { formatTime12 } from '../../../../shared/utils/datetime.util';
+import { formatReadableDate, formatTime12 } from '../../../../shared/utils/datetime.util';
 import { ReservedDateSlot, VanReservationRow } from './van-reservations.models';
 
 /**
@@ -74,9 +74,7 @@ function parseDates(json: string): ReservedDateSlot[] {
 
 function formatDateFiled(value: string | null | undefined): string {
   if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+  return formatReadableDate(value) || value;
 }
 
 function formatSlotDateTime(slot: ReservedDateSlot | undefined): string {

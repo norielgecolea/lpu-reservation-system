@@ -5,6 +5,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.GymnasiumReservation;
+import org.lpu.dev.codes.util.EmailTimeFormat;
 import org.lpu.dev.codes.util.ExternalEventNoticeUtil;
 import org.lpu.dev.codes.util.ReservationEmailThreadUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -116,7 +117,9 @@ public class GymnasiumEmailService {
             + "<tr><td style='padding:3px 0;font-size:13px;font-weight:700;color:#78350f;width:90px;'>Date:</td>"
             + "<td style='padding:3px 0;font-size:13px;color:#1c1917;'>" + escHtml(formattedDate) + "</td></tr>"
             + "<tr><td style='padding:3px 0;font-size:13px;font-weight:700;color:#78350f;'>Time:</td>"
-            + "<td style='padding:3px 0;font-size:13px;color:#1c1917;'>" + escHtml(coordStart) + " – " + escHtml(coordEnd) + "</td></tr>"
+            + "<td style='padding:3px 0;font-size:13px;color:#1c1917;'>"
+            + escHtml(EmailTimeFormat.formatRange(coordStart, coordEnd))
+            + "</td></tr>"
             + "</table></div>";
 
         String body = buildBase("Coordination Meeting Scheduled", "📋 A coordination meeting has been set", "#d97706", r,
@@ -219,7 +222,13 @@ public class GymnasiumEmailService {
                 String date = slot.has("date") ? slot.get("date").asText() : "";
                 String start = slot.has("startTime") ? slot.get("startTime").asText() : "";
                 String end = slot.has("endTime") ? slot.get("endTime").asText() : "";
-                if (!date.isEmpty()) { if (sb.length() > 0) sb.append("; "); sb.append(date).append(" ").append(start).append("–").append(end); }
+                if (!date.isEmpty()) {
+                    if (sb.length() > 0) sb.append("; ");
+                    sb.append(date);
+                    if (!start.isEmpty()) {
+                        sb.append(" ").append(EmailTimeFormat.formatRange(start, end));
+                    }
+                }
             }
             return sb.length() > 0 ? sb.toString() : "—";
         } catch (Exception e) { return json; }

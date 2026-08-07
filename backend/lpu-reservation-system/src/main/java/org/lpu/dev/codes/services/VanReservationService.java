@@ -21,6 +21,7 @@ import org.lpu.dev.codes.repository.VanReservationRepository;
 import org.lpu.dev.codes.repository.VehicleRepository;
 import org.lpu.dev.codes.services.AllowedReservationEmailService;
 import org.lpu.dev.codes.services.superadmin.SuperAdminVehicleService;
+import org.lpu.dev.codes.util.AppDateTimes;
 import org.lpu.dev.codes.util.ReservationSlot;
 import org.lpu.dev.codes.util.ReservationSlotUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -212,7 +213,7 @@ public class VanReservationService {
             dto.setContactNumber((String) row[9]);
             dto.setReservedDates((String) row[10]);
             dto.setStatus((String) row[11]);
-            dto.setCreatedAt(row[12] != null ? row[12].toString() : null);
+            dto.setCreatedAt(AppDateTimes.toApiUtc(row[12]));
             dto.setSatisfactionRating(row[13] != null ? ((Number) row[13]).intValue() : null);
             dto.setVehicleId(row[14] != null ? ((Number) row[14]).longValue() : null);
             dto.setDriverId(row[15] != null ? ((Number) row[15]).longValue() : null);
@@ -223,7 +224,7 @@ public class VanReservationService {
                 dto.setVehicleLabel(brand + " (" + plate + ")");
             }
             dto.setDriverName(driverName);
-            dto.setApprovedAt(row[19] != null ? row[19].toString() : null);
+            dto.setApprovedAt(AppDateTimes.toApiUtc(row[19]));
             dto.setApprovedBy((String) row[20]);
             dto.setAdditionalRemarks((String) row[21]);
             dto.setSchool(row.length > 22 ? (String) row[22] : null);

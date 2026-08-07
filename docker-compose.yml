@@ -9,6 +9,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-lpu_reservation}
+      # Keep DB clock UTC; app stores UTC wall times and UI shows Asia/Manila.
+      TZ: UTC
+      PGTZ: UTC
 
     ports:
       - "${POSTGRES_PORT}:5432"
@@ -29,6 +32,9 @@ services:
   reservation-tomcat:
     image: tomcat:11.0.22-jdk21
     container_name: reservation-tomcat
+    environment:
+      TZ: UTC
+      JAVA_TOOL_OPTIONS: -Duser.timezone=UTC
     ports:
       - "8080:8080"
     volumes:

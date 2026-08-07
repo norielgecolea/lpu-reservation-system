@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.lpu.dev.codes.model.apiresponse.ReservationActionResponse;
+import org.lpu.dev.codes.util.AppDateTimes;
 import org.lpu.dev.codes.util.ReservationSlot;
 import org.lpu.dev.codes.util.ReservationSlotUtil;
 
@@ -145,7 +146,7 @@ public class FltReservationService {
             dto.setReservedDates((String) row[8]);
             dto.setRequestedEquipment((String) row[9]);
             dto.setStatus((String) row[10]);
-            dto.setCreatedAt(row[11] != null ? row[11].toString() : null);
+            dto.setCreatedAt(AppDateTimes.toApiUtc(row[11]));
             dto.setRoomType((String) row[12]);
             dto.setExpectedAttendees(row[13] != null ? row[13].toString() : null);
             dto.setCoordinationDate((String) row[14]);
@@ -153,7 +154,7 @@ public class FltReservationService {
             dto.setCoordinationEndTime((String) row[16]);
             dto.setSatisfactionRating(row[17] != null ? ((Number) row[17]).intValue() : null);
             dto.setAdditionalInstructions((String) row[18]);
-            dto.setApprovedAt(row[19] != null ? row[19].toString() : null);
+            dto.setApprovedAt(AppDateTimes.toApiUtc(row[19]));
             dto.setApprovedBy((String) row[20]);
             result.add(dto);
         }

@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.lpu.dev.codes.model.apiresponse.ReservationActionResponse;
+import org.lpu.dev.codes.util.AppDateTimes;
 import org.lpu.dev.codes.util.ReservationSlot;
 import org.lpu.dev.codes.util.ReservationSlotUtil;
 
@@ -111,13 +112,13 @@ public class GymnasiumReservationService {
             dto.setReservedDates((String) row[8]);
             dto.setRequestedEquipment((String) row[9]);
             dto.setStatus((String) row[10]);
-            dto.setCreatedAt(row[11] != null ? row[11].toString() : null);
+            dto.setCreatedAt(AppDateTimes.toApiUtc(row[11]));
             dto.setCoordinationDate((String) row[12]);
             dto.setCoordinationStartTime((String) row[13]);
             dto.setCoordinationEndTime((String) row[14]);
             dto.setSatisfactionRating(row[15] != null ? ((Number) row[15]).intValue() : null);
             dto.setAdditionalInstructions((String) row[16]);
-            dto.setApprovedAt(row[17] != null ? row[17].toString() : null);
+            dto.setApprovedAt(AppDateTimes.toApiUtc(row[17]));
             dto.setApprovedBy((String) row[18]);
             result.add(dto);
         }

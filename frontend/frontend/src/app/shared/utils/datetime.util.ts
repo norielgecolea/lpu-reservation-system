@@ -18,6 +18,60 @@ export function formatTimeRange(start: string, end: string): string {
   return `${formatTime12(start)} - ${formatTime12(end)}`;
 }
 
+/** App display zone (LPU Laguna). */
+export const APP_TIME_ZONE = 'Asia/Manila';
+
+const DATE_TIME_DISPLAY: Intl.DateTimeFormatOptions = {
+  timeZone: APP_TIME_ZONE,
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+};
+
+const DATE_DISPLAY: Intl.DateTimeFormatOptions = {
+  timeZone: APP_TIME_ZONE,
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+};
+
+/** True when the string already carries an explicit offset or Z. */
+function hasExplicitZone(value: string): boolean {
+  return /[zZ]$|[+-]\d{2}:?\d{2}$/.test(value);
+}
+
+/**
+ * Normalize API / JDBC timestamps for parsing.
+ * Zoneless values (e.g. "2026-08-07 03:45:12.0") are treated as UTC — matching
+ * Docker/JVM storage — so Asia/Manila display is +8h, not an 8h drift.
+ */
+export function parseAppDateTime(value: string): Date | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [y, m, d] = trimmed.split('-').map(Number);
+    const local = new Date(y, m - 1, d);
+    return Number.isNaN(local.getTime()) ? null : local;
+  }
+
+  let normalized = trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T');
+  // JDBC often appends ".0" or long nanos
+  normalized = normalized.replace(/(\.\d{3})\d+/, '$1').replace(/\.0+$/, '');
+
+  if (!hasExplicitZone(normalized)) {
+    normalized += 'Z';
+  }
+
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 /** e.g. "2026-07-08" → "Wed, Jul 8, 2026" */
 export function formatReadableDate(dateStr: string | null | undefined): string {
   if (!dateStr?.trim()) return '';
@@ -33,36 +87,23 @@ export function formatReadableDate(dateStr: string | null | undefined): string {
       });
     }
   }
-  const parsed = new Date(dateStr);
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  const parsed = parseAppDateTime(dateStr);
+  if (parsed) {
+    return parsed.toLocaleDateString('en-US', DATE_DISPLAY);
   }
   return dateStr;
 }
 
-/** e.g. ISO timestamps → "Wed, Jul 8, 2026, 3:45 PM" */
+/** e.g. ISO timestamps → "Wed, Jul 8, 2026, 11:45 AM" in Asia/Manila */
 export function formatReadableDateTime(value: string | null | undefined): string {
   if (!value?.trim()) return '';
   const trimmed = value.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     return formatReadableDate(trimmed);
   }
-  const parsed = new Date(trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T'));
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
+  const parsed = parseAppDateTime(trimmed);
+  if (parsed) {
+    return parsed.toLocaleString('en-US', DATE_TIME_DISPLAY);
   }
   return trimmed;
 }

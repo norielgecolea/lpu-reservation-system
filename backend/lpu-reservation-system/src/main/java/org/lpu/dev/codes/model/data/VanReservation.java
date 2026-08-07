@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.lpu.dev.codes.util.AppDateTimes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -91,7 +92,7 @@ public class VanReservation {
     protected void onCreate() {
         if (status == null) status = "PENDING";
         if (school == null || school.isBlank()) school = "LPU-L";
-        createdAt = LocalDateTime.now();
+        createdAt = AppDateTimes.nowUtc();
     }
 
     public Long getId() { return id; }

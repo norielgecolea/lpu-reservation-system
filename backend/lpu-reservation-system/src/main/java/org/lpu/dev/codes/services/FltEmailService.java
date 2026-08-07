@@ -5,6 +5,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.FltReservation;
+import org.lpu.dev.codes.util.EmailTimeFormat;
 import org.lpu.dev.codes.util.ExternalEventNoticeUtil;
 import org.lpu.dev.codes.util.ReservationEmailThreadUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -179,7 +180,9 @@ public class FltEmailService {
             + "<tr><td style='padding:3px 0;font-size:13px;font-weight:700;color:#78350f;width:90px;'>Date:</td>"
             + "<td style='padding:3px 0;font-size:13px;color:#1c1917;'>" + escHtml(formattedCoordDate) + "</td></tr>"
             + "<tr><td style='padding:3px 0;font-size:13px;font-weight:700;color:#78350f;'>Time:</td>"
-            + "<td style='padding:3px 0;font-size:13px;color:#1c1917;'>" + escHtml(coordStart) + " – " + escHtml(coordEnd) + "</td></tr>"
+            + "<td style='padding:3px 0;font-size:13px;color:#1c1917;'>"
+            + escHtml(EmailTimeFormat.formatRange(coordStart, coordEnd))
+            + "</td></tr>"
             + "</table>"
             + "</div>";
 
@@ -361,7 +364,9 @@ public class FltEmailService {
                 if (!date.isEmpty()) {
                     if (sb.length() > 0) sb.append("; ");
                     sb.append(date);
-                    if (!start.isEmpty()) sb.append(" ").append(start).append("–").append(end);
+                    if (!start.isEmpty()) {
+                        sb.append(" ").append(EmailTimeFormat.formatRange(start, end));
+                    }
                 }
             }
             return sb.length() > 0 ? sb.toString() : "—";
