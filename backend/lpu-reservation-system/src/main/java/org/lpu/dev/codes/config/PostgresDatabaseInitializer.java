@@ -21,7 +21,7 @@ public class PostgresDatabaseInitializer implements InitializingBean {
 
     private static final Logger log = LoggerFactory.getLogger(PostgresDatabaseInitializer.class);
 
-    private String adminJdbcUrl = "jdbc:postgresql://postgres:5432/postgres";
+    private String adminJdbcUrl = "jdbc:postgresql://reservation-postgres:5432/postgres";
     private String user = "postgres";
     private String password;
     private String databaseName = "lpu_reservation";

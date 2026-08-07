@@ -284,16 +284,22 @@ export class GymnasiumCoordinationCalendar {
   @Input() events: GymRescheduleEvent[] = [];
   @Input() eventTitle = '';
   @Input() saving = signal(false);
+  /**
+   * Pre-existing coordination slot. Applied once on open only — parent poll/WS
+   * refreshes recreate this object and must not reset the viewed month.
+   */
   @Input() set initial(v: GymCoordinationSlot | null) {
-    if (v) {
-      this.selectedSlot.set(v);
-      const [y, m] = v.date.split('-').map(Number);
-      this.activeYear.set(y);
-      this.activeMonth.set(m - 1);
-    }
+    if (!v || this.initialSeeded) return;
+    this.initialSeeded = true;
+    this.selectedSlot.set({ ...v });
+    const [y, m] = v.date.split('-').map(Number);
+    this.activeYear.set(y);
+    this.activeMonth.set(m - 1);
   }
   @Output() saved = new EventEmitter<GymCoordinationSlot>();
   @Output() cancelled = new EventEmitter<void>();
+
+  private initialSeeded = false;
 
   readonly pickerView = signal<PickerView>('calendar');
   readonly selectedDay = signal<string | null>(null);

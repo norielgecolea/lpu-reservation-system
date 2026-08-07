@@ -295,19 +295,22 @@ export class FltCoordinationCalendar {
   @Input() events: RescheduleEvent[] = [];
   @Input() eventTitle = '';
   @Input() saving = signal(false);
-  /** Pre-existing coordination slot to highlight on open (if any) */
+  /**
+   * Pre-existing coordination slot. Applied once on open only — parent poll/WS
+   * refreshes recreate this object and must not reset the viewed month.
+   */
   @Input() set initial(v: CoordinationSlot | null) {
-    if (v) {
-      this.selectedSlot.set(v);
-      // Jump to that month
-      const [y, m] = v.date.split('-').map(Number);
-      this.activeYear.set(y);
-      this.activeMonth.set(m - 1);
-    }
+    if (!v || this.initialSeeded) return;
+    this.initialSeeded = true;
+    this.selectedSlot.set({ ...v });
+    const [y, m] = v.date.split('-').map(Number);
+    this.activeYear.set(y);
+    this.activeMonth.set(m - 1);
   }
   @Output() saved = new EventEmitter<CoordinationSlot>();
   @Output() cancelled = new EventEmitter<void>();
 
+  private initialSeeded = false;
   readonly pickerView = signal<PickerView>('calendar');
   readonly selectedDay = signal<string | null>(null);
   readonly selectedSlot = signal<CoordinationSlot | null>(null);
