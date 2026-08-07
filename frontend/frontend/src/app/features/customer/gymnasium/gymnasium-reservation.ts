@@ -161,13 +161,16 @@ interface CalendarCell {
                               [class.bg-amber-50]="ev.eventKind === 'COORDINATION'"
                               [class.text-amber-800]="ev.eventKind === 'COORDINATION'"
                               [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.department)"
-                            >{{ formatTimeShort(ev.startTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.department }}</li>
+                            >{{ formatTimeShort(ev.startTime) }}–{{ formatTimeShort(ev.endTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.department }}</li>
                           }
                           @if (cell.events.length > 2) {
                             <li class="truncate text-[10px] font-bold text-primary pl-1">+{{ cell.events.length - 2 }} more</li>
                           }
-                          @if (dateHasMaintenance(cell.dateStr!)) {
-                            <li class="min-w-0 truncate rounded border-l-2 border-orange-500 bg-orange-50 px-1 py-0.5 text-[10px] leading-tight font-semibold text-orange-800">🔧 Maintenance</li>
+                          @for (mb of maintenanceForDate(cell.dateStr!); track mb.id) {
+                            <li
+                              class="min-w-0 truncate rounded border-l-2 border-orange-500 bg-orange-50 px-1 py-0.5 text-[10px] leading-tight font-semibold text-orange-800"
+                              [title]="formatTimeShort(mb.startTime) + '–' + formatTimeShort(mb.endTime) + ' · ' + (mb.reason || 'Maintenance')"
+                            >{{ formatTimeShort(mb.startTime) }}–{{ formatTimeShort(mb.endTime) }} · Maint</li>
                           }
                         </ul>
                       }
@@ -667,6 +670,13 @@ export class GymnasiumReservation implements OnInit {
 
   dateHasMaintenance(dateStr: string): boolean {
     return this.maintenanceBlocks().some(b => b.blockDate === dateStr);
+  }
+
+  /** Maintenance blocks for a calendar day, sorted by start time */
+  maintenanceForDate(dateStr: string): MaintenanceBlock[] {
+    return this.maintenanceBlocks()
+      .filter((b) => b.blockDate === dateStr)
+      .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
   }
 
   isSlotSelected(hourStr: string): boolean {
