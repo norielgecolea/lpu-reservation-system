@@ -170,8 +170,8 @@ interface CalendarCell {
                         [class.text-gray-700]="!cell.isToday && !basket().some(s => s.date === cell.dateStr)"
                       >{{ cell.day }}</span>
                       @if (cell.plots.length > 0) {
-                        <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
-                          @for (plot of cell.plots.slice(0, 2); track plot.trackKey) {
+                        <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain" style="scrollbar-width: thin">
+                          @for (plot of cell.plots; track plot.trackKey) {
                             <li
                               class="min-w-0 truncate rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight font-semibold"
                               [class.border-sky-500]="plot.kind === 'EVENT'"
@@ -185,9 +185,6 @@ interface CalendarCell {
                               [class.text-orange-800]="plot.kind === 'MAINTENANCE'"
                               [title]="formatTimeShort(plot.startTime) + '–' + formatTimeShort(plot.endTime) + ' · ' + plot.title"
                             >{{ formatTimeShort(plot.startTime) }}–{{ formatTimeShort(plot.endTime) }} · {{ plot.label }}</li>
-                          }
-                          @if (cell.plots.length > 2) {
-                            <li class="truncate text-[10px] font-bold text-primary pl-1">+{{ cell.plots.length - 2 }} more</li>
                           }
                         </ul>
                       }
