@@ -95,6 +95,15 @@
                   {{ vehicle.capacity || 'N/A' }}
                 </p>
               </div>
+              <div class="rounded-md bg-gray-50 p-2 col-span-2">
+                <p class="font-bold uppercase text-gray-400">Assigned Driver</p>
+                <p class="mt-1 truncate font-semibold text-gray-800">
+                  {{ vehicle.assignedDriverName || 'Not set' }}
+                  @if (vehicle.assignedDriverContact) {
+                    <span class="font-normal text-gray-500"> · {{ vehicle.assignedDriverContact }}</span>
+                  }
+                </p>
+              </div>
             </div>
 
             <p class="line-clamp-2 min-h-9 text-sm leading-snug text-gray-500">
@@ -117,6 +126,7 @@
               <th class="cursor-pointer px-4 py-3 text-center" (click)="sortBy('capacity')">
                 Capacity
               </th>
+              <th class="px-4 py-3">Driver</th>
               <th class="px-4 py-3">Description</th>
               <th class="cursor-pointer px-4 py-3 text-center" (click)="sortBy('status')">
                 Status
@@ -153,6 +163,12 @@
               </td>
               <td class="px-4 py-3 text-center text-black">
                 {{ vehicle.capacity || 'N/A' }}
+              </td>
+              <td class="px-4 py-3 text-black">
+                <p class="font-medium">{{ vehicle.assignedDriverName || '—' }}</p>
+                @if (vehicle.assignedDriverContact) {
+                  <p class="text-xs text-gray-500">{{ vehicle.assignedDriverContact }}</p>
+                }
               </td>
               <td class="max-w-72 truncate px-4 py-3 text-black">
                 {{ vehicle.vehicleDescription || 'N/A' }}

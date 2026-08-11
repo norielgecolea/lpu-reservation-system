@@ -36,6 +36,8 @@ export class AddVehicle implements OnDestroy {
     capacity: [1, [Validators.required, Validators.min(1)]],
     status: ['AVAILABLE', [Validators.required]],
     vehicleDescription: ['', [Validators.required]],
+    assignedDriverName: [''],
+    assignedDriverContact: [''],
     image: [null as File | null],
   });
 
@@ -68,6 +70,8 @@ export class AddVehicle implements OnDestroy {
         vehicleDescription: v.vehicleDescription,
         status: v.status,
         id: VAN_FACILITY_ID,
+        assignedDriverName: v.assignedDriverName.trim() || null,
+        assignedDriverContact: v.assignedDriverContact.trim() || null,
         image: v.image,
       })
       .subscribe({

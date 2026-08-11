@@ -66,7 +66,6 @@ export class SideNav implements OnInit {
         { label: 'Allowed Emails', icon: 'mail', link: '/allowed-emails' },
         { label: 'Equipments', icon: 'inventory_2', link: '/equipments' },
         { label: 'Vehicles', icon: 'directions_car', link: '/vehicles' },
-        { label: 'Drivers', icon: 'badge', link: '/drivers' },
         ...(reservationChildren.length
           ? [{ label: 'Reservation', icon: 'event_note', children: reservationChildren }]
           : []),
@@ -81,7 +80,6 @@ export class SideNav implements OnInit {
             { label: 'Users', icon: 'group', link: '/audit/users' },
             { label: 'Equipments', icon: 'inventory_2', link: '/audit/equipments' },
             { label: 'Vehicles', icon: 'directions_car', link: '/audit/vehicles' },
-            { label: 'Drivers', icon: 'badge', link: '/audit/drivers' },
           ],
         },
       ];
@@ -98,7 +96,6 @@ export class SideNav implements OnInit {
         { label: 'Users', icon: 'group', link: '/facilities/users' },
         { label: 'Equipments', icon: 'inventory_2', link: '/facilities/equipments' },
         { label: 'Vehicles', icon: 'directions_car', link: '/facilities/vehicles' },
-        { label: 'Drivers', icon: 'badge', link: '/facilities/drivers' },
         ...(schedulingChildren.length
           ? [{ label: 'Scheduling', icon: 'event_note', children: schedulingChildren }]
           : []),

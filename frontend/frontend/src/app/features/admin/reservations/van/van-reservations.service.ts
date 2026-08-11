@@ -33,30 +33,12 @@ export class VanReservationsService {
     );
   }
 
-  getDrivers() {
-    return this.http.get<VanAdminListResponse>(`${this.base}/drivers`);
-  }
-
-  getAvailableDriversForReservation(reservationId: number) {
-    return this.http.get<VanAdminListResponse>(
-      `${this.base}/reservations/${reservationId}/available-drivers`,
-    );
-  }
-
   getVehicleSchedule(vehicleId: number, excludeReservationId?: number) {
     const params: Record<string, string> = {};
     if (excludeReservationId != null) {
       params['excludeReservationId'] = String(excludeReservationId);
     }
     return this.http.get<VanAdminListResponse>(`${this.base}/vehicles/${vehicleId}/schedule`, { params });
-  }
-
-  getDriverSchedule(driverId: number, excludeReservationId?: number) {
-    const params: Record<string, string> = {};
-    if (excludeReservationId != null) {
-      params['excludeReservationId'] = String(excludeReservationId);
-    }
-    return this.http.get<VanAdminListResponse>(`${this.base}/drivers/${driverId}/schedule`, { params });
   }
 
   approve(id: number, body: VanApproveRequest) {

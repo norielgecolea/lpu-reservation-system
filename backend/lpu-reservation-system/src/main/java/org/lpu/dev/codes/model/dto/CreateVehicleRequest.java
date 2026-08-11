@@ -9,6 +9,8 @@ public class CreateVehicleRequest {
 	  private String image;
 	  
 	private String status;
+	private String assignedDriverName;
+	private String assignedDriverContact;
 	
 	
 	public void setId(Long id) {
@@ -53,5 +55,21 @@ public class CreateVehicleRequest {
 	}
 	public void setStatus(String status) {
 		this.status = status;
+	}
+
+	public String getAssignedDriverName() {
+		return assignedDriverName;
+	}
+
+	public void setAssignedDriverName(String assignedDriverName) {
+		this.assignedDriverName = assignedDriverName;
+	}
+
+	public String getAssignedDriverContact() {
+		return assignedDriverContact;
+	}
+
+	public void setAssignedDriverContact(String assignedDriverContact) {
+		this.assignedDriverContact = assignedDriverContact;
 	}
 }

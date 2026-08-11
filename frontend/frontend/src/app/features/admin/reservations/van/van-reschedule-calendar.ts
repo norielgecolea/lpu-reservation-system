@@ -21,6 +21,8 @@ export interface VanRescheduleEvent {
   organization: string;
   travelDestination: string;
   eventKind: 'RESERVATION';
+  vehicleId?: number | null;
+  vehicleLabel?: string | null;
 }
 
 interface CalendarCell {
@@ -58,6 +60,9 @@ type PickerView = 'calendar' | 'timeslots';
             <div>
               <h1 class="text-lg sm:text-xl font-black tracking-tight leading-tight">Reschedule Van Trip</h1>
               <p class="text-white/60 text-xs">{{ tripTitle }} — pick new date(s) and time slots</p>
+              @if (vehicleSummary) {
+                <p class="text-white/75 text-[11px] mt-0.5">Showing schedule for: {{ vehicleSummary }}</p>
+              }
             </div>
           </div>
           <div class="flex items-center gap-3">
@@ -118,11 +123,12 @@ type PickerView = 'calendar' | 'timeslots';
                     >{{ cell.day }}</span>
                     @if (cell.events.length > 0) {
                       <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
-                        @for (ev of cell.events.slice(0, 2); track ev.department + ev.startTime + ev.endTime) {
+                        @for (ev of cell.events.slice(0, 2); track (ev.vehicleId ?? 0) + ev.department + ev.startTime + ev.endTime) {
                           <li
-                            class="min-w-0 truncate rounded border-l-2 border-sky-500 bg-sky-50 px-1 py-0.5 text-[10px] leading-tight font-semibold text-sky-800"
-                            [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.travelDestination || ev.department)"
-                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.travelDestination || ev.department }}</li>
+                            class="min-w-0 truncate rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight font-semibold"
+                            [class]="vehicleChipClass(ev.vehicleId)"
+                            [title]="eventTitle(ev)"
+                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.vehicleLabel || ev.travelDestination || ev.department }}</li>
                         }
                         @if (cell.events.length > 2) {
                           <li class="truncate text-[10px] font-bold text-primary pl-1">+{{ cell.events.length - 2 }} more</li>
@@ -145,12 +151,18 @@ type PickerView = 'calendar' | 'timeslots';
           <div class="flex flex-wrap items-center gap-4 shrink-0 text-xs text-gray-500">
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-3 h-3 rounded border-l-2 border-sky-500 bg-sky-50"></span>
-              Approved Trip
+              Assigned vehicle trip
             </span>
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span>
               Your Selection
             </span>
+            @if (scheduleLoading()) {
+              <span class="flex items-center gap-1.5 text-primary">
+                <ui-icon name="autorenew" class="text-sm animate-spin" />
+                Loading vehicle schedule...
+              </span>
+            }
             <span class="ml-auto text-[11px] italic">Click a date to select a time slot</span>
           </div>
         </div>
@@ -221,20 +233,28 @@ type PickerView = 'calendar' | 'timeslots';
           <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3" style="scrollbar-width: thin">
             <div class="rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
               @for (slot of timeSlots; track slot.value) {
-                @if (getSlotEvent(slot.value); as ev) {
+                @if (getSlotEvents(slot.value); as occupied) {
+                  @if (occupied.length > 0) {
                   <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
                     <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
                       {{ slot.label }}
                     </div>
-                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2 bg-sky-50">
-                      <div class="flex-1 min-w-0">
-                        <p class="text-xs font-bold truncate text-sky-700">{{ ev.travelDestination || ev.department }}</p>
-                        <p class="text-[10px] text-sky-500">{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · Reserved</p>
-                      </div>
-                      <ui-icon name="lock" class="text-sm shrink-0 text-sky-400" />
+                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex flex-col gap-1.5 bg-sky-50">
+                      @for (ev of occupied; track (ev.vehicleId ?? 0) + ev.startTime + ev.travelDestination) {
+                        <div class="flex items-center gap-2 min-w-0">
+                          <div class="flex-1 min-w-0">
+                            @if (ev.vehicleLabel) {
+                              <p class="text-[10px] font-bold uppercase tracking-wide text-sky-500 truncate">{{ ev.vehicleLabel }}</p>
+                            }
+                            <p class="text-xs font-bold truncate text-sky-700">{{ ev.travelDestination || ev.department }}</p>
+                            <p class="text-[10px] text-sky-500">{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · Reserved</p>
+                          </div>
+                          <ui-icon name="lock" class="text-sm shrink-0 text-sky-400" />
+                        </div>
+                      }
                     </div>
                   </div>
-                } @else if (isSlotInBasket(slot.value)) {
+                  } @else if (isSlotInBasket(slot.value)) {
                   <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
                     <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
                       {{ slot.label }}
@@ -244,7 +264,7 @@ type PickerView = 'calendar' | 'timeslots';
                       <span class="text-xs font-semibold text-primary">Your selection</span>
                     </div>
                   </div>
-                } @else {
+                  } @else {
                   <div class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
                     [class.ring-2]="isSlotSelected(slot.value)"
                     [class.ring-primary]="isSlotSelected(slot.value)"
@@ -264,6 +284,7 @@ type PickerView = 'calendar' | 'timeslots';
                       }
                     </div>
                   </div>
+                  }
                 }
               }
             </div>
@@ -324,6 +345,8 @@ export class VanRescheduleCalendar implements OnChanges {
 
   @Input() initialSlots: ReservedDateSlot[] = [];
   @Input() tripTitle = '';
+  @Input() vehicleSummary = '';
+  @Input() scheduleLoading = signal(false);
   @Input() saving = signal(false);
   @Output() saved = new EventEmitter<ReservedDateSlot[]>();
   @Output() cancelled = new EventEmitter<void>();
@@ -339,6 +362,14 @@ export class VanRescheduleCalendar implements OnChanges {
 
   readonly weekdays = WEEKDAYS;
   readonly timeSlots = TIME_SLOTS;
+
+  private static readonly VEHICLE_CHIP_CLASSES = [
+    'border-sky-500 bg-sky-50 text-sky-800',
+    'border-violet-500 bg-violet-50 text-violet-800',
+    'border-amber-500 bg-amber-50 text-amber-800',
+    'border-teal-500 bg-teal-50 text-teal-800',
+    'border-rose-500 bg-rose-50 text-rose-800',
+  ];
 
   ngOnChanges(changes: SimpleChanges): void {
     // Seed once on open only. Parent polls refresh reservations while the overlay
@@ -397,15 +428,29 @@ export class VanRescheduleCalendar implements OnChanges {
     this.pickerView.set('timeslots');
   }
 
-  getSlotEvent(hourStr: string): VanRescheduleEvent | null {
+  getSlotEvents(hourStr: string): VanRescheduleEvent[] {
     const day = this.selectedDay();
-    if (!day) return null;
+    if (!day) return [];
     const hour = parseInt(hourStr, 10);
-    return this._events().find(ev => {
+    return this._events().filter(ev => {
       if (ev.date !== day) return false;
       // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
       return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
-    }) ?? null;
+    });
+  }
+
+  eventTitle(ev: VanRescheduleEvent): string {
+    const time = `${this.formatTimeShort(ev.startTime)}–${this.formatTimeShort(ev.endTime)}`;
+    const trip = ev.travelDestination || ev.department;
+    return ev.vehicleLabel ? `${ev.vehicleLabel} · ${time} · ${trip}` : `${time} · ${trip}`;
+  }
+
+  vehicleChipClass(vehicleId: number | null | undefined): string {
+    const palette = VanRescheduleCalendar.VEHICLE_CHIP_CLASSES;
+    if (vehicleId == null) return palette[0];
+    const ids = [...new Set(this._events().map(e => e.vehicleId).filter((id): id is number => id != null))];
+    const idx = Math.max(0, ids.indexOf(vehicleId));
+    return palette[idx % palette.length];
   }
 
   isSlotSelected(hourStr: string): boolean {

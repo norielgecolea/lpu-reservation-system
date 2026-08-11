@@ -1,25 +1,22 @@
 package org.lpu.dev.codes.services;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.apiresponse.ReservationActionResponse;
-import org.lpu.dev.codes.model.data.Driver;
 import org.lpu.dev.codes.model.data.VanReservation;
 import org.lpu.dev.codes.model.data.Vehicle;
-import org.lpu.dev.codes.model.dto.PopulateDriverList;
 import org.lpu.dev.codes.model.dto.PopulateVehicleList;
 import org.lpu.dev.codes.model.dto.VanApprovedEventDto;
 import org.lpu.dev.codes.model.dto.VanReservationAdminDto;
 import org.lpu.dev.codes.model.dto.VanReservationRequest;
 import org.lpu.dev.codes.model.apiresponse.EquipmentResponse;
-import org.lpu.dev.codes.repository.DriverRepository;
 import org.lpu.dev.codes.repository.VanReservationRepository;
 import org.lpu.dev.codes.repository.VehicleRepository;
-import org.lpu.dev.codes.services.AllowedReservationEmailService;
 import org.lpu.dev.codes.services.superadmin.SuperAdminVehicleService;
 import org.lpu.dev.codes.util.AppDateTimes;
 import org.lpu.dev.codes.util.ReservationSlot;
@@ -39,9 +36,7 @@ public class VanReservationService {
 
     @Autowired private VanReservationRepository vanRepository;
     @Autowired private VehicleRepository vehicleRepository;
-    @Autowired private DriverRepository driverRepository;
     @Autowired private SuperAdminVehicleService vehicleService;
-    @Autowired private DriverService driverService;
     @Autowired private VanEmailService vanEmailService;
     @Autowired private AllowedReservationEmailService allowedEmailService;
     @Autowired private ReservationEventPublisher eventPublisher;
@@ -86,35 +81,6 @@ public class VanReservationService {
     }
 
     @Transactional(readOnly = true)
-    public List<PopulateDriverList> getAvailableDriversForReservation(Long reservationId) {
-        var targetOpt = vanRepository.findById(reservationId);
-        if (targetOpt.isEmpty()) {
-            return List.of();
-        }
-        List<ReservationSlot> targetSlots = getReservedSlots(targetOpt.get());
-        if (targetSlots.isEmpty()) {
-            return List.of();
-        }
-
-        List<PopulateDriverList> result = new ArrayList<>();
-        for (Driver d : driverRepository.findActive()) {
-            if (!hasScheduleOverlap(vanRepository.findApprovedByDriverId(d.getId()), targetSlots, reservationId)) {
-                PopulateDriverList dto = new PopulateDriverList();
-                dto.setId(d.getId());
-                dto.setFullName(d.getFullName());
-                dto.setContactNumber(d.getContactNumber());
-                dto.setStatus(d.getStatus());
-                result.add(dto);
-            }
-        }
-        return result;
-    }
-
-    public List<PopulateDriverList> getActiveDrivers() {
-        return driverService.getActiveDrivers();
-    }
-
-    @Transactional(readOnly = true)
     public List<VanApprovedEventDto> getApprovedEvents() {
         List<VanApprovedEventDto> result = new ArrayList<>();
         try {
@@ -148,32 +114,12 @@ public class VanReservationService {
         return result;
     }
 
-    @Transactional(readOnly = true)
-    public List<VanApprovedEventDto> getDriverSchedule(Long driverId) {
-        return getDriverSchedule(driverId, null);
-    }
-
-    @Transactional(readOnly = true)
-    public List<VanApprovedEventDto> getDriverSchedule(Long driverId, Long excludeReservationId) {
-        List<VanApprovedEventDto> result = new ArrayList<>();
-        try {
-            for (VanReservation r : vanRepository.findApprovedByDriverId(driverId)) {
-                if (excludeReservationId != null && excludeReservationId.equals(r.getId())) {
-                    continue;
-                }
-                appendSlots(result, r);
-            }
-        } catch (Exception e) {
-            logger.error("Error reading driver schedule {}", driverId, e);
-        }
-        return result;
-    }
-
     private void appendSlots(List<VanApprovedEventDto> result, VanReservation r) throws Exception {
         if (r.getReservedDates() == null) return;
-        String vehicleLabel = vehicleLabel(r.getVehicle());
-        Long vehicleId = r.getVehicle() != null ? r.getVehicle().getId() : null;
-        String driverName = r.getDriver() != null ? r.getDriver().getFullName() : null;
+        String vehicleLabel = r.formatVehicleLabels();
+        Vehicle primary = r.getPrimaryVehicle();
+        Long vehicleId = primary != null ? primary.getId() : null;
+        String driverName = r.formatDriverNames();
         JsonNode array = objectMapper.readTree(r.getReservedDates());
         if (array.isArray()) {
             for (JsonNode slot : array) {
@@ -215,20 +161,16 @@ public class VanReservationService {
             dto.setStatus((String) row[11]);
             dto.setCreatedAt(AppDateTimes.toApiUtc(row[12]));
             dto.setSatisfactionRating(row[13] != null ? ((Number) row[13]).intValue() : null);
-            dto.setVehicleId(row[14] != null ? ((Number) row[14]).longValue() : null);
-            dto.setDriverId(row[15] != null ? ((Number) row[15]).longValue() : null);
-            String brand = (String) row[16];
-            String plate = (String) row[17];
-            String driverName = (String) row[18];
-            if (brand != null && plate != null) {
-                dto.setVehicleLabel(brand + " (" + plate + ")");
-            }
-            dto.setDriverName(driverName);
-            dto.setApprovedAt(AppDateTimes.toApiUtc(row[19]));
-            dto.setApprovedBy((String) row[20]);
-            dto.setAdditionalRemarks((String) row[21]);
-            dto.setSchool(row.length > 22 ? (String) row[22] : null);
-            dto.setRequestedVehicleType(row.length > 23 ? (String) row[23] : null);
+            List<Long> vehicleIds = parseIdList((String) row[14]);
+            dto.setVehicleIds(vehicleIds);
+            dto.setVehicleId(vehicleIds.isEmpty() ? null : vehicleIds.get(0));
+            dto.setVehicleLabel((String) row[15]);
+            dto.setDriverName((String) row[16]);
+            dto.setApprovedAt(AppDateTimes.toApiUtc(row[17]));
+            dto.setApprovedBy((String) row[18]);
+            dto.setAdditionalRemarks((String) row[19]);
+            dto.setSchool(row.length > 20 ? (String) row[20] : null);
+            dto.setRequestedVehicleType(row.length > 21 ? (String) row[21] : null);
             result.add(dto);
         }
         return result;
@@ -275,7 +217,7 @@ public class VanReservationService {
     }
 
     @Transactional
-    public ReservationActionResponse approveReservation(Long id, Long vehicleId, Long driverId, String approvedBy) {
+    public ReservationActionResponse approveReservation(Long id, List<Long> vehicleIds, String approvedBy) {
         ReservationActionResponse response = new ReservationActionResponse();
         var targetOpt = vanRepository.findById(id);
         if (targetOpt.isEmpty() || !"PENDING".equals(targetOpt.get().getStatus())) {
@@ -285,74 +227,100 @@ public class VanReservationService {
         }
 
         VanReservation target = targetOpt.get();
-        ReservationActionResponse validation = validateVehicleAndDriverAssignment(
-                target, vehicleId, driverId, null);
+        LinkedHashSet<Vehicle> vehicles = resolveVehicles(vehicleIds, response);
+        if (vehicles == null) {
+            return response;
+        }
+
+        ReservationActionResponse validation = validateVehicleAssignments(target, vehicles, null);
         if (!validation.isSuccess()) {
             return validation;
         }
 
-        vanRepository.assignVehicleAndDriver(id, vehicleId, driverId, "APPROVED",
-                approvedBy != null ? approvedBy : "system");
+        target.getAssignedVehicles().clear();
+        target.getAssignedVehicles().addAll(vehicles);
+        vanRepository.merge(target);
+        vanRepository.approveWithVehicles(id, approvedBy != null ? approvedBy : "system");
         vanRepository.findById(id).ifPresent(vanEmailService::sendApprovalEmail);
         eventPublisher.publishStatusUpdate("van", id, "APPROVED", List.of());
 
         auditService.log("VAN", "APPROVE", approvedBy, "reservation", id, reservationLabel(target),
                 AdminAuditService.detailsOf(
-                        "vehicleId", vehicleId,
-                        "driverId", driverId,
+                        "vehicleIds", vehicleIds,
                         "previousStatus", "PENDING",
                         "newStatus", "APPROVED"));
 
         response.setSuccess(true);
-        response.setMessage("Reservation approved with vehicle and driver assigned");
+        response.setMessage("Reservation approved with vehicle(s) assigned");
         return response;
     }
 
     @Transactional
-    public ReservationActionResponse reassignVehicleAndDriver(Long id, Long vehicleId, Long driverId, String performedBy) {
+    public ReservationActionResponse reassignVehicles(Long id, List<Long> vehicleIds, String performedBy) {
         ReservationActionResponse response = new ReservationActionResponse();
         var targetOpt = vanRepository.findById(id);
         if (targetOpt.isEmpty() || !"APPROVED".equals(targetOpt.get().getStatus())) {
             response.setSuccess(false);
-            response.setMessage("Only approved reservations can change vehicle and driver");
+            response.setMessage("Only approved reservations can change assigned vehicles");
             return response;
         }
 
         VanReservation target = targetOpt.get();
-        ReservationActionResponse validation = validateVehicleAndDriverAssignment(
-                target, vehicleId, driverId, id);
+        LinkedHashSet<Vehicle> vehicles = resolveVehicles(vehicleIds, response);
+        if (vehicles == null) {
+            return response;
+        }
+
+        ReservationActionResponse validation = validateVehicleAssignments(target, vehicles, id);
         if (!validation.isSuccess()) {
             return validation;
         }
 
-        vanRepository.updateVehicleAndDriver(id, vehicleId, driverId);
+        target.getAssignedVehicles().clear();
+        target.getAssignedVehicles().addAll(vehicles);
+        vanRepository.merge(target);
         eventPublisher.publishStatusUpdate("van", id, "APPROVED", List.of());
 
         auditService.log("VAN", "REASSIGN", performedBy, "reservation", id, reservationLabel(target),
-                AdminAuditService.detailsOf("vehicleId", vehicleId, "driverId", driverId));
+                AdminAuditService.detailsOf("vehicleIds", vehicleIds));
 
         response.setSuccess(true);
-        response.setMessage("Vehicle and driver updated successfully");
+        response.setMessage("Assigned vehicle(s) updated successfully");
         return response;
     }
 
-    private ReservationActionResponse validateVehicleAndDriverAssignment(
-            VanReservation target, Long vehicleId, Long driverId, Long excludeReservationId) {
+    /** Returns null and fills {@code response} on failure. */
+    private LinkedHashSet<Vehicle> resolveVehicles(List<Long> vehicleIds, ReservationActionResponse response) {
+        if (vehicleIds == null || vehicleIds.isEmpty()) {
+            response.setSuccess(false);
+            response.setMessage("At least one vehicle is required");
+            return null;
+        }
+        LinkedHashSet<Long> uniqueIds = new LinkedHashSet<>(vehicleIds);
+        LinkedHashSet<Vehicle> vehicles = new LinkedHashSet<>();
+        for (Long vehicleId : uniqueIds) {
+            if (vehicleId == null) {
+                continue;
+            }
+            Vehicle vehicle = vehicleRepository.findById(vehicleId);
+            if (vehicle == null || !"AVAILABLE".equalsIgnoreCase(vehicle.getStatus())) {
+                response.setSuccess(false);
+                response.setMessage("Selected vehicle is not available");
+                return null;
+            }
+            vehicles.add(vehicle);
+        }
+        if (vehicles.isEmpty()) {
+            response.setSuccess(false);
+            response.setMessage("At least one vehicle is required");
+            return null;
+        }
+        return vehicles;
+    }
+
+    private ReservationActionResponse validateVehicleAssignments(
+            VanReservation target, Set<Vehicle> vehicles, Long excludeReservationId) {
         ReservationActionResponse response = new ReservationActionResponse();
-
-        Vehicle vehicle = vehicleRepository.findById(vehicleId);
-        if (vehicle == null || !"AVAILABLE".equalsIgnoreCase(vehicle.getStatus())) {
-            response.setSuccess(false);
-            response.setMessage("Selected vehicle is not available");
-            return response;
-        }
-
-        var driverOpt = driverRepository.findById(driverId);
-        if (driverOpt.isEmpty() || !"ACTIVE".equalsIgnoreCase(driverOpt.get().getStatus())) {
-            response.setSuccess(false);
-            response.setMessage("Selected driver is not active");
-            return response;
-        }
 
         List<ReservationSlot> targetSlots = getReservedSlots(target);
         if (targetSlots.isEmpty()) {
@@ -361,29 +329,19 @@ public class VanReservationService {
             return response;
         }
 
-        for (VanReservation other : vanRepository.findApprovedByVehicleId(vehicleId)) {
-            if (excludeReservationId != null && excludeReservationId.equals(other.getId())) {
-                continue;
-            }
-            if (ReservationSlotUtil.anyOverlap(targetSlots, getReservedSlots(other))) {
-                String reason = "Cannot assign — selected vehicle has an overlapping trip.";
-                response.setSuccess(false);
-                response.setBlockedReason(reason);
-                response.setMessage(reason);
-                return response;
-            }
-        }
-
-        for (VanReservation other : vanRepository.findApprovedByDriverId(driverId)) {
-            if (excludeReservationId != null && excludeReservationId.equals(other.getId())) {
-                continue;
-            }
-            if (ReservationSlotUtil.anyOverlap(targetSlots, getReservedSlots(other))) {
-                String reason = "Cannot assign — selected driver has an overlapping trip.";
-                response.setSuccess(false);
-                response.setBlockedReason(reason);
-                response.setMessage(reason);
-                return response;
+        for (Vehicle vehicle : vehicles) {
+            for (VanReservation other : vanRepository.findApprovedByVehicleId(vehicle.getId())) {
+                if (excludeReservationId != null && excludeReservationId.equals(other.getId())) {
+                    continue;
+                }
+                if (ReservationSlotUtil.anyOverlap(targetSlots, getReservedSlots(other))) {
+                    String label = vehicle.getBrand() + " (" + vehicle.getPlateNum() + ")";
+                    String reason = "Cannot assign — " + label + " has an overlapping trip.";
+                    response.setSuccess(false);
+                    response.setBlockedReason(reason);
+                    response.setMessage(reason);
+                    return response;
+                }
             }
         }
 
@@ -450,25 +408,16 @@ public class VanReservationService {
             List<ReservationSlot> newSlots = ReservationSlotUtil.parseReservedDates(json, objectMapper);
 
             if ("APPROVED".equals(existing.getStatus()) || "COMPLETED".equals(existing.getStatus())) {
-                if (existing.getVehicle() != null) {
-                    for (VanReservation other : vanRepository.findApprovedByVehicleId(existing.getVehicle().getId())) {
-                        if (other.getId().equals(id)) continue;
-                        if (ReservationSlotUtil.anyOverlap(newSlots, getReservedSlots(other))) {
-                            response.setSuccess(false);
-                            response.setBlockedReason("Reschedule conflicts with assigned vehicle schedule");
-                            response.setMessage("Reschedule conflicts with assigned vehicle schedule");
-                            return response;
-                        }
-                    }
-                }
-                if (existing.getDriver() != null) {
-                    for (VanReservation other : vanRepository.findApprovedByDriverId(existing.getDriver().getId())) {
-                        if (other.getId().equals(id)) continue;
-                        if (ReservationSlotUtil.anyOverlap(newSlots, getReservedSlots(other))) {
-                            response.setSuccess(false);
-                            response.setBlockedReason("Reschedule conflicts with assigned driver schedule");
-                            response.setMessage("Reschedule conflicts with assigned driver schedule");
-                            return response;
+                if (existing.getAssignedVehicles() != null) {
+                    for (Vehicle vehicle : existing.getAssignedVehicles()) {
+                        for (VanReservation other : vanRepository.findApprovedByVehicleId(vehicle.getId())) {
+                            if (other.getId().equals(id)) continue;
+                            if (ReservationSlotUtil.anyOverlap(newSlots, getReservedSlots(other))) {
+                                response.setSuccess(false);
+                                response.setBlockedReason("Reschedule conflicts with assigned vehicle schedule");
+                                response.setMessage("Reschedule conflicts with assigned vehicle schedule");
+                                return response;
+                            }
                         }
                     }
                 }
@@ -595,9 +544,21 @@ public class VanReservationService {
         return r.getDepartment() + " — " + r.getOrganization();
     }
 
-    private String vehicleLabel(Vehicle vehicle) {
-        if (vehicle == null) return null;
-        return vehicle.getBrand() + " (" + vehicle.getPlateNum() + ")";
+    private List<Long> parseIdList(String csv) {
+        List<Long> ids = new ArrayList<>();
+        if (csv == null || csv.isBlank()) {
+            return ids;
+        }
+        for (String part : csv.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) continue;
+            try {
+                ids.add(Long.parseLong(trimmed));
+            } catch (NumberFormatException ignored) {
+                // skip malformed token
+            }
+        }
+        return ids;
     }
 
     private String extractReturnTime(VanReservationRequest req) {

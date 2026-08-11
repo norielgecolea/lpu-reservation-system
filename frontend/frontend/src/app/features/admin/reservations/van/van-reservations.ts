@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { VanRescheduleCalendar, VanRescheduleEvent } from './van-reschedule-calendar';
 import { VanApproveModal, VanApproveResult } from './van-approve-modal';
@@ -72,7 +72,7 @@ interface VanReservationViewRow extends VanReservationRow {
             </div>
             <div class="min-w-0">
               <h1 class="text-xl font-black tracking-tight text-gray-900">University Van Reservations</h1>
-              <p class="mt-0.5 text-sm text-gray-500">Assign vehicles and drivers, then approve trip requests</p>
+              <p class="mt-0.5 text-sm text-gray-500">Assign one or more vehicles, then approve trip requests</p>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
@@ -343,7 +343,7 @@ interface VanReservationViewRow extends VanReservationRow {
                     @if (row.driverName) {
                       <p class="text-xs text-gray-500 truncate">{{ row.driverName }}</p>
                     } @else {
-                      <p class="text-xs text-gray-400 italic">No driver</p>
+                      <p class="text-xs text-gray-400 italic">No assigned driver</p>
                     }
                   </td>
 
@@ -416,7 +416,7 @@ interface VanReservationViewRow extends VanReservationRow {
                         <button type="button" (click)="openReassign(row)" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                           <ui-icon name="swap_horiz" class="text-sm" />
-                          Change Vehicle/Driver
+                          Change Vehicles
                         </button>
                         <button type="button" (click)="openReschedule(row)" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-sky-50 border border-sky-200 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
@@ -527,6 +527,8 @@ interface VanReservationViewRow extends VanReservationRow {
         [events]="rescheduleApprovedEvents()"
         [initialSlots]="rescheduleInitialSlots()"
         [tripTitle]="rescheduleTarget()!.tripTitle"
+        [vehicleSummary]="rescheduleVehicleSummary()"
+        [scheduleLoading]="rescheduleScheduleLoading"
         [saving]="rescheduleSaving"
         (saved)="saveReschedule($event)"
         (cancelled)="closeReschedule()"
@@ -599,30 +601,12 @@ export class VanReservations implements OnInit, OnDestroy {
 
   readonly rescheduleTarget = signal<{ id: number; tripTitle: string } | null>(null);
   readonly rescheduleSaving = signal(false);
+  readonly rescheduleScheduleLoading = signal(false);
+  readonly rescheduleVehicleEvents = signal<VanRescheduleEvent[]>([]);
+  readonly rescheduleVehicleSummary = signal('');
+  private rescheduleScheduleSub: Subscription | null = null;
 
-  readonly rescheduleApprovedEvents = computed<VanRescheduleEvent[]>(() => {
-    const target = this.rescheduleTarget();
-    const events: VanRescheduleEvent[] = [];
-    for (const r of this.reservations()) {
-      if (r.status !== 'APPROVED' && r.status !== 'COMPLETED') continue;
-      if (r.id === target?.id) continue;
-      try {
-        const slots: ReservedDateSlot[] = JSON.parse(r.reservedDates);
-        for (const s of slots) {
-          events.push({
-            date: s.date,
-            startTime: s.startTime,
-            endTime: s.endTime,
-            department: r.department,
-            organization: r.organization,
-            travelDestination: r.travelDestination,
-            eventKind: 'RESERVATION',
-          });
-        }
-      } catch { /* skip */ }
-    }
-    return events;
-  });
+  readonly rescheduleApprovedEvents = computed<VanRescheduleEvent[]>(() => this.rescheduleVehicleEvents());
 
   readonly rescheduleInitialSlots = computed<ReservedDateSlot[]>(() => {
     const target = this.rescheduleTarget();
@@ -677,6 +661,7 @@ export class VanReservations implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.wsSub?.unsubscribe();
     this.pollSub?.unsubscribe();
+    this.rescheduleScheduleSub?.unsubscribe();
   }
 
   onMonthChange(month: string): void {
@@ -790,15 +775,15 @@ export class VanReservations implements OnInit, OnDestroy {
       ? {
         ...r,
         status: 'APPROVED' as ReservationStatus,
-        vehicleId: result.vehicleId,
-        driverId: result.driverId,
+        vehicleId: result.vehicleIds[0] ?? null,
+        vehicleIds: result.vehicleIds,
         vehicleLabel: result.vehicleLabel,
-        driverName: result.driverName,
+        driverName: result.driverName === '—' ? null : result.driverName,
       }
       : r));
     this.toast.set(
       this.assignMode() === 'reassign'
-        ? 'Vehicle and driver updated successfully.'
+        ? 'Assigned vehicle(s) updated successfully.'
         : 'Reservation approved. The reserver was notified to visit the office and sign the vehicle reservation form.',
     );
     this.closeApprove();
@@ -863,9 +848,77 @@ export class VanReservations implements OnInit, OnDestroy {
 
   openReschedule(row: VanReservationRow): void {
     this.rescheduleTarget.set({ id: row.id, tripTitle: row.travelDestination });
+    this.loadRescheduleVehicleSchedules(row);
   }
 
-  closeReschedule(): void { this.rescheduleTarget.set(null); }
+  closeReschedule(): void {
+    this.rescheduleScheduleSub?.unsubscribe();
+    this.rescheduleScheduleSub = null;
+    this.rescheduleTarget.set(null);
+    this.rescheduleVehicleEvents.set([]);
+    this.rescheduleVehicleSummary.set('');
+    this.rescheduleScheduleLoading.set(false);
+  }
+
+  private loadRescheduleVehicleSchedules(row: VanReservationRow): void {
+    this.rescheduleScheduleSub?.unsubscribe();
+    const vehicleIds = (row.vehicleIds?.length
+      ? row.vehicleIds
+      : row.vehicleId != null
+        ? [row.vehicleId]
+        : []
+    ).filter((id, index, all) => id != null && all.indexOf(id) === index) as number[];
+
+    if (!vehicleIds.length) {
+      this.rescheduleVehicleEvents.set([]);
+      this.rescheduleVehicleSummary.set('');
+      this.rescheduleScheduleLoading.set(false);
+      return;
+    }
+
+    const nameParts = (row.vehicleLabel ?? '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const labelFor = (id: number, index: number) =>
+      nameParts[index] || nameParts[0] || `Vehicle #${id}`;
+
+    this.rescheduleScheduleLoading.set(true);
+    this.rescheduleVehicleEvents.set([]);
+    this.rescheduleVehicleSummary.set(vehicleIds.map((id, i) => labelFor(id, i)).join(', '));
+
+    this.rescheduleScheduleSub = forkJoin(
+      vehicleIds.map(id => this.svc.getVehicleSchedule(id, row.id)),
+    ).subscribe({
+      next: (responses) => {
+        const events: VanRescheduleEvent[] = [];
+        responses.forEach((res, index) => {
+          const vehicleId = vehicleIds[index];
+          const label = labelFor(vehicleId, index);
+          for (const ev of res.approvedEvents ?? []) {
+            events.push({
+              date: ev.date,
+              startTime: ev.startTime,
+              endTime: ev.endTime,
+              department: ev.department,
+              organization: ev.organization,
+              travelDestination: ev.travelDestination,
+              eventKind: 'RESERVATION',
+              vehicleId,
+              vehicleLabel: label,
+            });
+          }
+        });
+        this.rescheduleVehicleEvents.set(events);
+        this.rescheduleScheduleLoading.set(false);
+      },
+      error: () => {
+        this.rescheduleVehicleEvents.set([]);
+        this.rescheduleScheduleLoading.set(false);
+        this.toast.set('Failed to load assigned vehicle schedule(s).');
+      },
+    });
+  }
 
   saveReschedule(slots: ReservedDateSlot[]): void {
     const target = this.rescheduleTarget();

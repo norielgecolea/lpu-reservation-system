@@ -1,5 +1,8 @@
 package org.lpu.dev.codes.model.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class VanReservationAdminDto {
 
     private Long id;
@@ -16,9 +19,11 @@ public class VanReservationAdminDto {
     private String status;
     private String createdAt;
     private Integer satisfactionRating;
+    /** First assigned vehicle id (compat). Prefer {@link #vehicleIds}. */
     private Long vehicleId;
-    private Long driverId;
+    private List<Long> vehicleIds = new ArrayList<>();
     private String vehicleLabel;
+    /** Permanent drivers from assigned vehicles (comma-separated). */
     private String driverName;
     private String approvedAt;
     private String approvedBy;
@@ -71,8 +76,10 @@ public class VanReservationAdminDto {
     public Long getVehicleId() { return vehicleId; }
     public void setVehicleId(Long vehicleId) { this.vehicleId = vehicleId; }
 
-    public Long getDriverId() { return driverId; }
-    public void setDriverId(Long driverId) { this.driverId = driverId; }
+    public List<Long> getVehicleIds() { return vehicleIds; }
+    public void setVehicleIds(List<Long> vehicleIds) {
+        this.vehicleIds = vehicleIds != null ? vehicleIds : new ArrayList<>();
+    }
 
     public String getVehicleLabel() { return vehicleLabel; }
     public void setVehicleLabel(String vehicleLabel) { this.vehicleLabel = vehicleLabel; }

@@ -92,6 +92,12 @@ CREATE TABLE vehicle (
 ALTER TABLE vehicle
 ADD COLUMN image_url TEXT DEFAULT '/uploads/vehicles/default.webp';
 
+ALTER TABLE vehicle
+ADD COLUMN IF NOT EXISTS assigned_driver_name VARCHAR(150);
+
+ALTER TABLE vehicle
+ADD COLUMN IF NOT EXISTS assigned_driver_contact VARCHAR(20);
+
 CREATE TABLE flt_reservations (
     id BIGSERIAL PRIMARY KEY,
     event_title VARCHAR(255) NOT NULL,
@@ -192,6 +198,22 @@ ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS additional_remarks TEXT;
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS school VARCHAR(20);
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS requested_vehicle_type VARCHAR(150);
+
+-- Multi-vehicle assignment (replaces single vehicle_id / driver_id on van_reservations)
+CREATE TABLE IF NOT EXISTS van_reservation_vehicles (
+    reservation_id BIGINT NOT NULL REFERENCES van_reservations(id) ON DELETE CASCADE,
+    vehicle_id BIGINT NOT NULL REFERENCES vehicle(id) ON DELETE RESTRICT,
+    PRIMARY KEY (reservation_id, vehicle_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_van_reservation_vehicles_vehicle
+    ON van_reservation_vehicles (vehicle_id);
+
+-- Migrate legacy single-vehicle assignments into the join table
+INSERT INTO van_reservation_vehicles (reservation_id, vehicle_id)
+SELECT id, vehicle_id FROM van_reservations
+WHERE vehicle_id IS NOT NULL
+ON CONFLICT DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
     id              BIGSERIAL PRIMARY KEY,

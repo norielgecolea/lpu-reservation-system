@@ -6,7 +6,7 @@
 
     <!-- Create lpu_reservation if missing (before pool / Hibernate start). -->
     <bean id="postgresDatabaseInitializer" class="org.lpu.dev.codes.config.PostgresDatabaseInitializer">
-        <property name="adminJdbcUrl" value="jdbc:postgresql://postgres:5432/postgres" />
+        <property name="adminJdbcUrl" value="jdbc:postgresql://reservation-postgres:5432/postgres" />
         <property name="user" value="postgres" />
         <property name="password" value="Lpu-1234" />
         <property name="databaseName" value="lpu_reservation" />
@@ -16,7 +16,7 @@
     <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close"
           depends-on="postgresDatabaseInitializer">
         <property name="driverClass" value="org.postgresql.Driver" />
-        <property name="jdbcUrl" value="jdbc:postgresql://postgres:5432/lpu_reservation" />
+        <property name="jdbcUrl" value="jdbc:postgresql://reservation-postgres:5432/lpu_reservation" />
         <property name="user" value="postgres" />
         <property name="password" value="Lpu-1234" />
         <property name="minPoolSize" value="5" />

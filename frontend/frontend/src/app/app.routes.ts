@@ -67,11 +67,6 @@ const superAdminRoutes: Routes = [
       import('./features/admin/vehicles/edit-vehicle').then((m) => m.EditVehicle),
   },
   {
-    path: 'drivers',
-    loadComponent: () =>
-      import('./features/facilities/drivers/facilities-drivers').then((m) => m.FacilitiesDrivers),
-  },
-  {
     path: 'reservation/flt/new',
     canActivate: [serviceGuard('FLT')],
     loadComponent: () =>
@@ -166,13 +161,6 @@ const superAdminRoutes: Routes = [
     loadComponent: () =>
       import('./features/admin/audit/audit-logs').then((m) => m.AuditLogs),
     data: { service: 'VEHICLES' },
-  },
-  {
-    path: 'audit/drivers',
-    canActivate: [superAdminGuard],
-    loadComponent: () =>
-      import('./features/admin/audit/audit-logs').then((m) => m.AuditLogs),
-    data: { service: 'DRIVERS' },
   },
 ];
 
@@ -273,11 +261,6 @@ const facilitiesRoutes: Routes = [
     canActivate: [serviceGuard('VAN')],
     loadComponent: () =>
       import('./features/admin/reservations/van/van-reservations').then((m) => m.VanReservations),
-  },
-  {
-    path: 'drivers',
-    loadComponent: () =>
-      import('./features/facilities/drivers/facilities-drivers').then((m) => m.FacilitiesDrivers),
   },
 ];
 

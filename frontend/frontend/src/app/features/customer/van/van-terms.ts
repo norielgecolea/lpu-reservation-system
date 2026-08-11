@@ -59,7 +59,7 @@ const VAN_HEADER = 'bg-primary bg-[linear-gradient(135deg,#7a2342,#5f1830_55%,#8
             <li class="flex gap-2"><ui-icon name="circle" class="text-[8px] text-primary mt-1.5 shrink-0" /> All reservation requests must be submitted at least <strong class="text-gray-800">five (5) calendar days</strong> before the intended date of travel.</li>
             <li class="flex gap-2"><ui-icon name="circle" class="text-[8px] text-primary mt-1.5 shrink-0" /> Requests submitted within the 14-day lead time will not be processed.</li>
             <li class="flex gap-2"><ui-icon name="circle" class="text-[8px] text-primary mt-1.5 shrink-0" /> Reservations are subject to the approval of the Transport Services Office. Submission of a request does not guarantee approval.</li>
-            <li class="flex gap-2"><ui-icon name="circle" class="text-[8px] text-primary mt-1.5 shrink-0" /> Vehicle and driver assignment will be made upon approval based on availability.</li>
+            <li class="flex gap-2"><ui-icon name="circle" class="text-[8px] text-primary mt-1.5 shrink-0" /> Vehicle assignment (including the vehicle's permanent driver) will be made upon approval based on availability.</li>
           </ul>
         </section>
 

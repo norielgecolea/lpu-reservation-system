@@ -10,12 +10,12 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { UiIcon } from '../../../../shared/ui';
 import { formatTime12 } from '../../../../shared/utils/datetime.util';
 import {
   ReservedDateSlot,
   VanApprovedScheduleEvent,
-  VanDriverItem,
   VanReservationRow,
   VanVehicleItem,
   vehicleLabel,
@@ -23,13 +23,12 @@ import {
 import { VanReservationsService } from './van-reservations.service';
 
 export interface VanApproveResult {
-  vehicleId: number;
-  driverId: number;
+  vehicleIds: number[];
   vehicleLabel: string;
   driverName: string;
 }
 
-type ApproveStep = 1 | 2 | 3 | 4;
+type ApproveStep = 1 | 2 | 3;
 type AssignMode = 'approve' | 'reassign';
 
 interface ScheduleCell {
@@ -50,7 +49,6 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" (click)="cancelled.emit()">
       <div class="flex max-h-[90vh] w-full max-w-full sm:max-w-3xl flex-col overflow-y-auto rounded-2xl bg-white shadow-2xl" (click)="$event.stopPropagation()">
 
-        <!-- Header -->
         <div class="shrink-0 border-b border-gray-100 px-6 py-4">
           <div class="flex items-start justify-between gap-3">
             <div>
@@ -65,9 +63,8 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             </button>
           </div>
 
-          <!-- Step indicator -->
           <div class="flex items-center gap-2 mt-4">
-            @for (s of [1,2,3,4]; track s) {
+            @for (s of [1,2,3]; track s) {
               <div class="flex items-center gap-2 flex-1">
                 <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors"
                   [class.bg-primary]="step() >= s"
@@ -75,7 +72,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                   [class.bg-gray-200]="step() < s"
                   [class.text-gray-500]="step() < s"
                 >{{ s }}</div>
-                @if (s < 4) {
+                @if (s < 3) {
                   <div class="h-0.5 flex-1 rounded transition-colors"
                     [class.bg-primary]="step() > s"
                     [class.bg-gray-200]="step() <= s"
@@ -84,16 +81,13 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
               </div>
             }
           </div>
-          <div class="grid grid-cols-2 gap-1 mt-1.5 text-[10px] text-gray-400 text-center sm:grid-cols-4">
-            <span>Vehicle</span>
+          <div class="grid grid-cols-3 gap-1 mt-1.5 text-[10px] text-gray-400 text-center">
+            <span>Vehicles</span>
             <span>Schedule</span>
-            <span class="hidden sm:inline">Driver</span>
-            <span class="sm:hidden">Driver</span>
             <span>Confirm</span>
           </div>
         </div>
 
-        <!-- Body -->
         <div class="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
 
           @if (loadingMeta()) {
@@ -110,38 +104,49 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             </div>
           } @else {
 
-            <!-- Step 1: Select Vehicle -->
             @if (step() === 1) {
               <div class="flex flex-col gap-3">
-                <p class="text-sm font-semibold text-gray-700">Select an available vehicle</p>
+                <p class="text-sm font-semibold text-gray-700">Select one or more available vehicles</p>
                 @if (vehicles().length === 0) {
                   <p class="text-sm text-amber-600 flex items-center gap-1.5">
                     <ui-icon name="warning" class="text-base" />
                     No vehicles are available for the requested time slots. Reschedule the reservation or check vehicle status.
                   </p>
                 } @else {
-                  <select
-                    class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
-                    [value]="selectedVehicleId() ?? ''"
-                    (change)="onVehicleChange($event)"
-                  >
-                    <option value="" disabled>Choose a vehicle...</option>
+                  <div class="flex flex-col gap-2 max-h-72 overflow-y-auto">
                     @for (v of vehicles(); track v.id) {
-                      <option [value]="v.id">{{ vehicleLabel(v) }} · {{ v.capacity }} seats</option>
+                      <label class="flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors"
+                        [class.border-primary]="isVehicleSelected(v.id)"
+                        [class.bg-primary/5]="isVehicleSelected(v.id)"
+                        [class.border-gray-200]="!isVehicleSelected(v.id)">
+                        <input type="checkbox" class="mt-1 accent-primary"
+                          [checked]="isVehicleSelected(v.id)"
+                          (change)="toggleVehicle(v.id, $event)" />
+                        <div class="min-w-0 flex-1">
+                          <p class="font-bold text-gray-800">{{ vehicleLabel(v) }}</p>
+                          <p class="text-xs text-primary mt-0.5">{{ v.vehicleDescription || 'No description' }}</p>
+                          <p class="text-xs text-primary/70 mt-0.5">Capacity: {{ v.capacity }} passengers</p>
+                          @if (v.assignedDriverName) {
+                            <p class="text-xs text-gray-500 mt-1">
+                              Driver: {{ v.assignedDriverName }}
+                              @if (v.assignedDriverContact) {
+                                · {{ v.assignedDriverContact }}
+                              }
+                            </p>
+                          } @else {
+                            <p class="text-xs text-amber-600 mt-1">No permanent driver set on this vehicle</p>
+                          }
+                        </div>
+                      </label>
                     }
-                  </select>
-                }
-                @if (selectedVehicle()) {
-                  <div class="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
-                    <p class="font-bold text-gray-800">{{ vehicleLabel(selectedVehicle()!) }}</p>
-                    <p class="text-xs text-primary mt-1">{{ selectedVehicle()!.vehicleDescription || 'No description' }}</p>
-                    <p class="text-xs text-primary/70 mt-0.5">Capacity: {{ selectedVehicle()!.capacity }} passengers</p>
                   </div>
+                }
+                @if (selectedVehicles().length > 0) {
+                  <p class="text-xs text-gray-500">{{ selectedVehicles().length }} vehicle(s) selected</p>
                 }
               </div>
             }
 
-            <!-- Step 2: Vehicle Schedule -->
             @if (step() === 2) {
               <div class="flex flex-col gap-3">
                 <div class="flex items-center justify-between gap-2">
@@ -156,16 +161,15 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 @if (vehicleConflict()) {
                   <div class="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700 flex items-start gap-2">
                     <ui-icon name="warning" class="text-base shrink-0 mt-0.5" />
-                    <span>Requested time slots overlap with this vehicle's existing trips. Consider choosing a different vehicle.</span>
+                    <span>Requested time slots overlap with one or more selected vehicles' existing trips. Choose different vehicles.</span>
                   </div>
                 } @else {
                   <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
                     <ui-icon name="check_circle" class="text-base" />
-                    No schedule conflicts detected for this vehicle.
+                    No schedule conflicts detected for the selected vehicle(s).
                   </div>
                 }
 
-                <!-- Requested slots summary -->
                 <div class="rounded-xl border border-gray-200 p-3">
                   <p class="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Requested Trip Slots</p>
                   @for (slot of requestedSlots(); track slot.date + slot.startTime) {
@@ -176,7 +180,6 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                   }
                 </div>
 
-                <!-- Mini calendar -->
                 <div class="rounded-xl overflow-hidden ring-1 ring-black/5">
                   <div class="flex items-center justify-between bg-gray-50 px-4 py-2">
                     <button type="button" (click)="prevMonth()" class="cursor-pointer p-1 hover:text-primary">
@@ -200,7 +203,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                       >
                         @if (cell.day !== null) {
                           <span class="text-[10px] font-semibold text-gray-600">{{ cell.day }}</span>
-                          @for (ev of cell.vehicleEvents.slice(0, 2); track ev.date + ev.startTime + ev.travelDestination) {
+                          @for (ev of cell.vehicleEvents.slice(0, 2); track ev.date + ev.startTime + ev.travelDestination + (ev.vehicleId ?? 0)) {
                             <div class="mt-0.5 rounded border-l-2 border-sky-500 bg-sky-100 px-0.5 text-[9px] leading-tight truncate text-sky-700" [title]="ev.travelDestination">
                               {{ formatTime(ev.startTime) }}–{{ formatTime(ev.endTime) }} · {{ ev.department }}
                             </div>
@@ -223,49 +226,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
               </div>
             }
 
-            <!-- Step 3: Select Driver -->
             @if (step() === 3) {
-              <div class="flex flex-col gap-3">
-                <p class="text-sm font-semibold text-gray-700">Select an active driver</p>
-                @if (drivers().length === 0) {
-                  <p class="text-sm text-amber-600 flex items-center gap-1.5">
-                    <ui-icon name="warning" class="text-base" />
-                    No drivers are available for the requested time slots. Add drivers from the Drivers page in the sidebar.
-                  </p>
-                } @else {
-                  <select
-                    class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
-                    [value]="selectedDriverId() ?? ''"
-                    (change)="onDriverChange($event)"
-                  >
-                    <option value="" disabled>Choose a driver...</option>
-                    @for (d of drivers(); track d.id) {
-                      <option [value]="d.id">{{ d.fullName }} · {{ d.contactNumber }}</option>
-                    }
-                  </select>
-                }
-
-                @if (loadingDriverSchedule()) {
-                  <div class="flex items-center gap-2 text-sm text-gray-400 py-2">
-                    <ui-icon name="autorenew" class="text-base animate-spin" />
-                    Checking driver schedule...
-                  </div>
-                } @else if (selectedDriverId() && driverConflict()) {
-                  <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start gap-2">
-                    <ui-icon name="cancel" class="text-base shrink-0 mt-0.5" />
-                    <span>Selected driver has overlapping trips during the requested time slots. Choose a different driver.</span>
-                  </div>
-                } @else if (selectedDriverId()) {
-                  <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
-                    <ui-icon name="check_circle" class="text-base" />
-                    Driver is available for all requested time slots.
-                  </div>
-                }
-              </div>
-            }
-
-            <!-- Step 4: Confirm -->
-            @if (step() === 4) {
               <div class="flex flex-col gap-4">
                 <p class="text-sm font-semibold text-gray-700">{{ confirmStepTitle() }}</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -280,14 +241,20 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     }
                     <p class="font-semibold text-gray-900 mt-1">{{ reservation.passengerNames || '—' }}</p>
                   </div>
-                  <div class="rounded-xl border border-primary/20 bg-primary/5 p-3">
-                    <p class="text-xs uppercase font-bold text-primary/70">Assigned Vehicle</p>
-                    <p class="font-semibold text-gray-900 mt-1">{{ selectedVehicleLabel() }}</p>
-                  </div>
-                  <div class="rounded-xl border border-primary/20 bg-primary/5 p-3">
-                    <p class="text-xs uppercase font-bold text-primary/70">Assigned Driver</p>
-                    <p class="font-semibold text-gray-900 mt-1">{{ selectedDriverName() }}</p>
-                  </div>
+                </div>
+                <div class="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                  <p class="text-xs uppercase font-bold text-primary/70 mb-2">Assigned Vehicle(s)</p>
+                  @for (v of selectedVehicles(); track v.id) {
+                    <div class="mb-2 last:mb-0">
+                      <p class="font-semibold text-gray-900">{{ vehicleLabel(v) }}</p>
+                      <p class="text-xs text-gray-600 mt-0.5">
+                        Driver: {{ v.assignedDriverName || '—' }}
+                        @if (v.assignedDriverContact) {
+                          · {{ v.assignedDriverContact }}
+                        }
+                      </p>
+                    </div>
+                  }
                 </div>
                 <div class="rounded-xl border border-gray-200 p-3">
                   <p class="text-xs uppercase font-bold text-gray-400 mb-2">Trip Schedule</p>
@@ -305,20 +272,19 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           }
         </div>
 
-        <!-- Footer -->
         <div class="shrink-0 border-t border-gray-100 px-6 py-4 flex items-center justify-between gap-3">
           <button type="button" (click)="step() === 1 ? cancelled.emit() : prevStep()"
             class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
             {{ step() === 1 ? 'Cancel' : 'Back' }}
           </button>
           <div class="flex gap-2">
-            @if (step() < 4) {
+            @if (step() < 3) {
               <button type="button" (click)="nextStep()" [disabled]="!canProceed()"
                 class="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                 Next
               </button>
             } @else {
-              <button type="button" (click)="submit()" [disabled]="submitting() || vehicleConflict() || driverConflict()"
+              <button type="button" (click)="submit()" [disabled]="submitting() || vehicleConflict()"
                 class="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                 @if (submitting()) { <ui-icon name="autorenew" class="text-base animate-spin" /> }
                 @else { <ui-icon name="check_circle" class="text-base" /> }
@@ -340,7 +306,7 @@ export class VanApproveModal implements OnInit {
   @Output() cancelled = new EventEmitter<void>();
 
   readonly modalTitle = computed(() =>
-    this.mode() === 'reassign' ? 'Change Vehicle & Driver' : 'Approve Van Reservation',
+    this.mode() === 'reassign' ? 'Change Assigned Vehicles' : 'Approve Van Reservation',
   );
 
   readonly confirmStepTitle = computed(() =>
@@ -351,16 +317,12 @@ export class VanApproveModal implements OnInit {
 
   readonly step = signal<ApproveStep>(1);
   readonly vehicles = signal<VanVehicleItem[]>([]);
-  readonly drivers = signal<VanDriverItem[]>([]);
-  readonly selectedVehicleId = signal<number | null>(null);
-  readonly selectedDriverId = signal<number | null>(null);
+  readonly selectedVehicleIds = signal<number[]>([]);
   readonly vehicleSchedule = signal<VanApprovedScheduleEvent[]>([]);
-  readonly driverSchedule = signal<VanApprovedScheduleEvent[]>([]);
 
   readonly loadingMeta = signal(true);
   readonly metaError = signal('');
   readonly loadingSchedule = signal(false);
-  readonly loadingDriverSchedule = signal(false);
   readonly submitting = signal(false);
   readonly submitError = signal('');
 
@@ -374,25 +336,24 @@ export class VanApproveModal implements OnInit {
     try { return JSON.parse(this.reservation.reservedDates) ?? []; } catch { return []; }
   });
 
-  readonly selectedVehicle = computed(() =>
-    this.vehicles().find(v => v.id === this.selectedVehicleId()) ?? null,
-  );
-
-  readonly selectedVehicleLabel = computed(() => {
-    const v = this.selectedVehicle();
-    return v ? vehicleLabel(v) : '—';
+  readonly selectedVehicles = computed(() => {
+    const ids = new Set(this.selectedVehicleIds());
+    return this.vehicles().filter(v => ids.has(v.id));
   });
 
-  readonly selectedDriverName = computed(() =>
-    this.drivers().find(d => d.id === this.selectedDriverId())?.fullName ?? '—',
+  readonly selectedVehicleLabel = computed(() =>
+    this.selectedVehicles().map(v => vehicleLabel(v)).join(', ') || '—',
   );
+
+  readonly selectedDriverName = computed(() => {
+    const names = this.selectedVehicles()
+      .map(v => v.assignedDriverName?.trim())
+      .filter((n): n is string => !!n);
+    return names.length ? names.join(', ') : '—';
+  });
 
   readonly vehicleConflict = computed(() =>
     this.slotsOverlapSchedule(this.requestedSlots(), this.vehicleSchedule()),
-  );
-
-  readonly driverConflict = computed(() =>
-    this.slotsOverlapSchedule(this.requestedSlots(), this.driverSchedule()),
   );
 
   readonly monthLabel = computed(() => {
@@ -442,27 +403,15 @@ export class VanApproveModal implements OnInit {
   loadMeta(): void {
     this.loadingMeta.set(true);
     this.metaError.set('');
-    const reservationId = this.reservation.id;
-    this.svc.getAvailableVehiclesForReservation(reservationId).subscribe({
+    this.svc.getAvailableVehiclesForReservation(this.reservation.id).subscribe({
       next: (vRes) => {
+        this.loadingMeta.set(false);
         if (!vRes.success) {
           this.metaError.set(vRes.message ?? 'Failed to load vehicles');
-          this.loadingMeta.set(false);
           return;
         }
         this.vehicles.set(vRes.vehicles ?? []);
-        this.svc.getAvailableDriversForReservation(reservationId).subscribe({
-          next: (dRes) => {
-            this.loadingMeta.set(false);
-            if (!dRes.success) {
-              this.metaError.set(dRes.message ?? 'Failed to load drivers');
-              return;
-            }
-            this.drivers.set(dRes.drivers ?? []);
-            this.prefillSelections();
-          },
-          error: () => { this.loadingMeta.set(false); this.metaError.set('Failed to load drivers'); },
-        });
+        this.prefillSelections();
       },
       error: () => { this.loadingMeta.set(false); this.metaError.set('Failed to load vehicles'); },
     });
@@ -470,87 +419,73 @@ export class VanApproveModal implements OnInit {
 
   private prefillSelections(): void {
     if (this.mode() !== 'reassign') return;
-    const vehicleId = this.reservation.vehicleId;
-    const driverId = this.reservation.driverId;
-    if (vehicleId && this.vehicles().some(v => v.id === vehicleId)) {
-      this.selectedVehicleId.set(vehicleId);
+    const fromList = this.reservation.vehicleIds?.filter(id =>
+      this.vehicles().some(v => v.id === id),
+    ) ?? [];
+    if (fromList.length) {
+      this.selectedVehicleIds.set(fromList);
+      return;
     }
-    if (driverId && this.drivers().some(d => d.id === driverId)) {
-      this.selectedDriverId.set(driverId);
-      this.loadDriverSchedule(driverId);
+    const single = this.reservation.vehicleId;
+    if (single && this.vehicles().some(v => v.id === single)) {
+      this.selectedVehicleIds.set([single]);
     }
   }
 
-  onVehicleChange(event: Event): void {
-    const id = Number((event.target as HTMLSelectElement).value);
-    this.selectedVehicleId.set(id);
+  isVehicleSelected(id: number): boolean {
+    return this.selectedVehicleIds().includes(id);
+  }
+
+  toggleVehicle(id: number, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.selectedVehicleIds.update(ids => {
+      if (checked) {
+        return ids.includes(id) ? ids : [...ids, id];
+      }
+      return ids.filter(x => x !== id);
+    });
     this.vehicleSchedule.set([]);
   }
 
-  onDriverChange(event: Event): void {
-    const id = Number((event.target as HTMLSelectElement).value);
-    this.selectedDriverId.set(id);
-    this.driverSchedule.set([]);
-    if (id) this.loadDriverSchedule(id);
-  }
-
-  loadVehicleSchedule(vehicleId: number): void {
+  loadSchedules(vehicleIds: number[]): void {
+    if (!vehicleIds.length) {
+      this.vehicleSchedule.set([]);
+      return;
+    }
     this.loadingSchedule.set(true);
-    this.svc.getVehicleSchedule(vehicleId, this.reservation.id).subscribe({
-      next: (res) => {
+    forkJoin(
+      vehicleIds.map(id => this.svc.getVehicleSchedule(id, this.reservation.id)),
+    ).subscribe({
+      next: (responses) => {
         this.loadingSchedule.set(false);
-        this.vehicleSchedule.set(res.approvedEvents ?? []);
+        const events = responses.flatMap(r => r.approvedEvents ?? []);
+        this.vehicleSchedule.set(events);
       },
       error: () => { this.loadingSchedule.set(false); this.vehicleSchedule.set([]); },
     });
   }
 
-  loadDriverSchedule(driverId: number): void {
-    this.loadingDriverSchedule.set(true);
-    this.svc.getDriverSchedule(driverId, this.reservation.id).subscribe({
-      next: (res) => {
-        this.loadingDriverSchedule.set(false);
-        this.driverSchedule.set(res.approvedEvents ?? []);
-      },
-      error: () => { this.loadingDriverSchedule.set(false); this.driverSchedule.set([]); },
-    });
-  }
-
   canProceed(): boolean {
     switch (this.step()) {
-      case 1: return this.selectedVehicleId() !== null;
+      case 1: return this.selectedVehicleIds().length > 0;
       case 2: return !this.loadingSchedule() && !this.vehicleConflict();
-      case 3: return this.selectedDriverId() !== null && !this.loadingDriverSchedule() && !this.driverConflict();
       default: return true;
     }
   }
 
   nextStep(): void {
     const current = this.step();
-    if (current === 1 && this.selectedVehicleId()) {
-      this.enterScheduleStep(this.selectedVehicleId()!);
+    if (current === 1 && this.selectedVehicleIds().length) {
+      this.step.set(2);
+      this.loadSchedules(this.selectedVehicleIds());
       return;
     }
-    if (current < 4) this.step.set((current + 1) as ApproveStep);
+    if (current < 3) this.step.set((current + 1) as ApproveStep);
   }
 
   prevStep(): void {
     const current = this.step();
-    if (current === 3) {
-      const vehicleId = this.selectedVehicleId();
-      if (vehicleId) {
-        this.enterScheduleStep(vehicleId);
-      } else {
-        this.step.set(2);
-      }
-      return;
-    }
     if (current > 1) this.step.set((current - 1) as ApproveStep);
-  }
-
-  private enterScheduleStep(vehicleId: number): void {
-    this.step.set(2);
-    this.loadVehicleSchedule(vehicleId);
   }
 
   formatTime(value: string | null | undefined): string {
@@ -569,14 +504,13 @@ export class VanApproveModal implements OnInit {
   }
 
   submit(): void {
-    const vehicleId = this.selectedVehicleId();
-    const driverId = this.selectedDriverId();
-    if (!vehicleId || !driverId) return;
-    if (this.vehicleConflict() || this.driverConflict()) return;
+    const vehicleIds = this.selectedVehicleIds();
+    if (!vehicleIds.length) return;
+    if (this.vehicleConflict()) return;
 
     this.submitting.set(true);
     this.submitError.set('');
-    const body = { vehicleId, driverId };
+    const body = { vehicleIds };
     const req$ = this.mode() === 'reassign'
       ? this.svc.reassign(this.reservation.id, body)
       : this.svc.approve(this.reservation.id, body);
@@ -585,8 +519,7 @@ export class VanApproveModal implements OnInit {
         this.submitting.set(false);
         if (res.success) {
           this.approved.emit({
-            vehicleId,
-            driverId,
+            vehicleIds,
             vehicleLabel: this.selectedVehicleLabel(),
             driverName: this.selectedDriverName(),
           });

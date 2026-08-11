@@ -221,7 +221,6 @@ export function vanFormRowFromDashboardEvent(event: DashboardEvent): VanReservat
     satisfactionRating: null,
     vehicleId: null,
     vehicleLabel: event.vehicleLabel ?? null,
-    driverId: null,
     driverName: event.driverName ?? null,
     approvedAt: null,
     approvedBy: null,

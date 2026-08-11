@@ -56,6 +56,8 @@ public class SuperAdminVehicleService {
 			dto.setVehicleDescription(item.getVehicleDescription());
 			dto.setImageUrl(item.getImageUrl());
 			dto.setStatus(item.getStatus());
+			dto.setAssignedDriverName(item.getAssignedDriverName());
+			dto.setAssignedDriverContact(item.getAssignedDriverContact());
 
 			dto.setFacilityId(item.getFacility().getId());
 			dto.setFacilityName(item.getFacility().getFacilityName());
@@ -178,7 +180,7 @@ public class SuperAdminVehicleService {
 				return response;
 			}
 
-			vanReservationRepository.clearVehicleReferences(vehicleId);
+            vanReservationRepository.clearVehicleAssignments(vehicleId);
 
 			boolean deleted = vehicleRepository.deleteById(vehicleId);
 
@@ -232,6 +234,8 @@ public class SuperAdminVehicleService {
 			vehicle.setFacility(facility);
 
 			vehicle.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+			vehicle.setAssignedDriverName(blankToNull(request.getAssignedDriverName()));
+			vehicle.setAssignedDriverContact(blankToNull(request.getAssignedDriverContact()));
 
 			String image = normalizeImage(request.getImage());
 
@@ -303,6 +307,8 @@ public class SuperAdminVehicleService {
 			vehicle.setStatus(request.getStatus());
 
 			vehicle.setFacility(facility);
+			vehicle.setAssignedDriverName(blankToNull(request.getAssignedDriverName()));
+			vehicle.setAssignedDriverContact(blankToNull(request.getAssignedDriverContact()));
 
 			if (request.getImage() != null && !request.getImage().trim().isEmpty()) {
 				String image = normalizeImage(request.getImage());
@@ -343,5 +349,12 @@ public class SuperAdminVehicleService {
 		}
 
 		return image.trim();
+	}
+
+	private static String blankToNull(String value) {
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		return value.trim();
 	}
 }

@@ -51,6 +51,8 @@ export class EditVehicle implements OnDestroy {
     capacity: [1, [Validators.required, Validators.min(1)]],
     status: ['AVAILABLE', [Validators.required]],
     vehicleDescription: ['', [Validators.required]],
+    assignedDriverName: [''],
+    assignedDriverContact: [''],
     image: [null as File | null],
   });
 
@@ -107,6 +109,8 @@ export class EditVehicle implements OnDestroy {
           capacity: Number(vehicle.capacity ?? 1),
           status: normalizeVehicleStatus(vehicle.status),
           vehicleDescription: vehicle.vehicleDescription ?? '',
+          assignedDriverName: vehicle.assignedDriverName ?? '',
+          assignedDriverContact: vehicle.assignedDriverContact ?? '',
           image: null,
         });
         this.setImagePreview(
@@ -152,6 +156,8 @@ export class EditVehicle implements OnDestroy {
         capacity: Number(v.capacity),
         vehicleDescription: v.vehicleDescription,
         status: v.status,
+        assignedDriverName: v.assignedDriverName.trim() || null,
+        assignedDriverContact: v.assignedDriverContact.trim() || null,
         image: v.image,
       })
       .subscribe({

@@ -22,9 +22,11 @@ export interface VanReservationRow {
   status: ReservationStatus;
   createdAt: string;
   satisfactionRating: number | null;
+  /** First assigned vehicle id (compat). Prefer {@link vehicleIds}. */
   vehicleId: number | null;
+  vehicleIds?: number[] | null;
   vehicleLabel: string | null;
-  driverId: number | null;
+  /** Permanent drivers from assigned vehicles (comma-separated). */
   driverName: string | null;
   approvedAt: string | null;
   approvedBy: string | null;
@@ -42,13 +44,8 @@ export interface VanVehicleItem {
   facilityName: string;
   imageUrl?: string;
   Status: string;
-}
-
-export interface VanDriverItem {
-  id: number;
-  fullName: string;
-  contactNumber: string;
-  status: string;
+  assignedDriverName?: string | null;
+  assignedDriverContact?: string | null;
 }
 
 export interface VanApprovedScheduleEvent {
@@ -60,13 +57,13 @@ export interface VanApprovedScheduleEvent {
   endTime: string;
   vehicleId: number | null;
   vehicleLabel: string | null;
+  driverName?: string | null;
   eventKind?: string;
   reservationId?: number | null;
 }
 
 export interface VanApproveRequest {
-  vehicleId: number;
-  driverId: number;
+  vehicleIds: number[];
 }
 
 export interface RescheduleRequest {
@@ -92,7 +89,6 @@ export interface VanAdminListResponse {
   message: string;
   reservations?: VanReservationRow[];
   vehicles?: VanVehicleItem[];
-  drivers?: VanDriverItem[];
   approvedEvents?: VanApprovedScheduleEvent[];
 }
 

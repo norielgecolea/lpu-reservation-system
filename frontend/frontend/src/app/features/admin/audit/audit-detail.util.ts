@@ -51,6 +51,8 @@ export function formatAuditDetails(actionType: string, detailsRaw: string | null
   }
 
   if (d['vehicleId']) parts.push(`Vehicle ID: ${d['vehicleId']}`);
+  if (d['vehicleIds']) parts.push(`Vehicle IDs: ${d['vehicleIds']}`);
+  if (d['vehicleId']) parts.push(`Vehicle ID: ${d['vehicleId']}`);
   if (d['driverId']) parts.push(`Driver ID: ${d['driverId']}`);
 
   if (d['facility']) parts.push(`Facility: ${d['facility']}`);

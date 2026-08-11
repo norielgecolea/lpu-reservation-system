@@ -61,6 +61,8 @@ export class Vehicles {
           vehicle.brand,
           vehicle.facilityName,
           vehicle.vehicleDescription,
+          vehicle.assignedDriverName,
+          vehicle.assignedDriverContact,
           String(vehicle.capacity),
           vehicle.status].some((field) => field?.toLowerCase().includes(q)),
       );

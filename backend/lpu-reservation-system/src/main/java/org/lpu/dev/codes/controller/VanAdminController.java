@@ -97,21 +97,6 @@ public class VanAdminController {
         return res;
     }
 
-    @GetMapping("/drivers")
-    public VanReservationResponse getDrivers(@RequestHeader("Authorization") String authHeader) {
-        VanReservationResponse res = new VanReservationResponse();
-        String token = tok(authHeader);
-        if (!auth.userActive(jwtService.getUsername(token))) {
-            res.setSuccess(false); res.setMessage("USER NOT ACTIVE!"); return res;
-        }
-        if (!isAllowed(token)) {
-            res.setSuccess(false); res.setMessage("Access denied"); return res;
-        }
-        res.setSuccess(true);
-        res.setDrivers(vanService.getActiveDrivers());
-        return res;
-    }
-
     @GetMapping("/reservations/{id}/available-vehicles")
     public VanReservationResponse getAvailableVehiclesForReservation(
             @RequestHeader("Authorization") String authHeader,
@@ -136,30 +121,6 @@ public class VanAdminController {
         return res;
     }
 
-    @GetMapping("/reservations/{id}/available-drivers")
-    public VanReservationResponse getAvailableDriversForReservation(
-            @RequestHeader("Authorization") String authHeader,
-            @PathVariable Long id) {
-        VanReservationResponse res = new VanReservationResponse();
-        String token = tok(authHeader);
-        if (!auth.userActive(jwtService.getUsername(token))) {
-            res.setSuccess(false); res.setMessage("USER NOT ACTIVE!"); return res;
-        }
-        if (!isAllowed(token)) {
-            res.setSuccess(false); res.setMessage("Access denied"); return res;
-        }
-        try {
-            res.setSuccess(true);
-            res.setMessage("Available drivers fetched successfully");
-            res.setDrivers(vanService.getAvailableDriversForReservation(id));
-        } catch (Exception e) {
-            logger.error("Error fetching available drivers for reservation {}", id, e);
-            res.setSuccess(false);
-            res.setMessage("Failed to load available drivers");
-        }
-        return res;
-    }
-
     @GetMapping("/vehicles/{id}/schedule")
     public VanReservationResponse getVehicleSchedule(@RequestHeader("Authorization") String authHeader,
             @PathVariable Long id,
@@ -174,23 +135,6 @@ public class VanAdminController {
         }
         res.setSuccess(true);
         res.setApprovedEvents(vanService.getVehicleSchedule(id, excludeReservationId));
-        return res;
-    }
-
-    @GetMapping("/drivers/{id}/schedule")
-    public VanReservationResponse getDriverSchedule(@RequestHeader("Authorization") String authHeader,
-            @PathVariable Long id,
-            @RequestParam(required = false) Long excludeReservationId) {
-        VanReservationResponse res = new VanReservationResponse();
-        String token = tok(authHeader);
-        if (!auth.userActive(jwtService.getUsername(token))) {
-            res.setSuccess(false); res.setMessage("USER NOT ACTIVE!"); return res;
-        }
-        if (!isAllowed(token)) {
-            res.setSuccess(false); res.setMessage("Access denied"); return res;
-        }
-        res.setSuccess(true);
-        res.setApprovedEvents(vanService.getDriverSchedule(id, excludeReservationId));
         return res;
     }
 
@@ -209,12 +153,11 @@ public class VanAdminController {
             res.setSuccess(false); res.setMessage("Access denied");
             return ResponseEntity.status(403).body(res);
         }
-        if (request.getVehicleId() == null || request.getDriverId() == null) {
-            res.setSuccess(false); res.setMessage("vehicleId and driverId are required");
+        if (request.getVehicleIds() == null || request.getVehicleIds().isEmpty()) {
+            res.setSuccess(false); res.setMessage("vehicleIds is required (at least one vehicle)");
             return ResponseEntity.badRequest().body(res);
         }
-        res = vanService.approveReservation(id, request.getVehicleId(), request.getDriverId(),
-                jwtService.getUsername(token));
+        res = vanService.approveReservation(id, request.getVehicleIds(), jwtService.getUsername(token));
         if (!res.isSuccess() && res.getBlockedReason() != null) {
             return ResponseEntity.status(409).body(res);
         }
@@ -236,12 +179,11 @@ public class VanAdminController {
             res.setSuccess(false); res.setMessage("Access denied");
             return ResponseEntity.status(403).body(res);
         }
-        if (request.getVehicleId() == null || request.getDriverId() == null) {
-            res.setSuccess(false); res.setMessage("vehicleId and driverId are required");
+        if (request.getVehicleIds() == null || request.getVehicleIds().isEmpty()) {
+            res.setSuccess(false); res.setMessage("vehicleIds is required (at least one vehicle)");
             return ResponseEntity.badRequest().body(res);
         }
-        res = vanService.reassignVehicleAndDriver(id, request.getVehicleId(), request.getDriverId(),
-                jwtService.getUsername(token));
+        res = vanService.reassignVehicles(id, request.getVehicleIds(), jwtService.getUsername(token));
         if (!res.isSuccess() && res.getBlockedReason() != null) {
             return ResponseEntity.status(409).body(res);
         }

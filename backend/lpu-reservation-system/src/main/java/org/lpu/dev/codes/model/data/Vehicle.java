@@ -40,12 +40,35 @@ public class Vehicle {
     @Column(name = "image_url")
     private String imageUrl;
 
+    /** Permanent driver assigned to this vehicle (not a separate Driver entity). */
+    @Column(name = "assigned_driver_name", length = 150)
+    private String assignedDriverName;
+
+    @Column(name = "assigned_driver_contact", length = 20)
+    private String assignedDriverContact;
+
     public String getImageUrl() {
         return imageUrl;
     }
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getAssignedDriverName() {
+        return assignedDriverName;
+    }
+
+    public void setAssignedDriverName(String assignedDriverName) {
+        this.assignedDriverName = assignedDriverName;
+    }
+
+    public String getAssignedDriverContact() {
+        return assignedDriverContact;
+    }
+
+    public void setAssignedDriverContact(String assignedDriverContact) {
+        this.assignedDriverContact = assignedDriverContact;
     }
 
     public Vehicle() {

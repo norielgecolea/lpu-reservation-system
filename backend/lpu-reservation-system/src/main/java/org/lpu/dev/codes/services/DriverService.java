@@ -10,7 +10,6 @@ import org.lpu.dev.codes.model.dto.CreateDriverRequest;
 import org.lpu.dev.codes.model.dto.PopulateDriverList;
 import org.lpu.dev.codes.model.dto.UpdateDriverRequest;
 import org.lpu.dev.codes.repository.DriverRepository;
-import org.lpu.dev.codes.repository.VanReservationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +21,6 @@ public class DriverService {
 
     @Autowired
     private DriverRepository driverRepository;
-
-    @Autowired
-    private VanReservationRepository vanReservationRepository;
 
     @Autowired
     private AdminAuditService auditService;
@@ -107,7 +103,6 @@ public class DriverService {
             return false;
         }
         Driver driver = opt.get();
-        vanReservationRepository.clearDriverReferences(id);
         boolean deleted = driverRepository.deleteById(id);
         if (deleted) {
             auditService.log("DRIVERS", "DELETE", performedBy, "driver", id, driver.getFullName(), null);

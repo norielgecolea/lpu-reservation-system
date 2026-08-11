@@ -1,6 +1,9 @@
 package org.lpu.dev.codes.model.data;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -13,7 +16,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -56,13 +60,12 @@ public class VanReservation {
     @Column(name = "reserved_dates", nullable = false)
     private String reservedDates;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_id")
-    private Vehicle vehicle;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "driver_id")
-    private Driver driver;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "van_reservation_vehicles",
+            joinColumns = @JoinColumn(name = "reservation_id"),
+            inverseJoinColumns = @JoinColumn(name = "vehicle_id"))
+    private Set<Vehicle> assignedVehicles = new LinkedHashSet<>();
 
     @Column(length = 20)
     private String status;
@@ -128,11 +131,32 @@ public class VanReservation {
     public String getReservedDates() { return reservedDates; }
     public void setReservedDates(String reservedDates) { this.reservedDates = reservedDates; }
 
-    public Vehicle getVehicle() { return vehicle; }
-    public void setVehicle(Vehicle vehicle) { this.vehicle = vehicle; }
+    public Set<Vehicle> getAssignedVehicles() { return assignedVehicles; }
+    public void setAssignedVehicles(Set<Vehicle> assignedVehicles) {
+        this.assignedVehicles = assignedVehicles != null ? assignedVehicles : new LinkedHashSet<>();
+    }
 
-    public Driver getDriver() { return driver; }
-    public void setDriver(Driver driver) { this.driver = driver; }
+    /** First assigned vehicle, if any (convenience for single-label displays). */
+    public Vehicle getPrimaryVehicle() {
+        return assignedVehicles == null || assignedVehicles.isEmpty()
+                ? null
+                : assignedVehicles.iterator().next();
+    }
+
+    public String formatVehicleLabels() {
+        if (assignedVehicles == null || assignedVehicles.isEmpty()) return null;
+        return assignedVehicles.stream()
+                .map(v -> v.getBrand() + " (" + v.getPlateNum() + ")")
+                .collect(Collectors.joining(", "));
+    }
+
+    public String formatDriverNames() {
+        if (assignedVehicles == null || assignedVehicles.isEmpty()) return null;
+        return assignedVehicles.stream()
+                .map(Vehicle::getAssignedDriverName)
+                .filter(n -> n != null && !n.isBlank())
+                .collect(Collectors.joining(", "));
+    }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

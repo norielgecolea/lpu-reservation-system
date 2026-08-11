@@ -97,6 +97,36 @@
               placeholder="Passenger van for campus transport"
             />
           </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="add-vehicle-driver-name" class="text-sm font-bold text-gray-800">
+              Assigned Driver
+            </label>
+            <input
+              uiInput
+              id="add-vehicle-driver-name"
+              name="addVehicleDriverName"
+              type="text"
+              formControlName="assignedDriverName"
+              autocomplete="off"
+              placeholder="Driver full name"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="add-vehicle-driver-contact" class="text-sm font-bold text-gray-800">
+              Driver Contact
+            </label>
+            <input
+              uiInput
+              id="add-vehicle-driver-contact"
+              name="addVehicleDriverContact"
+              type="text"
+              formControlName="assignedDriverContact"
+              autocomplete="off"
+              placeholder="09XXXXXXXXX"
+            />
+          </div>
         </div>
 
         <aside class="flex flex-col gap-3">

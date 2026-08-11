@@ -20,14 +20,30 @@ public class VanReservationRepository {
         entityManager.flush();
     }
 
+    public void merge(VanReservation reservation) {
+        entityManager.merge(reservation);
+        entityManager.flush();
+    }
+
     public Optional<VanReservation> findById(Long id) {
-        VanReservation result = entityManager.find(VanReservation.class, id);
-        return Optional.ofNullable(result);
+        List<VanReservation> rows = entityManager
+                .createQuery(
+                        "SELECT DISTINCT r FROM VanReservation r "
+                                + "LEFT JOIN FETCH r.assignedVehicles "
+                                + "WHERE r.id = :id",
+                        VanReservation.class)
+                .setParameter("id", id)
+                .getResultList();
+        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
 
     public List<VanReservation> findAllApproved() {
         return entityManager
-                .createQuery("FROM VanReservation r WHERE r.status IN ('APPROVED', 'COMPLETED') ORDER BY r.createdAt DESC", VanReservation.class)
+                .createQuery(
+                        "SELECT DISTINCT r FROM VanReservation r "
+                                + "LEFT JOIN FETCH r.assignedVehicles "
+                                + "WHERE r.status IN ('APPROVED', 'COMPLETED') ORDER BY r.createdAt DESC",
+                        VanReservation.class)
                 .getResultList();
     }
 
@@ -38,15 +54,22 @@ public class VanReservationRepository {
     @SuppressWarnings("unchecked")
     public List<Object[]> findAllNative(String month, String fromDate, String toDate) {
         StringBuilder sql = new StringBuilder(
-                "SELECT r.id, r.department, r.organization, r.travel_destination, r.passenger_names, " +
-                "r.number_of_passengers, r.return_time, r.contact_person, r.contact_email, r.contact_number, " +
-                "r.reserved_dates::text, r.status, r.created_at, " +
-                "r.satisfaction_rating, r.vehicle_id, r.driver_id, " +
-                "v.brand, v.plate_num, d.full_name, r.approved_at, r.approved_by, r.additional_remarks, " +
-                "r.school, r.requested_vehicle_type " +
-                "FROM van_reservations r " +
-                "LEFT JOIN vehicle v ON r.vehicle_id = v.id " +
-                "LEFT JOIN driver d ON r.driver_id = d.id");
+                "SELECT r.id, r.department, r.organization, r.travel_destination, r.passenger_names, "
+                        + "r.number_of_passengers, r.return_time, r.contact_person, r.contact_email, r.contact_number, "
+                        + "r.reserved_dates::text, r.status, r.created_at, "
+                        + "r.satisfaction_rating, "
+                        + "(SELECT string_agg(v.id::text, ',' ORDER BY v.id) FROM van_reservation_vehicles j "
+                        + " JOIN vehicle v ON v.id = j.vehicle_id WHERE j.reservation_id = r.id), "
+                        + "(SELECT string_agg(v.brand || ' (' || v.plate_num || ')', ', ' ORDER BY v.id) "
+                        + " FROM van_reservation_vehicles j JOIN vehicle v ON v.id = j.vehicle_id "
+                        + " WHERE j.reservation_id = r.id), "
+                        + "(SELECT string_agg(DISTINCT v.assigned_driver_name, ', ' ORDER BY v.assigned_driver_name) "
+                        + " FROM van_reservation_vehicles j JOIN vehicle v ON v.id = j.vehicle_id "
+                        + " WHERE j.reservation_id = r.id AND v.assigned_driver_name IS NOT NULL "
+                        + " AND btrim(v.assigned_driver_name) <> ''), "
+                        + "r.approved_at, r.approved_by, r.additional_remarks, "
+                        + "r.school, r.requested_vehicle_type "
+                        + "FROM van_reservations r");
 
         boolean useRange = isPresent(fromDate) && isPresent(toDate);
         boolean useMonth = !useRange && isPresent(month);
@@ -93,20 +116,11 @@ public class VanReservationRepository {
     public List<VanReservation> findApprovedByVehicleId(Long vehicleId) {
         return entityManager
                 .createQuery(
-                        "FROM VanReservation r LEFT JOIN FETCH r.vehicle LEFT JOIN FETCH r.driver "
-                                + "WHERE r.vehicle.id = :vehicleId AND r.status IN ('APPROVED', 'COMPLETED')",
+                        "SELECT DISTINCT r FROM VanReservation r "
+                                + "JOIN FETCH r.assignedVehicles v "
+                                + "WHERE v.id = :vehicleId AND r.status IN ('APPROVED', 'COMPLETED')",
                         VanReservation.class)
                 .setParameter("vehicleId", vehicleId)
-                .getResultList();
-    }
-
-    public List<VanReservation> findApprovedByDriverId(Long driverId) {
-        return entityManager
-                .createQuery(
-                        "FROM VanReservation r LEFT JOIN FETCH r.vehicle LEFT JOIN FETCH r.driver "
-                                + "WHERE r.driver.id = :driverId AND r.status IN ('APPROVED', 'COMPLETED')",
-                        VanReservation.class)
-                .setParameter("driverId", driverId)
                 .getResultList();
     }
 
@@ -117,23 +131,11 @@ public class VanReservationRepository {
                 .executeUpdate();
     }
 
-    public void assignVehicleAndDriver(Long id, Long vehicleId, Long driverId, String status, String approvedBy) {
+    public void approveWithVehicles(Long id, String approvedBy) {
         entityManager.createNativeQuery(
-                "UPDATE van_reservations SET vehicle_id = :vehicleId, driver_id = :driverId, status = :status, "
+                "UPDATE van_reservations SET status = 'APPROVED', "
                         + "approved_at = CURRENT_TIMESTAMP, approved_by = :approvedBy WHERE id = :id")
-                .setParameter("vehicleId", vehicleId)
-                .setParameter("driverId", driverId)
-                .setParameter("status", status)
                 .setParameter("approvedBy", approvedBy)
-                .setParameter("id", id)
-                .executeUpdate();
-    }
-
-    public void updateVehicleAndDriver(Long id, Long vehicleId, Long driverId) {
-        entityManager.createNativeQuery(
-                "UPDATE van_reservations SET vehicle_id = :vehicleId, driver_id = :driverId WHERE id = :id")
-                .setParameter("vehicleId", vehicleId)
-                .setParameter("driverId", driverId)
                 .setParameter("id", id)
                 .executeUpdate();
     }
@@ -154,16 +156,20 @@ public class VanReservationRepository {
                 .executeUpdate();
     }
 
-    public void clearVehicleReferences(Long vehicleId) {
-        entityManager.createNativeQuery("UPDATE van_reservations SET vehicle_id = NULL WHERE vehicle_id = :vehicleId")
+    public void clearVehicleAssignments(Long vehicleId) {
+        entityManager.createNativeQuery(
+                "DELETE FROM van_reservation_vehicles WHERE vehicle_id = :vehicleId")
                 .setParameter("vehicleId", vehicleId)
                 .executeUpdate();
-    }
-
-    public void clearDriverReferences(Long driverId) {
-        entityManager.createNativeQuery("UPDATE van_reservations SET driver_id = NULL WHERE driver_id = :driverId")
-                .setParameter("driverId", driverId)
-                .executeUpdate();
+        // Legacy column (if still present from older schema)
+        try {
+            entityManager.createNativeQuery(
+                    "UPDATE van_reservations SET vehicle_id = NULL WHERE vehicle_id = :vehicleId")
+                    .setParameter("vehicleId", vehicleId)
+                    .executeUpdate();
+        } catch (Exception ignored) {
+            // Column may already be dropped
+        }
     }
 
     /** APPROVED reservations that include the given reserved date (YYYY-MM-DD). */
@@ -180,7 +186,10 @@ public class VanReservationRepository {
         }
         List<Long> longIds = ids.stream().map(Number::longValue).toList();
         return entityManager
-                .createQuery("FROM VanReservation r WHERE r.id IN :ids", VanReservation.class)
+                .createQuery(
+                        "SELECT DISTINCT r FROM VanReservation r "
+                                + "LEFT JOIN FETCH r.assignedVehicles WHERE r.id IN :ids",
+                        VanReservation.class)
                 .setParameter("ids", longIds)
                 .getResultList();
     }

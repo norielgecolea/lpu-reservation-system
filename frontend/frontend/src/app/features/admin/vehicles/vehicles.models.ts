@@ -14,6 +14,8 @@ export interface VehicleRow {
   imageUrl?: string;
   photo?: string;
   vehicleImage?: string;
+  assignedDriverName?: string | null;
+  assignedDriverContact?: string | null;
 }
 
 export interface PopulateVehiclesResponse {
@@ -30,6 +32,8 @@ export interface CreateVehicleRequest {
   id: number;
   plate_num: string;
   brand: string;
+  assignedDriverName?: string | null;
+  assignedDriverContact?: string | null;
   image?: File | string | null;
 }
 
@@ -41,6 +45,8 @@ export interface UpdateVehicleRequest {
   status: string;
   plate_num: string;
   brand: string;
+  assignedDriverName?: string | null;
+  assignedDriverContact?: string | null;
   image?: File | string | null;
 }
 

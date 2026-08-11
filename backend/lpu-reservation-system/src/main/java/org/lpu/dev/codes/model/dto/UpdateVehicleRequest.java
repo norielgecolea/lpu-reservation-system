@@ -9,6 +9,8 @@ public class UpdateVehicleRequest {
 	private Long facilityId;
 	private String status;
 	private String image;
+	private String assignedDriverName;
+	private String assignedDriverContact;
 	
 	public String getImage() {
 		return image;
@@ -57,5 +59,21 @@ public class UpdateVehicleRequest {
 	}
 	public void setStatus(String status) {
 		this.status = status;
+	}
+
+	public String getAssignedDriverName() {
+		return assignedDriverName;
+	}
+
+	public void setAssignedDriverName(String assignedDriverName) {
+		this.assignedDriverName = assignedDriverName;
+	}
+
+	public String getAssignedDriverContact() {
+		return assignedDriverContact;
+	}
+
+	public void setAssignedDriverContact(String assignedDriverContact) {
+		this.assignedDriverContact = assignedDriverContact;
 	}
 }

@@ -19,6 +19,8 @@ public class PopulateVehicleList {
 	}
 
 	private String Status;
+	private String assignedDriverName;
+	private String assignedDriverContact;
 
 	public String getStatus() {
 		return Status;
@@ -82,6 +84,22 @@ public class PopulateVehicleList {
 
 	public void setFacilityName(String facilityName) {
 		this.facilityName = facilityName;
+	}
+
+	public String getAssignedDriverName() {
+		return assignedDriverName;
+	}
+
+	public void setAssignedDriverName(String assignedDriverName) {
+		this.assignedDriverName = assignedDriverName;
+	}
+
+	public String getAssignedDriverContact() {
+		return assignedDriverContact;
+	}
+
+	public void setAssignedDriverContact(String assignedDriverContact) {
+		this.assignedDriverContact = assignedDriverContact;
 	}
 
 }

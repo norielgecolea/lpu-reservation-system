@@ -30,7 +30,7 @@ public class VanEmailService {
     public void sendReservationConfirmation(VanReservation r) {
         String body = buildBase("Reservation Received", "We've received your van reservation request", "#1d4ed8", r,
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>Your request is <strong>pending review</strong>. "
-            + "We will notify you once a vehicle and driver have been assigned.</p>"
+            + "We will notify you once vehicle(s) have been assigned.</p>"
             + "<p style='color:#374151;font-size:15px;margin:0;'>Please expect a response within <strong>3–5 business days</strong>.</p>",
             null);
         send(r.getContactEmail(), threadSubject(r), body, r.getId(), true);
@@ -38,10 +38,15 @@ public class VanEmailService {
 
     @Async
     public void sendApprovalEmail(VanReservation r) {
-        String vehicleInfo = r.getVehicle() != null
-                ? r.getVehicle().getBrand() + " (" + r.getVehicle().getPlateNum() + ")" : "—";
-        String driverInfo = r.getDriver() != null ? r.getDriver().getFullName() : "—";
-        String extra = detailRow("Assigned Vehicle", vehicleInfo) + detailRow("Assigned Driver", driverInfo);
+        String vehicleInfo = r.formatVehicleLabels();
+        if (vehicleInfo == null || vehicleInfo.isBlank()) {
+            vehicleInfo = "—";
+        }
+        String driverInfo = r.formatDriverNames();
+        if (driverInfo == null || driverInfo.isBlank()) {
+            driverInfo = "—";
+        }
+        String extra = detailRow("Assigned Vehicle(s)", vehicleInfo) + detailRow("Assigned Driver(s)", driverInfo);
         String body = buildBase("Reservation Approved", "Your van reservation has been approved", "#059669", r,
             "<p style='color:#374151;font-size:15px;margin:0 0 12px;'>Your trip has been approved. Vehicle and driver details are below.</p>"
             + "<p style='color:#92400e;font-size:14px;margin:0 0 12px;padding:12px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;'>"

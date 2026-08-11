@@ -123,6 +123,36 @@
               autocomplete="off"
             />
           </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="edit-vehicle-driver-name" class="text-sm font-bold text-gray-800">
+              Assigned Driver
+            </label>
+            <input
+              uiInput
+              id="edit-vehicle-driver-name"
+              name="editVehicleDriverName"
+              type="text"
+              formControlName="assignedDriverName"
+              autocomplete="off"
+              placeholder="Driver full name"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="edit-vehicle-driver-contact" class="text-sm font-bold text-gray-800">
+              Driver Contact
+            </label>
+            <input
+              uiInput
+              id="edit-vehicle-driver-contact"
+              name="editVehicleDriverContact"
+              type="text"
+              formControlName="assignedDriverContact"
+              autocomplete="off"
+              placeholder="09XXXXXXXXX"
+            />
+          </div>
         </div>
       }
     </div>
