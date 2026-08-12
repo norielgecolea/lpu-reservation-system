@@ -37,7 +37,7 @@ import { UiIcon, UiButton } from '../../../shared/ui';
       </div>
 
       <!-- Facilities Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-8 max-w-7xl w-full mx-auto flex-1 content-start md:content-stretch">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-3 md:gap-8 max-w-7xl w-full mx-auto flex-1 content-start md:content-stretch">
 
         <a routerLink="/customer/van" class="facility-card group">
           <span class="facility-card-icon" aria-hidden="true">
@@ -59,7 +59,7 @@ import { UiIcon, UiButton } from '../../../shared/ui';
           </span>
           <span class="facility-card-label">Gymnasium</span>
         </a>
-
+        <!-- 
         <div class="facility-card--disabled">
           <span class="facility-card-icon" aria-hidden="true">
             <ui-icon name="groups" class="text-3xl md:text-[80px] opacity-80" />
@@ -67,6 +67,8 @@ import { UiIcon, UiButton } from '../../../shared/ui';
           <span class="facility-card-label">Boardroom</span>
           <span class="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600">Coming soon</span>
         </div>
+
+         -->
 
         <div class="facility-card--disabled">
           <span class="facility-card-icon" aria-hidden="true">
@@ -76,6 +78,8 @@ import { UiIcon, UiButton } from '../../../shared/ui';
           <span class="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600">Coming soon</span>
         </div>
 
+
+         <!-- 
         <div class="facility-card--disabled">
           <span class="facility-card-icon" aria-hidden="true">
             <ui-icon name="meeting_room" class="text-3xl md:text-[80px] opacity-80" />
@@ -83,6 +87,7 @@ import { UiIcon, UiButton } from '../../../shared/ui';
           <span class="facility-card-label">Conference Room</span>
           <span class="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600">Coming soon</span>
         </div>
+        -->
 
       </div>
 
