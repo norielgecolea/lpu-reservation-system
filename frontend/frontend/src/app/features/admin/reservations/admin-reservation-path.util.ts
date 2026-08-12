@@ -1,4 +1,4 @@
-export type AdminReservationService = 'flt' | 'gymnasium' | 'van';
+export type AdminReservationService = 'flt' | 'gymnasium' | 'van' | 'nexus';
 
 export function isFacilitiesReservationContext(url: string): boolean {
   return url.includes('/facilities/reservation');

@@ -69,14 +69,13 @@ import { UiIcon, UiButton } from '../../../shared/ui';
         </div>
 
          -->
-
-        <div class="facility-card--disabled">
+        <!-- /customer/nexus-room -->
+        <a routerLink="" class="facility-card--disabled ">
           <span class="facility-card-icon" aria-hidden="true">
-            <ui-icon name="co_present" class="text-3xl md:text-[80px] opacity-80" />
+            <ui-icon name="co_present" class="text-3xl md:text-[80px] opacity-80 group-hover:opacity-100 transition-opacity" />
           </span>
           <span class="facility-card-label">Nexus Room</span>
-          <span class="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600">Coming soon</span>
-        </div>
+        </a>
 
 
          <!-- 

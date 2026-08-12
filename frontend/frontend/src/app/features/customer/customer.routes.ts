@@ -41,6 +41,10 @@ export const CUSTOMER_ROUTES: Routes = [
   },
   {
     path: 'nexus-room',
-    loadComponent: () => import('./nexus-room/nexus-room').then((m) => m.NexusRoomReservation),
+    loadComponent: () => import('./nexus-room/nexus-reservation').then((m) => m.NexusReservation),
+  },
+  {
+    path: 'nexus-room/terms',
+    loadComponent: () => import('./nexus-room/nexus-terms').then((m) => m.NexusTerms),
   },
 ];

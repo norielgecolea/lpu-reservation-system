@@ -26,6 +26,8 @@ const RESERVATION_LOADERS: Record<
     import('../../customer/gymnasium/gymnasium-reservation').then(
       (m) => m.GymnasiumReservation,
     ),
+  nexus: () =>
+    import('../../customer/nexus-room/nexus-reservation').then((m) => m.NexusReservation),
   van: () =>
     import('../../customer/van/van-reservation').then((m) => m.VanReservation),
 };

@@ -6,7 +6,7 @@ import { EquipmentScope } from './equipments.service';
 const EXCLUDED_FACILITIES = new Set(['van']);
 
 /** FLT and Gymnasium only — facilities admin equipment scope. */
-const FACILITIES_ADMIN_FACILITY_IDS = new Set([1, 5]);
+const FACILITIES_ADMIN_FACILITY_IDS = new Set([1, 3, 5]);
 
 /** Build distinct facility (service) options from facility or equipment rows. */
 export function toFacilityOptions(

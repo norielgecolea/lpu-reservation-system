@@ -16,6 +16,7 @@ const FACILITY_PATH: Record<string, string> = {
   FLT: 'reservation/flt',
   GYMNASIUM: 'reservation/gymnasium',
   VAN: 'reservation/van',
+  NEXUS: 'reservation/nexus',
 };
 
 @Component({

@@ -1,0 +1,462 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  computed,
+  signal,
+} from '@angular/core';
+import { UiIcon } from '../../../../shared/ui';
+import { formatReadableTime } from '../../../../shared/utils/datetime.util';
+import { NexusRescheduleEvent } from './nexus-reschedule-calendar';
+
+export interface NexusCoordinationSlot {
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface CalendarCell {
+  day: number | null;
+  dateStr: string | null;
+  isToday: boolean;
+  isPast: boolean;
+  events: NexusRescheduleEvent[];
+}
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const TIME_SLOTS = Array.from({ length: 15 }, (_, i) => {
+  const hour = i + 7;
+  const label = hour > 12 ? `${hour - 12}:00 PM` : hour === 12 ? '12:00 PM' : `${hour}:00 AM`;
+  const value = `${String(hour).padStart(2, '0')}:00`;
+  return { value, label };
+});
+
+type PickerView = 'calendar' | 'timeslots';
+
+@Component({
+  selector: 'app-nexus-coordination-calendar',
+  imports: [UiIcon],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="fixed inset-0 z-50 flex min-h-0 flex-col bg-gray-50">
+      <!-- Header -->
+      <div class="bg-amber-600 bg-[linear-gradient(135deg,#b45309,#92400e_55%,#d97706)] text-white shadow-lg shrink-0">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div class="flex items-center gap-3 flex-1">
+            <button type="button" (click)="cancelled.emit()"
+              class="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors cursor-pointer text-sm">
+              <ui-icon name="arrow_back" class="text-xl" />
+            </button>
+            <div>
+              <h1 class="text-lg sm:text-xl font-black tracking-tight leading-tight">Set Coordination Meeting</h1>
+              <p class="text-white/70 text-xs">{{ eventTitle }} — pick a date and time for the pre-event coordination</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            @if (pickerView() === 'calendar') {
+              <div class="flex items-center gap-1 bg-white/10 rounded-xl p-1">
+                <button type="button" (click)="prevMonth()"
+                  class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-white/20 transition-colors">
+                  <ui-icon name="chevron_left" class="text-xl" />
+                </button>
+                <span class="px-3 text-sm font-bold min-w-32 text-center">{{ monthLabel() }}</span>
+                <button type="button" (click)="nextMonth()"
+                  class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-white/20 transition-colors">
+                  <ui-icon name="chevron_right" class="text-xl" />
+                </button>
+              </div>
+            } @else {
+              <button type="button" (click)="pickerView.set('calendar')"
+                class="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors cursor-pointer text-sm">
+                <ui-icon name="calendar_month" class="text-base" />
+                Calendar
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar view -->
+      @if (pickerView() === 'calendar') {
+        <div class="flex min-h-0 flex-1 flex-col max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-4 gap-3">
+          <div class="min-h-0 flex-1 flex flex-col overflow-hidden rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
+            <div class="grid grid-cols-7 bg-amber-600 text-center text-sm font-bold text-white shrink-0">
+              @for (wd of weekdays; track wd) {
+                <div class="border-r border-white/30 px-1 py-2.5 last:border-r-0 text-xs sm:text-sm">{{ wd }}</div>
+              }
+            </div>
+            <div class="min-h-0 flex-1 grid grid-cols-7 overflow-hidden" [style.grid-template-rows]="calendarRows()">
+              @for (cell of calendarCells(); track $index) {
+                <div
+                  class="flex h-full min-h-0 flex-col overflow-hidden border-r border-b border-gray-100 bg-white p-1 sm:p-1.5 transition-colors"
+                  [class.bg-gray-50]="cell.day !== null && !cell.isToday"
+                  [class.bg-gray-100]="cell.day === null"
+                  [class.bg-amber-50]="cell.isToday"
+                  [class.bg-emerald-50]="isTargetEventDate(cell.dateStr)"
+                  [class.cursor-pointer]="cell.day !== null && !cell.isPast"
+                  [class.hover:bg-amber-50]="cell.day !== null && !cell.isPast && !cell.isToday && !isTargetEventDate(cell.dateStr)"
+                  [class.ring-2]="cell.dateStr === selectedSlot()?.date || isTargetEventDate(cell.dateStr)"
+                  [class.ring-amber-500]="cell.dateStr === selectedSlot()?.date"
+                  [class.ring-emerald-500]="isTargetEventDate(cell.dateStr) && cell.dateStr !== selectedSlot()?.date"
+                  [class.ring-inset]="isTargetEventDate(cell.dateStr) && cell.dateStr !== selectedSlot()?.date"
+                  [class.opacity-40]="cell.isPast"
+                  (click)="cell.day !== null && !cell.isPast ? selectDay(cell.dateStr!) : null"
+                >
+                  @if (cell.day !== null) {
+                    <span
+                      class="mx-auto mb-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6 sm:text-xs font-semibold"
+                      [class.bg-amber-500]="cell.isToday"
+                      [class.text-white]="cell.isToday"
+                      [class.text-gray-700]="!cell.isToday"
+                    >{{ cell.day }}</span>
+                    @if (cell.events.length > 0) {
+                      <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
+                        @for (ev of cell.events.slice(0, 2); track ev.department + ev.startTime + ev.endTime + ev.eventKind) {
+                          <li
+                            class="min-w-0 truncate rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight font-semibold"
+                            [class.border-emerald-500]="ev.eventKind === 'TARGET'"
+                            [class.bg-emerald-50]="ev.eventKind === 'TARGET'"
+                            [class.text-emerald-800]="ev.eventKind === 'TARGET'"
+                            [class.border-sky-500]="ev.eventKind === 'RESERVATION'"
+                            [class.bg-sky-50]="ev.eventKind === 'RESERVATION'"
+                            [class.text-sky-800]="ev.eventKind === 'RESERVATION'"
+                            [class.border-amber-500]="ev.eventKind === 'COORDINATION'"
+                            [class.bg-amber-50]="ev.eventKind === 'COORDINATION'"
+                            [class.text-amber-800]="ev.eventKind === 'COORDINATION'"
+                            [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department)"
+                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department }}</li>
+                        }
+                        @if (cell.events.length > 2) {
+                          <li class="truncate text-[10px] font-bold text-amber-600 pl-1">+{{ cell.events.length - 2 }} more</li>
+                        }
+                      </ul>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-4 shrink-0 text-xs text-gray-500">
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block w-3 h-3 rounded border-l-2 border-emerald-500 bg-emerald-50"></span>
+              {{ eventTitle }}
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block w-3 h-3 rounded border-l-2 border-sky-500 bg-sky-50"></span>
+              Approved Reservation
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block w-3 h-3 rounded border-l-2 border-amber-500 bg-amber-50"></span>
+              Coordination Meeting
+            </span>
+            <span class="ml-auto text-[11px] italic">Coordination may overlap other coordinations, but not events</span>
+          </div>
+
+          @if (selectedSlot()) {
+            <div class="shrink-0 border-t border-gray-200 bg-white shadow-lg px-4 sm:px-6 py-3">
+              <div class="max-w-screen-2xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3">
+                <div class="flex items-center gap-2 text-sm font-semibold text-amber-700">
+                  <ui-icon name="handshake" class="text-base text-amber-500" />
+                  {{ formatDateShort(selectedSlot()!.date) }} · {{ formatTimeShort(selectedSlot()!.startTime) }}–{{ formatTimeShort(selectedSlot()!.endTime) }}
+                </div>
+                <div class="flex gap-2 sm:ml-auto">
+                  <button type="button" (click)="selectedSlot.set(null)"
+                    class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
+                    Clear
+                  </button>
+                  <button type="button" (click)="save()" [disabled]="saving()"
+                    class="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-5 py-2 text-sm font-bold text-white cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    @if (saving()) { <ui-icon name="autorenew" class="text-base animate-spin" /> }
+                    @else { <ui-icon name="save" class="text-base" /> }
+                    Save Coordination
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Time-slot view -->
+      @if (pickerView() === 'timeslots') {
+        <div class="flex min-h-0 flex-1 flex-col max-w-screen-md mx-auto w-full px-3 sm:px-6 pt-3 sm:pt-4">
+          <div class="flex shrink-0 items-center gap-2 px-1">
+            <ui-icon name="calendar_today" class="text-amber-600 text-base" />
+            <span class="text-sm font-bold text-gray-800">{{ formatDateLong(selectedDay()) }}</span>
+            <span class="ml-auto hidden text-xs text-gray-400 sm:inline">Scroll for later hours</span>
+          </div>
+
+          <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3" style="scrollbar-width: thin">
+            <div class="rounded-xl ring-1 ring-black/5 shadow-sm bg-white">
+              @for (slot of timeSlots; track slot.value) {
+                @if (getBlockingEvent(slot.value); as ev) {
+                  <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
+                    </div>
+                    <div
+                      class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2"
+                      [class.bg-emerald-50]="ev.eventKind === 'TARGET'"
+                      [class.bg-sky-50]="ev.eventKind === 'RESERVATION'"
+                    >
+                      <div class="flex-1 min-w-0">
+                        <p
+                          class="text-xs font-bold truncate"
+                          [class.text-emerald-700]="ev.eventKind === 'TARGET'"
+                          [class.text-sky-700]="ev.eventKind === 'RESERVATION'"
+                        >{{ ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department }}</p>
+                        <p
+                          class="text-[10px]"
+                          [class.text-emerald-500]="ev.eventKind === 'TARGET'"
+                          [class.text-sky-500]="ev.eventKind === 'RESERVATION'"
+                        >{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · Reserved</p>
+                      </div>
+                      <ui-icon
+                        [name]="ev.eventKind === 'TARGET' ? 'event' : 'lock'"
+                        class="text-sm shrink-0"
+                        [class.text-emerald-400]="ev.eventKind === 'TARGET'"
+                        [class.text-sky-400]="ev.eventKind === 'RESERVATION'"
+                      />
+                    </div>
+                  </div>
+                } @else {
+                  <div
+                    class="flex items-stretch border-b border-gray-100 last:border-b-0 cursor-pointer group"
+                    [class.ring-2]="isHourInSelection(slot.value)"
+                    [class.ring-amber-500]="isHourInSelection(slot.value)"
+                    [class.bg-amber-50]="isHourInSelection(slot.value)"
+                    (click)="toggleHour(slot.value)"
+                  >
+                    <div class="w-16 sm:w-24 shrink-0 flex items-center justify-end pr-2 sm:pr-3 py-2 sm:py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                      {{ slot.label }}
+                    </div>
+                    <div class="flex-1 px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-center gap-2 group-hover:bg-amber-50 transition-colors">
+                      @if (isHourInSelection(slot.value)) {
+                        <ui-icon name="check" class="text-amber-600 text-base shrink-0" />
+                        <span class="text-xs font-semibold text-amber-700">Selected</span>
+                      } @else if (getCoordinationOnSlot(slot.value); as coord) {
+                        <ui-icon name="handshake" class="text-amber-400 text-sm shrink-0" />
+                        <span class="text-xs text-amber-700 font-medium truncate">
+                          Existing coordination {{ formatTimeShort(coord.startTime) }}–{{ formatTimeShort(coord.endTime) }} — click to overlap
+                        </span>
+                      } @else {
+                        <span class="text-xs text-gray-400 group-hover:text-amber-600 transition-colors">Available — click to select</span>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+
+            @if (timeSlotError()) {
+              <p class="mt-3 text-sm text-red-500 flex items-center gap-1.5">
+                <ui-icon name="warning" class="text-base" />{{ timeSlotError() }}
+              </p>
+            }
+          </div>
+
+          <div class="shrink-0 flex gap-2 sm:gap-3 border-t border-gray-200 bg-gray-50 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <button type="button" (click)="pickerView.set('calendar')"
+              class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-semibold text-gray-700 hover:bg-white transition-colors cursor-pointer">
+              <ui-icon name="arrow_back" class="text-base" /> Back
+            </button>
+            <button type="button" (click)="confirmTimeSlot()" [disabled]="selStart() === null || selEnd() === null"
+              class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-bold text-white hover:bg-amber-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
+              <ui-icon name="check" class="text-base" /> Confirm Slot
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  `,
+})
+export class NexusCoordinationCalendar {
+  @Input() events: NexusRescheduleEvent[] = [];
+  @Input() eventTitle = '';
+  @Input() saving = signal(false);
+  /**
+   * Pre-existing coordination slot. Applied once on open only — parent poll/WS
+   * refreshes recreate this object and must not reset the viewed month.
+   */
+  @Input() set initial(v: NexusCoordinationSlot | null) {
+    if (!v || this.initialSeeded) return;
+    this.initialSeeded = true;
+    this.selectedSlot.set({ ...v });
+    const [y, m] = v.date.split('-').map(Number);
+    this.activeYear.set(y);
+    this.activeMonth.set(m - 1);
+  }
+  @Output() saved = new EventEmitter<NexusCoordinationSlot>();
+  @Output() cancelled = new EventEmitter<void>();
+
+  private initialSeeded = false;
+
+  readonly pickerView = signal<PickerView>('calendar');
+  readonly selectedDay = signal<string | null>(null);
+  readonly selectedSlot = signal<NexusCoordinationSlot | null>(null);
+  readonly selStart = signal<number | null>(null);
+  readonly selEnd = signal<number | null>(null);
+  readonly timeSlotError = signal('');
+
+  readonly activeYear = signal(new Date().getFullYear());
+  readonly activeMonth = signal(new Date().getMonth());
+
+  readonly weekdays = WEEKDAYS;
+  readonly timeSlots = TIME_SLOTS;
+
+  readonly monthLabel = computed(() => {
+    const d = new Date(this.activeYear(), this.activeMonth(), 1);
+    return d.toLocaleString('default', { month: 'long', year: 'numeric' });
+  });
+
+  readonly calendarCells = computed<CalendarCell[]>(() => {
+    const year = this.activeYear();
+    const month = this.activeMonth();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = this.fmt(today);
+    const firstWeekday = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cellCount = Math.max(5, Math.ceil((firstWeekday + daysInMonth) / 7)) * 7;
+    const evs = this.events;
+
+    return Array.from({ length: cellCount }, (_, i) => {
+      const dayOffset = i - firstWeekday;
+      if (dayOffset < 0 || dayOffset >= daysInMonth) {
+        return { day: null, dateStr: null, isToday: false, isPast: false, events: [] };
+      }
+      const day = dayOffset + 1;
+      const dateStr = this.fmt(new Date(year, month, day));
+      return { day, dateStr, isToday: dateStr === todayStr, isPast: dateStr < todayStr, events: evs.filter(e => e.date === dateStr) };
+    });
+  });
+
+  readonly calendarRows = computed(() => `repeat(${this.calendarCells().length / 7}, minmax(4.75rem, 1fr))`);
+
+  prevMonth(): void {
+    if (this.activeMonth() === 0) { this.activeMonth.set(11); this.activeYear.update(y => y - 1); }
+    else { this.activeMonth.update(m => m - 1); }
+  }
+
+  nextMonth(): void {
+    if (this.activeMonth() === 11) { this.activeMonth.set(0); this.activeYear.update(y => y + 1); }
+    else { this.activeMonth.update(m => m + 1); }
+  }
+
+  selectDay(dateStr: string): void {
+    this.selectedDay.set(dateStr);
+    this.selStart.set(null);
+    this.selEnd.set(null);
+    this.timeSlotError.set('');
+    this.pickerView.set('timeslots');
+  }
+
+  /** Reserved event hours that must not be overlapped (RESERVATION / TARGET). */
+  getBlockingEvent(hourStr: string): NexusRescheduleEvent | null {
+    const day = this.selectedDay();
+    if (!day) return null;
+    const hour = parseInt(hourStr, 10);
+    return this.events.find(ev => {
+      if (ev.date !== day) return false;
+      if (ev.eventKind !== 'RESERVATION' && ev.eventKind !== 'TARGET') return false;
+      // Inclusive of end clock time (same as reservation time-picker highlight)
+      return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
+    }) ?? null;
+  }
+
+  /** Existing coordination on this hour — informational only; selection is allowed. */
+  getCoordinationOnSlot(hourStr: string): NexusRescheduleEvent | null {
+    const day = this.selectedDay();
+    if (!day) return null;
+    const hour = parseInt(hourStr, 10);
+    return this.events.find(ev => {
+      if (ev.date !== day || ev.eventKind !== 'COORDINATION') return false;
+      // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
+      return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
+    }) ?? null;
+  }
+
+  isTargetEventDate(dateStr: string | null): boolean {
+    if (!dateStr) return false;
+    return this.events.some(ev => ev.date === dateStr && ev.eventKind === 'TARGET');
+  }
+
+  isHourInSelection(hourStr: string): boolean {
+    const hour = parseInt(hourStr, 10);
+    const start = this.selStart();
+    const end = this.selEnd();
+    if (start === null) return false;
+    if (end === null) return hour === start;
+    // Inclusive of end clock time so clicking 12:00 highlights that row
+    return hour >= start && hour <= end;
+  }
+
+  toggleHour(hourStr: string): void {
+    const hour = parseInt(hourStr, 10);
+    const start = this.selStart();
+    this.timeSlotError.set('');
+    if (start === null) {
+      this.selStart.set(hour);
+      this.selEnd.set(null);
+    } else if (hour === start) {
+      this.selStart.set(null);
+      this.selEnd.set(null);
+    } else {
+      const [lo, hi] = hour > start ? [start, hour] : [hour, start];
+      const conflict = this.events.find(ev => {
+        if (ev.date !== this.selectedDay()) return false;
+        if (ev.eventKind !== 'RESERVATION' && ev.eventKind !== 'TARGET') return false;
+        return lo < parseInt(ev.endTime, 10) && hi > parseInt(ev.startTime, 10);
+      });
+      if (conflict) {
+        this.timeSlotError.set('Selection overlaps with an existing event. Coordination cannot overlap events.');
+        return;
+      }
+      this.selStart.set(lo);
+      this.selEnd.set(hi);
+    }
+  }
+
+  confirmTimeSlot(): void {
+    const day = this.selectedDay();
+    const start = this.selStart();
+    const end = this.selEnd();
+    if (!day || start === null || end === null) return;
+    this.selectedSlot.set({
+      date: day,
+      startTime: `${String(start).padStart(2, '0')}:00`,
+      endTime: `${String(end).padStart(2, '0')}:00`,
+    });
+    this.selStart.set(null); this.selEnd.set(null);
+    this.pickerView.set('calendar');
+  }
+
+  save(): void {
+    const s = this.selectedSlot();
+    if (s) this.saved.emit(s);
+  }
+
+  formatDateShort(dateStr: string): string {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  formatTimeShort(timeStr: string): string {
+    return formatReadableTime(timeStr);
+  }
+
+  formatDateLong(dateStr: string | null): string {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  private fmt(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+}

@@ -8,10 +8,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.FltReservation;
 import org.lpu.dev.codes.model.data.GymnasiumReservation;
+import org.lpu.dev.codes.model.data.NexusReservation;
 import org.lpu.dev.codes.model.data.ReservationReminder;
 import org.lpu.dev.codes.model.data.VanReservation;
 import org.lpu.dev.codes.repository.FltReservationRepository;
 import org.lpu.dev.codes.repository.GymnasiumReservationRepository;
+import org.lpu.dev.codes.repository.NexusReservationRepository;
 import org.lpu.dev.codes.repository.ReservationReminderRepository;
 import org.lpu.dev.codes.repository.VanReservationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,14 +35,17 @@ public class ReservationReminderService {
     private static final String SERVICE_FLT = "FLT";
     private static final String SERVICE_GYM = "GYMNASIUM";
     private static final String SERVICE_VAN = "VAN";
+    private static final String SERVICE_NEXUS = "NEXUS";
 
     @Autowired private FltReservationRepository fltReservationRepository;
     @Autowired private GymnasiumReservationRepository gymnasiumReservationRepository;
+    @Autowired private NexusReservationRepository nexusReservationRepository;
     @Autowired private VanReservationRepository vanReservationRepository;
     @Autowired private ReservationReminderRepository reminderRepository;
 
     @Autowired private FltEmailService fltEmailService;
     @Autowired private GymnasiumEmailService gymnasiumEmailService;
+    @Autowired private NexusEmailService nexusEmailService;
     @Autowired private VanEmailService vanEmailService;
 
     /** Runs every day at 8:00 AM Asia/Manila. */
@@ -56,6 +61,7 @@ public class ReservationReminderService {
             String reminderType = reminderTypeFor(daysBefore);
             sent += processFlt(targetDate, daysBefore, reminderType);
             sent += processGymnasium(targetDate, daysBefore, reminderType);
+            sent += processNexus(targetDate, daysBefore, reminderType);
             sent += processVan(targetDate, daysBefore, reminderType);
         }
 
@@ -87,6 +93,22 @@ public class ReservationReminderService {
             }
             if (gymnasiumEmailService.sendReminderEmail(r, daysBefore)) {
                 recordSent(SERVICE_GYM, r.getId(), targetDate, reminderType);
+                sent++;
+            }
+        }
+        return sent;
+    }
+
+    private int processNexus(String targetDate, int daysBefore, String reminderType) {
+        List<NexusReservation> reservations =
+                nexusReservationRepository.findApprovedByReservedDate(targetDate);
+        int sent = 0;
+        for (NexusReservation r : reservations) {
+            if (alreadySent(SERVICE_NEXUS, r.getId(), targetDate, reminderType)) {
+                continue;
+            }
+            if (nexusEmailService.sendReminderEmail(r, daysBefore)) {
+                recordSent(SERVICE_NEXUS, r.getId(), targetDate, reminderType);
                 sent++;
             }
         }

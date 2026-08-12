@@ -162,6 +162,9 @@ public class MaintenanceAdminController {
         if ("GYMNASIUM".equals(f) || "GYM".equals(f)) {
             return org.lpu.dev.codes.services.RoleAccessService.SERVICE_GYMNASIUM;
         }
+        if ("NEXUS".equals(f) || "NEXUS_ROOM".equals(f)) {
+            return org.lpu.dev.codes.services.RoleAccessService.SERVICE_NEXUS;
+        }
         if ("VAN".equals(f) || "UNIVERSITY_VAN".equals(f)) {
             return org.lpu.dev.codes.services.RoleAccessService.SERVICE_VAN;
         }

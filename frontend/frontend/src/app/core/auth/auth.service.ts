@@ -12,6 +12,7 @@ import {
   ForgotPasswordRequest,
   ResetPasswordWithTokenRequest,
 } from './auth.models';
+import { ALL_SERVICE_CODES, isSuperAdmin } from './roles';
 
 const TOKEN_KEY = 'lpul_token';
 const USERNAME_KEY = 'lpul_remember_username';
@@ -105,11 +106,13 @@ export class AuthService {
 }
 
 function toUser(res: AuthResponse): AuthUser {
-  const services = (res.services ?? [])
-    .map((s) => (s ?? '').trim().toUpperCase())
-    .filter((s): s is AuthUser['services'][number] =>
-      s === 'FLT' || s === 'GYMNASIUM' || s === 'VAN',
-    );
+  const services = isSuperAdmin(res.role)
+    ? [...ALL_SERVICE_CODES]
+    : (res.services ?? [])
+        .map((s) => (s ?? '').trim().toUpperCase())
+        .filter((s): s is AuthUser['services'][number] =>
+          s === 'FLT' || s === 'GYMNASIUM' || s === 'VAN' || s === 'NEXUS',
+        );
   return {
     username: res.username,
     role: res.role,

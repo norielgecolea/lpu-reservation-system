@@ -21,7 +21,7 @@ export interface ResetPasswordWithTokenRequest {
 }
 
 /** Bookable admin services a role may access. */
-export type ServiceCode = 'FLT' | 'GYMNASIUM' | 'VAN';
+export type ServiceCode = 'FLT' | 'GYMNASIUM' | 'VAN' | 'NEXUS';
 
 export interface AuthResponse {
   success: boolean;

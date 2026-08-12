@@ -1,6 +1,7 @@
 export type AuditServiceCode =
   | 'FLT'
   | 'GYMNASIUM'
+  | 'NEXUS'
   | 'VAN'
   | 'MAINTENANCE'
   | 'USERS'
@@ -32,6 +33,7 @@ export interface AuditLogResponse {
 export const AUDIT_ROUTE_SERVICE: Record<string, AuditServiceCode> = {
   flt: 'FLT',
   gymnasium: 'GYMNASIUM',
+  nexus: 'NEXUS',
   van: 'VAN',
   maintenance: 'MAINTENANCE',
   users: 'USERS',
@@ -43,6 +45,7 @@ export const AUDIT_ROUTE_SERVICE: Record<string, AuditServiceCode> = {
 export const AUDIT_SERVICE_LABELS: Record<AuditServiceCode, string> = {
   FLT: 'FLT Theater',
   GYMNASIUM: 'Gymnasium',
+  NEXUS: 'Nexus Room',
   VAN: 'University Van',
   MAINTENANCE: 'Maintenance',
   USERS: 'Users',

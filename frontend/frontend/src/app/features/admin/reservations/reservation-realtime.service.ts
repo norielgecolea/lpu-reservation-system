@@ -43,23 +43,27 @@ export class ReservationRealtimeService {
   private fltStompSub: StompSubscription | null = null;
   private gymStompSub: StompSubscription | null = null;
   private vanStompSub: StompSubscription | null = null;
+  private nexusStompSub: StompSubscription | null = null;
   private pollSub: Subscription | null = null;
   private startedSockJsFallback = false;
 
   private readonly fltSubject = new Subject<ReservationWsEvent>();
   private readonly gymSubject = new Subject<ReservationWsEvent>();
   private readonly vanSubject = new Subject<ReservationWsEvent>();
+  private readonly nexusSubject = new Subject<ReservationWsEvent>();
   private readonly refreshSubject = new Subject<ReservationRefreshTick>();
 
   readonly fltUpdates$: Observable<ReservationWsEvent> = this.fltSubject.asObservable();
   readonly gymUpdates$: Observable<ReservationWsEvent> = this.gymSubject.asObservable();
   readonly vanUpdates$: Observable<ReservationWsEvent> = this.vanSubject.asObservable();
+  readonly nexusUpdates$: Observable<ReservationWsEvent> = this.nexusSubject.asObservable();
   /** Always fires while a page has called ensureConnected — works even if WS fails. */
   readonly refreshTicks$: Observable<ReservationRefreshTick> = this.refreshSubject.asObservable();
   readonly anyUpdates$: Observable<ReservationWsEvent> = merge(
     this.fltUpdates$,
     this.gymUpdates$,
     this.vanUpdates$,
+    this.nexusUpdates$,
   );
 
   constructor() {
@@ -204,6 +208,9 @@ export class ReservationRealtimeService {
     this.vanStompSub = this.client.subscribe('/topic/reservations/van', (msg: IMessage) => {
       this.emit(this.vanSubject, msg);
     });
+    this.nexusStompSub = this.client.subscribe('/topic/reservations/nexus', (msg: IMessage) => {
+      this.emit(this.nexusSubject, msg);
+    });
   }
 
   private emit(subject: Subject<ReservationWsEvent>, msg: IMessage): void {
@@ -219,8 +226,10 @@ export class ReservationRealtimeService {
     this.fltStompSub?.unsubscribe();
     this.gymStompSub?.unsubscribe();
     this.vanStompSub?.unsubscribe();
+    this.nexusStompSub?.unsubscribe();
     this.fltStompSub = null;
     this.gymStompSub = null;
     this.vanStompSub = null;
+    this.nexusStompSub = null;
   }
 }

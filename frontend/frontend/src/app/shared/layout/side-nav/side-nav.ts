@@ -4,13 +4,13 @@ import { filter } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import {
+  effectiveServices,
   isFltTech,
   isSuperAdmin,
   reservationLinkForService,
   serviceIcon,
   serviceLabel,
   usesFacilitiesShell,
-  type ServiceCode,
 } from '../../../core/auth/roles';
 import { AccountProfileModal } from '../account-profile-modal';
 import { UiIcon } from '../../ui';
@@ -51,7 +51,7 @@ export class SideNav implements OnInit {
       ];
     }
 
-    const services = (user?.services ?? []) as ServiceCode[];
+    const services = effectiveServices(user);
 
     if (isSuperAdmin(role)) {
       const reservationChildren = services.map((s) => ({
@@ -75,6 +75,7 @@ export class SideNav implements OnInit {
           children: [
             { label: 'FLT Theater', icon: 'theaters', link: '/audit/flt' },
             { label: 'Gymnasium', icon: 'sports_basketball', link: '/audit/gymnasium' },
+            { label: 'Nexus Room', icon: 'co_present', link: '/audit/nexus' },
             { label: 'University Van', icon: 'airport_shuttle', link: '/audit/van' },
             { label: 'Maintenance', icon: 'construction', link: '/audit/maintenance' },
             { label: 'Users', icon: 'group', link: '/audit/users' },

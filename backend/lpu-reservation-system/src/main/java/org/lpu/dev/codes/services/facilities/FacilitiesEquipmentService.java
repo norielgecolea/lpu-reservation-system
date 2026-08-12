@@ -26,7 +26,8 @@ public class FacilitiesEquipmentService {
 
     private static final long FLT_FACILITY_ID = 1L;
     private static final long GYM_FACILITY_ID = 5L;
-    private static final Set<Long> ALLOWED_FACILITY_IDS = Set.of(FLT_FACILITY_ID, GYM_FACILITY_ID);
+    private static final long NEXUS_FACILITY_ID = 3L;
+    private static final Set<Long> ALLOWED_FACILITY_IDS = Set.of(FLT_FACILITY_ID, GYM_FACILITY_ID, NEXUS_FACILITY_ID);
 
     @Autowired
     private EquipmentRepository equipmentRepository;

@@ -129,7 +129,7 @@ export interface CalendarDay {
 const DAYS_PER_WEEK = 7;
 const MIN_CALENDAR_ROWS = 5;
 
-export const IMPLEMENTED_SERVICES = new Set<DashboardService>(['FLT', 'Gymnasium', 'VAN']);
+export const IMPLEMENTED_SERVICES = new Set<DashboardService>(['FLT', 'Gymnasium', 'VAN', 'Nexus']);
 
 export const DASHBOARD_SERVICE_FILTER_ORDER: DashboardService[] = [
   'FLT',
@@ -171,6 +171,7 @@ export function dashboardServicesFromRoleCodes(
     FLT: 'FLT',
     GYMNASIUM: 'Gymnasium',
     VAN: 'VAN',
+    NEXUS: 'Nexus',
   };
   const allowed = new Set<DashboardService>();
   for (const code of codes ?? []) {
@@ -185,6 +186,7 @@ export function dashboardServicesFromRoleCodes(
 export const MAINTENANCE_API_FACILITY: Partial<Record<DashboardService, string>> = {
   FLT: 'FLT',
   Gymnasium: 'GYMNASIUM',
+  Nexus: 'NEXUS',
 };
 
 export const FLT_EVENT_COLOR =
@@ -271,10 +273,11 @@ export function dashboardStatCardBg(
   return DASHBOARD_STAT_BGS[kind];
 }
 
-const SERVICE_APPROVER_SLUG: Partial<Record<DashboardService, 'flt' | 'gymnasium' | 'van'>> = {
+const SERVICE_APPROVER_SLUG: Partial<Record<DashboardService, 'flt' | 'gymnasium' | 'van' | 'nexus'>> = {
   FLT: 'flt',
   Gymnasium: 'gymnasium',
   VAN: 'van',
+  Nexus: 'nexus',
 };
 
 /** Maps dashboard stat card → approver status filter query value. */

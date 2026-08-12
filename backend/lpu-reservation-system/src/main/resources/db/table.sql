@@ -158,6 +158,26 @@ CREATE TABLE IF NOT EXISTS gymnasium_reservations (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS nexus_reservations (
+    id BIGSERIAL PRIMARY KEY,
+    event_title VARCHAR(255) NOT NULL,
+    department VARCHAR(255) NOT NULL,
+    organization VARCHAR(255) NOT NULL,
+    number_of_attendees INTEGER,
+    contact_person VARCHAR(150) NOT NULL,
+    contact_email VARCHAR(100) NOT NULL,
+    contact_number VARCHAR(20) NOT NULL,
+    reserved_dates JSONB NOT NULL,
+    requested_equipment JSONB,
+    additional_instructions TEXT,
+    coordination_date VARCHAR(20),
+    coordination_start_time VARCHAR(10),
+    coordination_end_time VARCHAR(10),
+    status VARCHAR(20) DEFAULT 'PENDING', -- PENDING | APPROVED | REJECTED | CANCELLED | COMPLETED | CONFLICT
+    satisfaction_rating SMALLINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS driver (
     id BIGSERIAL PRIMARY KEY,
     full_name VARCHAR(150) NOT NULL,
@@ -193,6 +213,8 @@ ALTER TABLE flt_reservations ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
 ALTER TABLE flt_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
 ALTER TABLE gymnasium_reservations ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
 ALTER TABLE gymnasium_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
+ALTER TABLE nexus_reservations ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
+ALTER TABLE nexus_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS additional_remarks TEXT;

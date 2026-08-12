@@ -275,7 +275,7 @@ interface CalendarCell {
     @if (view() === 'timeslots') {
       <div
         class="select-none flex min-h-0 flex-col"
-        [class.min-h-screen]="!adminMode()"
+        [class.h-dvh]="!adminMode()"
         [class.flex-1]="adminMode()"
         [class.h-full]="adminMode()"
       >
@@ -315,9 +315,7 @@ interface CalendarCell {
 
         <!-- Selection status -->
         <div
-          class="max-w-screen-md mx-auto w-full px-4 sm:px-6 shrink-0"
-          [class.pt-3]="adminMode()"
-          [class.pt-4]="!adminMode()"
+          class="max-w-screen-md mx-auto w-full px-4 sm:px-6 shrink-0 pt-3 sm:pt-4"
         >
           <div class="rounded-xl bg-primary/5 border border-primary/20 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 text-sm">
             <div class="flex items-center gap-2 flex-1">
@@ -352,11 +350,9 @@ interface CalendarCell {
         </div>
 
         <div
-          class="max-w-screen-md mx-auto w-full px-4 sm:px-6 flex min-h-0 flex-1 flex-col"
-          [class.py-3]="adminMode()"
-          [class.py-4]="!adminMode()"
+          class="max-w-screen-md mx-auto w-full px-4 sm:px-6 flex min-h-0 flex-1 flex-col pt-3"
         >
-          <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain" style="scrollbar-width: thin">
+          <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3" style="scrollbar-width: thin">
           <div
             class="rounded-xl ring-1 ring-black/5 shadow-sm bg-white overflow-hidden"
           >
@@ -419,60 +415,62 @@ interface CalendarCell {
           </div>
 
           @if (timeSlotError()) {
-            <p class="text-sm text-red-500 flex items-center gap-1.5">
+            <p class="mt-3 text-sm text-red-500 flex items-center gap-1.5">
               <ui-icon name="warning" class="text-base" />
               {{ timeSlotError() }}
             </p>
           }
 
           </div>
+        </div>
 
-          <div
-            class="shrink-0 flex flex-col gap-3 border-t border-gray-200 bg-gray-50 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-          >
-          <div class="flex flex-col sm:flex-row gap-3" [class.mt-2]="!adminMode()">
-            <button
-              type="button"
-              (click)="view.set('calendar')"
-              class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              <ui-icon name="arrow_back" class="text-base" />
-              Back to Calendar
-            </button>
-            <button
-              type="button"
-              (click)="addToBasket()"
-              [disabled]="selectedTimeStart() === null || selectedTimeEnd() === null"
-              class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-            >
-              <ui-icon name="add" class="text-base" />
-              Add This Date
-            </button>
-          </div>
-
-          @if (basket().length > 0) {
-            <div class="mt-1">
-              <p class="text-xs font-semibold text-gray-500 mb-2">Selected dates:</p>
-              <div class="flex flex-wrap gap-2 mb-3">
-                @for (s of basket(); track s.date) {
-                  <div class="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary">
-                    {{ formatDateShort(s.date) }} Dep {{ formatTimeShort(s.startTime) }} – Ret {{ formatTimeShort(s.endTime) }}
-                    <button type="button" (click)="removeFromBasket(s.date)" class="ml-1 hover:text-red-500 cursor-pointer transition-colors">
-                      <ui-icon name="close" class="text-sm" />
-                    </button>
-                  </div>
-                }
-              </div>
+        <div
+          class="shrink-0 border-t border-gray-200 bg-white shadow-lg px-4 sm:px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        >
+          <div class="max-w-screen-md mx-auto flex flex-col gap-3">
+            <div class="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
-                (click)="goToForm()"
-                class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer shadow-sm"
+                (click)="view.set('calendar')"
+                class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                Continue to Form
-                <ui-icon name="arrow_forward" class="text-base" />
+                <ui-icon name="arrow_back" class="text-base" />
+                Back to Calendar
+              </button>
+              <button
+                type="button"
+                (click)="addToBasket()"
+                [disabled]="selectedTimeStart() === null || selectedTimeEnd() === null"
+                class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+              >
+                <ui-icon name="add" class="text-base" />
+                Add This Date
               </button>
             </div>
-          }
+
+            @if (basket().length > 0) {
+              <div>
+                <p class="text-xs font-semibold text-gray-500 mb-2">Selected dates:</p>
+                <div class="flex flex-wrap gap-2 mb-3">
+                  @for (s of basket(); track s.date) {
+                    <div class="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary">
+                      {{ formatDateShort(s.date) }} Dep {{ formatTimeShort(s.startTime) }} – Ret {{ formatTimeShort(s.endTime) }}
+                      <button type="button" (click)="removeFromBasket(s.date)" class="ml-1 hover:text-red-500 cursor-pointer transition-colors">
+                        <ui-icon name="close" class="text-sm" />
+                      </button>
+                    </div>
+                  }
+                </div>
+                <button
+                  type="button"
+                  (click)="goToForm()"
+                  class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer shadow-sm"
+                >
+                  Continue to Form
+                  <ui-icon name="arrow_forward" class="text-base" />
+                </button>
+              </div>
+            }
           </div>
         </div>
       </div>

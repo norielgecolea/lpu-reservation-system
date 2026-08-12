@@ -157,7 +157,6 @@ export class RolesPage {
       services = role.services as ServiceCode[];
     } else if (
       services.length === 0 &&
-      role.code !== 'NEXUSADMIN' &&
       role.code !== 'EOADMIN'
     ) {
       this.flash('Assign at least one service', false);

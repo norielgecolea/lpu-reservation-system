@@ -218,6 +218,42 @@ export function exportGymReservationsCsv(
   downloadCsv(`gymnasium-reservations-${suffix}.csv`, headers, rows);
 }
 
+export function exportNexusReservationsCsv(
+  records: Parameters<typeof exportGymReservationsCsv>[0],
+  range: ExportDateRange,
+): void {
+  const filtered = records.filter(r =>
+    reservationMatchesExportRange(r.reservedDates, r.coordinationDate, r.createdAt, range),
+  );
+  const headers = [
+    'ID', 'Event Title', 'Department', 'Organization', 'Number of Attendees', 'Contact Person',
+    'Contact Email', 'Contact Number', 'Status', 'Reserved Dates', 'Requested Equipment',
+    'Coordination Date', 'Coordination Time', 'Additional Instructions', 'Created At',
+    'Approved Date', 'Approved By',
+  ];
+  const rows = filtered.map(r => [
+    r.id,
+    r.eventTitle,
+    r.department,
+    r.organization,
+    r.numberOfAttendees ?? '',
+    r.contactPerson,
+    r.contactEmail,
+    r.contactNumber,
+    r.status,
+    formatSlots(r.reservedDates),
+    formatEquipment(r.requestedEquipment),
+    formatReadableDate(r.coordinationDate),
+    formatCoordinationTime(r.coordinationStartTime, r.coordinationEndTime),
+    r.additionalInstructions ?? '',
+    formatReadableDateTime(r.createdAt),
+    formatReadableDateTime(r.approvedAt),
+    r.approvedBy ?? '',
+  ]);
+  const suffix = `${range.startDate}_to_${range.endDate}`;
+  downloadCsv(`nexus-reservations-${suffix}.csv`, headers, rows);
+}
+
 export function exportVanReservationsCsv(
   records: Array<{
     id: number;

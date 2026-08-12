@@ -99,6 +99,23 @@ const superAdminRoutes: Routes = [
       ),
   },
   {
+    path: 'reservation/nexus/new',
+    canActivate: [serviceGuard('NEXUS')],
+    loadComponent: () =>
+      import('./features/admin/reservations/admin-add-reservation').then(
+        (m) => m.AdminAddReservation,
+      ),
+    data: { service: 'nexus' },
+  },
+  {
+    path: 'reservation/nexus',
+    canActivate: [serviceGuard('NEXUS')],
+    loadComponent: () =>
+      import('./features/admin/reservations/nexus/nexus-reservations').then(
+        (m) => m.NexusReservations,
+      ),
+  },
+  {
     path: 'reservation/van/new',
     canActivate: [serviceGuard('VAN')],
     loadComponent: () =>
@@ -126,6 +143,13 @@ const superAdminRoutes: Routes = [
     loadComponent: () =>
       import('./features/admin/audit/audit-logs').then((m) => m.AuditLogs),
     data: { service: 'GYMNASIUM' },
+  },
+  {
+    path: 'audit/nexus',
+    canActivate: [superAdminGuard],
+    loadComponent: () =>
+      import('./features/admin/audit/audit-logs').then((m) => m.AuditLogs),
+    data: { service: 'NEXUS' },
   },
   {
     path: 'audit/van',
@@ -245,6 +269,23 @@ const facilitiesRoutes: Routes = [
     loadComponent: () =>
       import('./features/admin/reservations/gymnasium/gymnasium-reservations').then(
         (m) => m.GymnasiumReservations,
+      ),
+  },
+  {
+    path: 'reservation/nexus/new',
+    canActivate: [serviceGuard('NEXUS')],
+    loadComponent: () =>
+      import('./features/admin/reservations/admin-add-reservation').then(
+        (m) => m.AdminAddReservation,
+      ),
+    data: { service: 'nexus' },
+  },
+  {
+    path: 'reservation/nexus',
+    canActivate: [serviceGuard('NEXUS')],
+    loadComponent: () =>
+      import('./features/admin/reservations/nexus/nexus-reservations').then(
+        (m) => m.NexusReservations,
       ),
   },
   {

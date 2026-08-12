@@ -28,6 +28,7 @@ public class RoleAccessService {
     public static final String SERVICE_FLT = "FLT";
     public static final String SERVICE_GYMNASIUM = "GYMNASIUM";
     public static final String SERVICE_VAN = "VAN";
+    public static final String SERVICE_NEXUS = "NEXUS";
 
     public static final String ROLE_SUPERADMIN = "SUPERADMIN";
     public static final String ROLE_FACILITIESADMIN = "FACILITIESADMIN";
@@ -35,8 +36,12 @@ public class RoleAccessService {
     public static final String ROLE_NEXUSADMIN = "NEXUSADMIN";
     public static final String ROLE_EOADMIN = "EOADMIN";
 
-    private static final Set<String> VALID_SERVICES = Set.of(SERVICE_FLT, SERVICE_GYMNASIUM, SERVICE_VAN);
+    private static final Set<String> VALID_SERVICES =
+            Set.of(SERVICE_FLT, SERVICE_GYMNASIUM, SERVICE_VAN, SERVICE_NEXUS);
     private static final Set<String> LOCKED_SYSTEM_ROLES = Set.of(ROLE_SUPERADMIN, ROLE_FLTTECH);
+
+    private static final List<String> ALL_SERVICES =
+            List.of(SERVICE_FLT, SERVICE_GYMNASIUM, SERVICE_VAN, SERVICE_NEXUS);
 
     @Autowired private AppRoleRepository appRoleRepository;
     @Autowired private RoleServiceAccessRepository roleServiceAccessRepository;
@@ -47,12 +52,10 @@ public class RoleAccessService {
             return;
         }
         logger.info("Seeding default app_roles and role_service_access");
-        upsertRole(ROLE_SUPERADMIN, "Super Admin", true, "/dashboard",
-                List.of(SERVICE_FLT, SERVICE_GYMNASIUM, SERVICE_VAN));
-        upsertRole(ROLE_FACILITIESADMIN, "Facilities Admin", false, "/facilities/dashboard",
-                List.of(SERVICE_FLT, SERVICE_GYMNASIUM, SERVICE_VAN));
+        upsertRole(ROLE_SUPERADMIN, "Super Admin", true, "/dashboard", ALL_SERVICES);
+        upsertRole(ROLE_FACILITIESADMIN, "Facilities Admin", false, "/facilities/dashboard", ALL_SERVICES);
         upsertRole(ROLE_FLTTECH, "FLT Tech", true, "/flt-tech/dashboard", List.of(SERVICE_FLT));
-        upsertRole(ROLE_NEXUSADMIN, "Nexus Admin", false, "/nexus/dashboard", List.of());
+        upsertRole(ROLE_NEXUSADMIN, "Nexus Admin", false, "/facilities/dashboard", List.of(SERVICE_NEXUS));
         upsertRole(ROLE_EOADMIN, "EO Admin", false, "/eo/dashboard", List.of());
     }
 
@@ -63,7 +66,7 @@ public class RoleAccessService {
             return List.of();
         }
         if (ROLE_SUPERADMIN.equals(code)) {
-            return List.of(SERVICE_FLT, SERVICE_GYMNASIUM, SERVICE_VAN);
+            return ALL_SERVICES;
         }
         return List.copyOf(roleServiceAccessRepository.findServiceCodesByRole(code));
     }
@@ -152,8 +155,8 @@ public class RoleAccessService {
             // FLT Tech service access is locked
             services = List.of(SERVICE_FLT);
         } else if (ROLE_SUPERADMIN.equals(code)) {
-            services = List.of(SERVICE_FLT, SERVICE_GYMNASIUM, SERVICE_VAN);
-        } else if (services.isEmpty() && !ROLE_NEXUSADMIN.equals(code) && !ROLE_EOADMIN.equals(code)) {
+            services = ALL_SERVICES;
+        } else if (services.isEmpty() && !ROLE_EOADMIN.equals(code)) {
             throw new IllegalArgumentException("Assign at least one service");
         }
 
@@ -182,6 +185,52 @@ public class RoleAccessService {
     private void ensureDefaultsLazy() {
         if (appRoleRepository.count() == 0) {
             ensureDefaults();
+            return;
+        }
+        ensureSystemRoleServicesSynced();
+    }
+
+    /**
+     * Keep locked system mappings current when new services are added
+     * (e.g. NEXUS). SUPERADMIN always gets every valid service.
+     */
+    private void ensureSystemRoleServicesSynced() {
+        try {
+            Optional<AppRole> superAdmin = appRoleRepository.findByCode(ROLE_SUPERADMIN);
+            if (superAdmin.isPresent()) {
+                List<String> services = roleServiceAccessRepository.findServiceCodesByRole(ROLE_SUPERADMIN);
+                if (!new LinkedHashSet<>(services).containsAll(ALL_SERVICES)) {
+                    replaceServices(ROLE_SUPERADMIN, ALL_SERVICES);
+                }
+            }
+
+            Optional<AppRole> nexusAdmin = appRoleRepository.findByCode(ROLE_NEXUSADMIN);
+            if (nexusAdmin.isPresent()) {
+                AppRole role = nexusAdmin.get();
+                if (role.getHomePath() == null || role.getHomePath().startsWith("/nexus")) {
+                    role.setHomePath("/facilities/dashboard");
+                    appRoleRepository.merge(role);
+                }
+                List<String> services = roleServiceAccessRepository.findServiceCodesByRole(ROLE_NEXUSADMIN);
+                if (!services.contains(SERVICE_NEXUS)) {
+                    RoleServiceAccess access = new RoleServiceAccess();
+                    access.setRoleCode(ROLE_NEXUSADMIN);
+                    access.setServiceCode(SERVICE_NEXUS);
+                    roleServiceAccessRepository.save(access);
+                }
+            }
+            Optional<AppRole> facilities = appRoleRepository.findByCode(ROLE_FACILITIESADMIN);
+            if (facilities.isPresent()) {
+                List<String> services = roleServiceAccessRepository.findServiceCodesByRole(ROLE_FACILITIESADMIN);
+                if (!services.contains(SERVICE_NEXUS)) {
+                    RoleServiceAccess access = new RoleServiceAccess();
+                    access.setRoleCode(ROLE_FACILITIESADMIN);
+                    access.setServiceCode(SERVICE_NEXUS);
+                    roleServiceAccessRepository.save(access);
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not ensure system role service registration: {}", e.getMessage());
         }
     }
 

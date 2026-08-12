@@ -15,7 +15,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription, forkJoin, of } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
-import { isFltTech } from '../../../core/auth/roles';
+import { effectiveServices, isFltTech } from '../../../core/auth/roles';
 import { UiIcon, UiSegmented, UiDateSelector, UiSelect } from '../../../shared/ui';
 import type { UiSelectOption } from '../../../shared/ui';
 import { MaintenanceBlock, MaintenanceService } from '../maintenance/maintenance.service';
@@ -23,6 +23,8 @@ import { FltReservationsService } from '../reservations/flt/flt-reservations.ser
 import { FltReservationRecord } from '../reservations/flt/flt-reservations.models';
 import { GymReservationsService } from '../reservations/gymnasium/gymnasium-reservations.service';
 import { GymReservationRecord } from '../reservations/gymnasium/gymnasium-reservations.models';
+import { NexusReservationsService } from '../reservations/nexus/nexus-reservations.service';
+import { NexusReservationRecord } from '../reservations/nexus/nexus-reservations.models';
 import { VanReservationsService } from '../reservations/van/van-reservations.service';
 import { VanReservationRow } from '../reservations/van/van-reservations.models';
 import { ReservationRealtimeService } from '../reservations/reservation-realtime.service';
@@ -59,6 +61,7 @@ import {
 import { observePanelHeight } from './dashboard-calendar-layout.util';
 import { downloadVanReservationFormFromEvent } from '../reservations/van/van-reservation-form-export.util';
 import { downloadGymnasiumReservationFormFromEvent } from '../reservations/gymnasium/gymnasium-reservation-form-export.util';
+import { downloadNexusReservationFormFromEvent } from '../reservations/nexus/nexus-reservation-form-export.util';
 
 interface StatCard {
   label: string;
@@ -91,6 +94,7 @@ const DAYS_PER_WEEK = 7;
 export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   private readonly fltSvc = inject(FltReservationsService);
   private readonly gymSvc = inject(GymReservationsService);
+  private readonly nexusSvc = inject(NexusReservationsService);
   private readonly vanSvc = inject(VanReservationsService);
   private readonly maintSvc = inject(MaintenanceService);
   private readonly realtime = inject(ReservationRealtimeService);
@@ -109,16 +113,18 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   /** Services this role may view on the dashboard filter. */
   protected readonly allowedServices = computed<DashboardService[]>(() => {
     if (this.fltTechMode()) return ['FLT'];
-    const fromRole = dashboardServicesFromRoleCodes(this.auth.user()?.services);
+    const fromRole = dashboardServicesFromRoleCodes(effectiveServices(this.auth.user()));
     return fromRole.length > 0 ? fromRole : ['FLT'];
   });
 
   protected readonly loading = signal(true);
   protected readonly fltReservations = signal<FltReservationRecord[]>([]);
   protected readonly gymReservations = signal<GymReservationRecord[]>([]);
+  protected readonly nexusReservations = signal<NexusReservationRecord[]>([]);
   protected readonly vanReservations = signal<VanReservationRow[]>([]);
   protected readonly fltMaintenance = signal<MaintenanceBlock[]>([]);
   protected readonly gymMaintenance = signal<MaintenanceBlock[]>([]);
+  protected readonly nexusMaintenance = signal<MaintenanceBlock[]>([]);
   protected readonly activeDate = signal(getCurrentYearMonth());
   protected readonly activeService = signal<DashboardService>('FLT');
 
@@ -157,6 +163,8 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     switch (this.activeService()) {
       case 'Gymnasium':
         return this.gymReservations();
+      case 'Nexus':
+        return this.nexusReservations();
       case 'FLT':
         return this.fltReservations();
       case 'VAN':
@@ -170,6 +178,8 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     switch (this.activeService()) {
       case 'Gymnasium':
         return this.gymMaintenance();
+      case 'Nexus':
+        return this.nexusMaintenance();
       case 'FLT':
         return this.fltMaintenance();
       default:
@@ -303,6 +313,8 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
         await downloadVanReservationFormFromEvent(event);
       } else if (event.facility === 'Gymnasium') {
         await downloadGymnasiumReservationFormFromEvent(event);
+      } else if (event.facility === 'Nexus') {
+        await downloadNexusReservationFormFromEvent(event);
       }
     } catch {
       // no toast on dashboard — modal close is enough
@@ -324,25 +336,32 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     const allowed = new Set(this.allowedServices());
     const loadFlt = allowed.has('FLT');
     const loadGym = allowed.has('Gymnasium');
+    const loadNexus = allowed.has('Nexus');
     const loadVan = allowed.has('VAN');
     forkJoin({
       flt: loadFlt ? this.fltSvc.getAll({ month }) : of({ reservations: [] as FltReservationRecord[] }),
       gym: loadGym ? this.gymSvc.getAll({ month }) : of({ reservations: [] as GymReservationRecord[] }),
+      nexus: loadNexus ? this.nexusSvc.getAll({ month }) : of({ reservations: [] as NexusReservationRecord[] }),
       van: loadVan ? this.vanSvc.getAll({ month }) : of({ reservations: [] as VanReservationRow[] }),
       fltMaint: loadFlt ? this.maintSvc.getBlocks('FLT') : of({ blocks: [] as MaintenanceBlock[] }),
       gymMaint: loadGym ? this.maintSvc.getBlocks('GYMNASIUM') : of({ blocks: [] as MaintenanceBlock[] }),
+      nexusMaint: loadNexus ? this.maintSvc.getBlocks('NEXUS') : of({ blocks: [] as MaintenanceBlock[] }),
     }).subscribe({
-      next: ({ flt, gym, van, fltMaint, gymMaint }) => {
+      next: ({ flt, gym, nexus, van, fltMaint, gymMaint, nexusMaint }) => {
         const fltRows = flt.reservations ?? [];
         const gymRows = gym.reservations ?? [];
+        const nexusRows = nexus.reservations ?? [];
         const vanRows = van.reservations ?? [];
         this.fltReservations.set(fltRows);
         this.gymReservations.set(gymRows);
+        this.nexusReservations.set(nexusRows);
         this.vanReservations.set(vanRows);
         this.fltMaintenance.set(fltMaint.blocks ?? []);
         this.gymMaintenance.set(gymMaint.blocks ?? []);
+        this.nexusMaintenance.set(nexusMaint.blocks ?? []);
         if (loadFlt) this.alerts.watchPending('FLT', fltRows);
         if (loadGym) this.alerts.watchPending('GYMNASIUM', gymRows);
+        if (loadNexus) this.alerts.watchPending('NEXUS', nexusRows);
         if (loadVan) this.alerts.watchPending('VAN', vanRows);
         this.loading.set(false);
       },

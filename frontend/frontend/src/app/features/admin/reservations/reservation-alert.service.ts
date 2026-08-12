@@ -4,7 +4,7 @@ import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
 import { AuthService } from '../../../core/auth/auth.service';
 import { isFltTech } from '../../../core/auth/roles';
 
-export type ReservationAlertFacility = 'FLT' | 'GYMNASIUM' | 'VAN';
+export type ReservationAlertFacility = 'FLT' | 'GYMNASIUM' | 'VAN' | 'NEXUS';
 
 export interface ReservationAlert {
   id: number;
@@ -23,6 +23,7 @@ const FACILITY_LABEL: Record<ReservationAlertFacility, string> = {
   FLT: 'FLT',
   GYMNASIUM: 'Gymnasium',
   VAN: 'Van',
+  NEXUS: 'Nexus Room',
 };
 
 @Injectable({ providedIn: 'root' })

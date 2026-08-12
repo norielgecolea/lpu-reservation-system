@@ -2,6 +2,7 @@ export const RESERVATION_ADVANCE_DAYS = {
   FLT: 14,
   GYMNASIUM: 3,
   VAN: 5,
+  NEXUS: 3,
 } as const;
 
 export type ReservationServiceKey = keyof typeof RESERVATION_ADVANCE_DAYS;
