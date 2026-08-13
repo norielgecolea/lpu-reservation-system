@@ -15,6 +15,7 @@ import org.lpu.dev.codes.services.JWTService;
 import org.lpu.dev.codes.util.ReservationListQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +37,7 @@ public class NexusAdminController {
 
     @Autowired private AuthenticationService auth;
     @Autowired private JWTService jwtService;
-    @Autowired private NexusReservationService gymService;
+    @Autowired private NexusReservationService nexusService;
     @Autowired private org.lpu.dev.codes.services.RoleAccessService roleAccessService;
 
     private boolean isAllowed(String token) {
@@ -62,7 +63,7 @@ public class NexusAdminController {
         }
         try {
             ReservationListQuery query = ReservationListQuery.of(month, fromDate, toDate);
-            List<NexusReservationAdminDto> reservations = gymService.getAllReservations(
+            List<NexusReservationAdminDto> reservations = nexusService.getAllReservations(
                     query.month(), query.fromDate(), query.toDate());
             res.setSuccess(true);
             res.setMessage("Reservations fetched successfully");
@@ -89,7 +90,7 @@ public class NexusAdminController {
             res.setSuccess(false); res.setMessage("Access denied");
             return ResponseEntity.status(403).body(res);
         }
-        res = gymService.updateStatus(id, status, jwtService.getUsername(token));
+        res = nexusService.updateStatus(id, status, jwtService.getUsername(token));
         if (!res.isSuccess() && res.getBlockedReason() != null) {
             return ResponseEntity.status(409).body(res);
         }
@@ -115,7 +116,7 @@ public class NexusAdminController {
         if (date == null || startTime == null || endTime == null) {
             res.setSuccess(false); res.setMessage("date, startTime, and endTime are required"); return res;
         }
-        boolean ok = gymService.setCoordination(id, date, startTime, endTime,
+        boolean ok = nexusService.setCoordination(id, date, startTime, endTime,
                 jwtService.getUsername(token));
         res.setSuccess(ok);
         res.setMessage(ok ? "Coordination meeting set" : "Failed to set coordination meeting");
@@ -139,7 +140,7 @@ public class NexusAdminController {
         if (reservedDates == null) {
             res.setSuccess(false); res.setMessage("reservedDates is required"); return ResponseEntity.ok(res);
         }
-        res = gymService.reschedule(id, reservedDates, jwtService.getUsername(token));
+        res = nexusService.reschedule(id, reservedDates, jwtService.getUsername(token));
         return ResponseEntity.ok(res);
     }
 
@@ -165,7 +166,32 @@ public class NexusAdminController {
             res.setMessage("Access denied");
             return ResponseEntity.status(403).body(res);
         }
-        res = gymService.updateDetails(id, body, jwtService.getUsername(token));
+        res = nexusService.updateDetails(id, body, jwtService.getUsername(token));
+        return ResponseEntity.ok(res);
+    }
+
+    @DeleteMapping("/reservations/{id}")
+    public ResponseEntity<ReservationActionResponse> deleteReservation(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id) {
+        ReservationActionResponse res = new ReservationActionResponse();
+        String token = tok(authHeader);
+        if (!auth.userActive(jwtService.getUsername(token))) {
+            res.setSuccess(false);
+            res.setMessage("USER NOT ACTIVE!");
+            return ResponseEntity.status(401).body(res);
+        }
+        if (!"SUPERADMIN".equals(jwtService.getRole(token))) {
+            res.setSuccess(false);
+            res.setMessage("Only Super Admin can delete reservations");
+            return ResponseEntity.status(403).body(res);
+        }
+        if (!isAllowed(token)) {
+            res.setSuccess(false);
+            res.setMessage("Access denied");
+            return ResponseEntity.status(403).body(res);
+        }
+        res = nexusService.deleteReservation(id, jwtService.getUsername(token));
         return ResponseEntity.ok(res);
     }
 }

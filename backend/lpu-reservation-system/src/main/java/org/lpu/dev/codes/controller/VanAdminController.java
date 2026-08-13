@@ -17,6 +17,7 @@ import org.lpu.dev.codes.util.ReservationListQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -259,6 +260,31 @@ public class VanAdminController {
             return ResponseEntity.status(403).body(res);
         }
         res = vanService.updateDetails(id, body, jwtService.getUsername(token));
+        return ResponseEntity.ok(res);
+    }
+
+    @DeleteMapping("/reservations/{id}")
+    public ResponseEntity<ReservationActionResponse> deleteReservation(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id) {
+        ReservationActionResponse res = new ReservationActionResponse();
+        String token = tok(authHeader);
+        if (!auth.userActive(jwtService.getUsername(token))) {
+            res.setSuccess(false);
+            res.setMessage("USER NOT ACTIVE!");
+            return ResponseEntity.status(401).body(res);
+        }
+        if (!"SUPERADMIN".equals(jwtService.getRole(token))) {
+            res.setSuccess(false);
+            res.setMessage("Only Super Admin can delete reservations");
+            return ResponseEntity.status(403).body(res);
+        }
+        if (!isAllowed(token)) {
+            res.setSuccess(false);
+            res.setMessage("Access denied");
+            return ResponseEntity.status(403).body(res);
+        }
+        res = vanService.deleteReservation(id, jwtService.getUsername(token));
         return ResponseEntity.ok(res);
     }
 }

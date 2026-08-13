@@ -7,6 +7,7 @@ import {
   formatTime12,
   formatTimeRange,
 } from '../../../shared/utils/datetime.util';
+import { slotsOverlap, type ReservedSlotLike } from '../reservations/reservation-row.util';
 
 /** @deprecated Use formatTime12 */
 export const formatTime24 = formatTime12;
@@ -101,6 +102,8 @@ export interface DashboardEvent {
   coordinationTime?: string | null;
   additionalInstructions?: string | null;
   maintenanceReason?: string;
+  /** Pending reservation overlaps an approved, coordination, or maintenance slot. */
+  hasScheduleConflict?: boolean;
   travelDestination?: string | null;
   passengerNames?: string | null;
   numberOfPassengers?: number | string | null;
@@ -197,6 +200,10 @@ export const COORD_EVENT_COLOR =
   'border-amber-500 bg-amber-50 text-amber-950';
 export const MAINTENANCE_EVENT_COLOR =
   'border-zinc-500 bg-zinc-100 text-zinc-800';
+export const PENDING_EVENT_COLOR =
+  'border-orange-500 bg-orange-50 text-orange-950';
+export const PENDING_CONFLICT_EVENT_COLOR =
+  'border-orange-500 bg-orange-50 text-orange-950 animate-pending-conflict';
 export const VAN_EVENT_COLOR =
   'border-sky-500 bg-sky-50 text-sky-900';
 export const VAN_UNASSIGNED_COLOR =
@@ -342,7 +349,8 @@ export function formatEventDay(dateStr: string): string {
   return d ? String(d.getDate()) : dateStr;
 }
 
-export function dashboardEventKindLabel(kind: DashboardEventKind): string {
+export function dashboardEventKindLabel(kind: DashboardEventKind, status?: string): string {
+  if (kind === 'reservation' && status === 'PENDING') return 'Pending';
   switch (kind) {
     case 'coordination':
       return 'Coordination';
@@ -353,7 +361,8 @@ export function dashboardEventKindLabel(kind: DashboardEventKind): string {
   }
 }
 
-export function dashboardEventKindIcon(kind: DashboardEventKind): string {
+export function dashboardEventKindIcon(kind: DashboardEventKind, status?: string): string {
+  if (kind === 'reservation' && status === 'PENDING') return 'pending_actions';
   switch (kind) {
     case 'coordination':
       return 'handshake';
@@ -366,10 +375,11 @@ export function dashboardEventKindIcon(kind: DashboardEventKind): string {
 
 /** Solid date-circle colors matching calendar legend kinds. */
 export function dashboardEventDateBadgeClass(
-  event: Pick<DashboardEvent, 'eventKind' | 'facility'>,
+  event: Pick<DashboardEvent, 'eventKind' | 'facility' | 'status'>,
 ): string {
   if (event.eventKind === 'coordination') return 'bg-amber-500 text-white';
   if (event.eventKind === 'maintenance') return 'bg-zinc-600 text-white';
+  if (event.status === 'PENDING') return 'bg-orange-600 text-white';
   if (event.facility === 'Gymnasium') return 'bg-emerald-600 text-white';
   return 'bg-sky-600 text-white';
 }
@@ -378,7 +388,11 @@ export function dashboardEventDateBadgeClass(
 export function dashboardEventKindBadgeClass(
   kind: DashboardEventKind,
   facility?: DashboardService,
+  status?: string,
 ): string {
+  if (kind === 'reservation' && status === 'PENDING') {
+    return 'bg-orange-100 text-orange-950 ring-orange-200/80';
+  }
   switch (kind) {
     case 'coordination':
       return 'bg-amber-100 text-amber-900 ring-amber-200/80';
@@ -527,9 +541,14 @@ export function recordsToDashboardEvents(
 ): DashboardEvent[] {
   const events: DashboardEvent[] = [];
   for (const rec of records) {
-    if (rec.status !== 'APPROVED' && rec.status !== 'COMPLETED') continue;
+    const isPending = rec.status === 'PENDING';
+    const isBooked = rec.status === 'APPROVED' || rec.status === 'COMPLETED';
+    if (!isPending && !isBooked) continue;
+
     const ctx = recordContext(rec, facility, category);
     const slots = parseReservedDates(rec.reservedDates);
+    const chipColor = isPending ? PENDING_EVENT_COLOR : colorClass;
+
     for (let i = 0; i < slots.length; i++) {
       const s = slots[i];
       events.push({
@@ -539,13 +558,14 @@ export function recordsToDashboardEvents(
         startTime: s.startTime,
         endTime: s.endTime,
         time: formatTimeRange(s.startTime, s.endTime),
-        colorClass,
+        colorClass: chipColor,
         eventKind: 'reservation',
         description: truncateText(eventDescription(rec, facility)),
+        hasScheduleConflict: false,
         ...ctx,
       });
     }
-    if (rec.coordinationDate && rec.coordinationStartTime && rec.coordinationEndTime) {
+    if (isBooked && rec.coordinationDate && rec.coordinationStartTime && rec.coordinationEndTime) {
       events.push({
         id: `${facility.toLowerCase()}-coord-${rec.id}`,
         title: `[Coord] ${rec.eventTitle || rec.organization}`,
@@ -599,7 +619,7 @@ export function buildServiceCalendarEvents(
 ): DashboardEvent[] {
   if (!isServiceImplemented(service)) return [];
   if (service === 'VAN') {
-    return buildVanCalendarEvents(records);
+    return markPendingScheduleConflicts(buildVanCalendarEvents(records));
   }
   const reservationEvents = recordsToDashboardEvents(
     records,
@@ -607,18 +627,58 @@ export function buildServiceCalendarEvents(
     SERVICE_EVENT_COLORS[service],
     service,
   );
-  return [...reservationEvents, ...maintenanceBlocksToDashboardEvents(maintenanceBlocks, service)];
+  return markPendingScheduleConflicts([
+    ...reservationEvents,
+    ...maintenanceBlocksToDashboardEvents(maintenanceBlocks, service),
+  ]);
+}
+
+/**
+ * Pending chips that overlap an approved reservation, coordination meeting,
+ * or maintenance block get a fade pulse so conflicts are visible on the calendar.
+ */
+export function markPendingScheduleConflicts(events: DashboardEvent[]): DashboardEvent[] {
+  const blockers: ReservedSlotLike[] = [];
+  for (const e of events) {
+    if (!e.date || !e.startTime || !e.endTime) continue;
+    if (e.eventKind === 'maintenance' || e.eventKind === 'coordination') {
+      blockers.push({ date: e.date, startTime: e.startTime, endTime: e.endTime });
+      continue;
+    }
+    if (e.eventKind === 'reservation' && (e.status === 'APPROVED' || e.status === 'COMPLETED')) {
+      blockers.push({ date: e.date, startTime: e.startTime, endTime: e.endTime });
+    }
+  }
+
+  return events.map(e => {
+    if (e.eventKind !== 'reservation' || e.status !== 'PENDING') return e;
+    const conflicted = slotsOverlap(
+      [{ date: e.date, startTime: e.startTime, endTime: e.endTime }],
+      blockers,
+    );
+    if (!conflicted) {
+      return { ...e, hasScheduleConflict: false, colorClass: PENDING_EVENT_COLOR };
+    }
+    return {
+      ...e,
+      hasScheduleConflict: true,
+      colorClass: PENDING_CONFLICT_EVENT_COLOR,
+    };
+  });
 }
 
 /** Van dashboard: one calendar chip per trip slot, color-coded by assigned van. */
 export function buildVanCalendarEvents(records: DashboardReservationRecord[]): DashboardEvent[] {
   const events: DashboardEvent[] = [];
   for (const rec of records) {
-    if (rec.status !== 'APPROVED' && rec.status !== 'COMPLETED') continue;
+    const isPending = rec.status === 'PENDING';
+    const isBooked = rec.status === 'APPROVED' || rec.status === 'COMPLETED';
+    if (!isPending && !isBooked) continue;
+
     const slots = parseReservedDates(rec.reservedDates);
     const vehicle = rec.vehicleLabel?.trim() || 'Unassigned';
     const driver = rec.driverName?.trim() || 'No driver';
-    const colorClass = vanColorForVehicleId(rec.vehicleId);
+    const colorClass = isPending ? PENDING_EVENT_COLOR : vanColorForVehicleId(rec.vehicleId);
     const ctx = {
       category: 'VAN',
       facility: 'VAN' as DashboardService,
@@ -646,6 +706,7 @@ export function buildVanCalendarEvents(records: DashboardReservationRecord[]): D
       coordinationEndTime: null,
       coordinationTime: null,
       additionalInstructions: rec.additionalInstructions,
+      hasScheduleConflict: false,
     };
 
     for (let i = 0; i < slots.length; i++) {
@@ -660,7 +721,7 @@ export function buildVanCalendarEvents(records: DashboardReservationRecord[]): D
         time,
         colorClass,
         eventKind: 'reservation',
-        description: `${vehicle} · ${driver}`,
+        description: isPending ? 'Pending request' : `${vehicle} · ${driver}`,
         ...ctx,
       });
     }

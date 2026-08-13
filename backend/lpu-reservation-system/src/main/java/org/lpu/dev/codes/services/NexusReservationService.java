@@ -433,6 +433,47 @@ public class NexusReservationService {
         }
     }
 
+    @Transactional
+    public ReservationActionResponse deleteReservation(Long id, String performedBy) {
+        ReservationActionResponse response = new ReservationActionResponse();
+        try {
+            var opt = gymRepository.findById(id);
+            if (opt.isEmpty()) {
+                response.setSuccess(false);
+                response.setMessage("Reservation not found");
+                return response;
+            }
+            NexusReservation r = opt.get();
+            String label = r.getEventTitle() != null ? r.getEventTitle() : "Reservation #" + id;
+            String previousStatus = r.getStatus();
+
+            if (!gymRepository.deleteById(id)) {
+                response.setSuccess(false);
+                response.setMessage("Failed to delete reservation");
+                return response;
+            }
+
+            List<Long> revertedIds = reEvaluateConflicts();
+            if (!revertedIds.isEmpty()) {
+                publishRevertedConflicts(revertedIds);
+            }
+            publishStatusEvent("nexus", id, "DELETED", List.of(), revertedIds);
+
+            auditService.log("NEXUS", "DELETE", performedBy, "reservation", id, label,
+                    AdminAuditService.detailsOf("previousStatus", previousStatus, "revertedIds", revertedIds));
+
+            response.setSuccess(true);
+            response.setMessage("Reservation deleted");
+            response.setRevertedIds(revertedIds);
+            return response;
+        } catch (Exception e) {
+            logger.error("Failed to delete nexus reservation {}", id, e);
+            response.setSuccess(false);
+            response.setMessage("Failed to delete reservation");
+            return response;
+        }
+    }
+
     // ── Create reservation ────────────────────────────────────────────────────
 
     @Transactional

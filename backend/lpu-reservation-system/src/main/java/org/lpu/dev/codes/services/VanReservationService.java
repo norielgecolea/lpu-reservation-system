@@ -516,6 +516,43 @@ public class VanReservationService {
         }
     }
 
+    @Transactional
+    public ReservationActionResponse deleteReservation(Long id, String performedBy) {
+        ReservationActionResponse response = new ReservationActionResponse();
+        try {
+            var opt = vanRepository.findById(id);
+            if (opt.isEmpty()) {
+                response.setSuccess(false);
+                response.setMessage("Reservation not found");
+                return response;
+            }
+            VanReservation existing = opt.get();
+            String label = reservationLabel(existing);
+            String previousStatus = existing.getStatus();
+
+            if (!vanRepository.deleteById(id)) {
+                response.setSuccess(false);
+                response.setMessage("Failed to delete reservation");
+                return response;
+            }
+
+            eventPublisher.publishStatusUpdate("van", id, "DELETED", List.of());
+
+            auditService.log("VAN", "DELETE", performedBy, "reservation", id, label,
+                    AdminAuditService.detailsOf("previousStatus", previousStatus));
+
+            response.setSuccess(true);
+            response.setMessage("Reservation deleted");
+            response.setRevertedIds(List.of());
+            return response;
+        } catch (Exception e) {
+            logger.error("Failed to delete van reservation {}", id, e);
+            response.setSuccess(false);
+            response.setMessage("Failed to delete reservation");
+            return response;
+        }
+    }
+
     private List<ReservationSlot> getReservedSlots(VanReservation r) {
         return ReservationSlotUtil.parseReservedDates(r.getReservedDates(), objectMapper);
     }

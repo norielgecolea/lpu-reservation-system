@@ -38,6 +38,7 @@ import {
   DashboardService,
   DashboardStatKind,
   MAINTENANCE_EVENT_COLOR,
+  PENDING_EVENT_COLOR,
   SERVICE_EVENT_COLORS,
   getVanVehicleLegends,
   buildServiceCalendarEvents,
@@ -150,10 +151,14 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       return [{ label: service, className: SERVICE_EVENT_COLORS[service] }];
     }
     if (service === 'VAN') {
-      return getVanVehicleLegends(this.vanReservations());
+      return [
+        { label: 'Pending', className: PENDING_EVENT_COLOR },
+        ...getVanVehicleLegends(this.vanReservations()),
+      ];
     }
     return [
       { label: service, className: SERVICE_EVENT_COLORS[service] },
+      { label: 'Pending', className: PENDING_EVENT_COLOR },
       { label: 'Coordination', className: COORD_EVENT_COLOR },
       { label: 'Maintenance', className: MAINTENANCE_EVENT_COLOR },
     ];
@@ -238,7 +243,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly upcomingEvents = computed(() =>
     this.serviceEvents()
-      .filter(e => e.date.startsWith(this.activeDate()))
+      .filter(e => e.date.startsWith(this.activeDate()) && e.status !== 'PENDING')
       .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)),
   );
 

@@ -54,6 +54,10 @@ export class GymReservationsService {
   updateDetails(id: number, body: GymnasiumReservationDetailsEditRequest) {
     return this.http.put<GymAdminActionResponse>(`${this.base}/reservations/${id}/details`, body);
   }
+
+  delete(id: number) {
+    return this.http.delete<GymAdminActionResponse>(`${this.base}/reservations/${id}`);
+  }
 }
 
 function toHttpParams(query?: string | ReservationListQuery): HttpParams {

@@ -44,6 +44,16 @@ public class FltReservationRepository {
         return Optional.ofNullable(result);
     }
 
+    public boolean deleteById(Long id) {
+        FltReservation r = entityManager.find(FltReservation.class, id);
+        if (r == null) {
+            return false;
+        }
+        entityManager.remove(r);
+        entityManager.flush();
+        return true;
+    }
+
     /**
      * List admin rows scoped by month (YYYY-MM) or inclusive date span (fromDate/toDate).
      * Range takes precedence. If neither is provided, returns an empty list (never SELECT all).

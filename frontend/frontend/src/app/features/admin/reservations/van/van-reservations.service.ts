@@ -73,6 +73,10 @@ export class VanReservationsService {
   updateDetails(id: number, body: VanReservationDetailsEditRequest) {
     return this.http.put<VanAdminActionResponse>(`${this.base}/reservations/${id}/details`, body);
   }
+
+  delete(id: number) {
+    return this.http.delete<VanAdminActionResponse>(`${this.base}/reservations/${id}`);
+  }
 }
 
 function toHttpParams(query?: string | { month?: string; fromDate?: string; toDate?: string }): HttpParams {

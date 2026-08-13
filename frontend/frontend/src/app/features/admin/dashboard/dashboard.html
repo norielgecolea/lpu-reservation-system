@@ -110,7 +110,7 @@
                           <li
                             class="min-w-0 cursor-pointer rounded border-l-4 px-1.5 py-1 text-[11px] leading-tight shadow-sm"
                             [class]="reservation.colorClass"
-                            [title]="reservation.time + ' - ' + reservation.title + (reservation.event.description ? ' — ' + reservation.event.description : '')"
+                            [title]="reservation.time + ' - ' + reservation.title + (reservation.event.hasScheduleConflict ? ' — Conflicts with approved / coordination / maintenance' : '') + (reservation.event.description ? ' — ' + reservation.event.description : '')"
                             (click)="openEventSummary(reservation.event)"
                           >
                             <span class="block truncate font-bold">{{ reservation.time }}</span>
@@ -168,10 +168,10 @@
                 <div class="min-w-0 flex-1">
                   <span
                     class="mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset"
-                    [class]="dashboardEventKindBadgeClass(event.eventKind, event.facility)"
+                    [class]="dashboardEventKindBadgeClass(event.eventKind, event.facility, event.status)"
                   >
-                    <ui-icon [name]="dashboardEventKindIcon(event.eventKind)" class="text-[12px]" />
-                    {{ dashboardEventKindLabel(event.eventKind) }}
+                    <ui-icon [name]="dashboardEventKindIcon(event.eventKind, event.status)" class="text-[12px]" />
+                    {{ dashboardEventKindLabel(event.eventKind, event.status) }}
                   </span>
                   <h3 class="min-w-0 truncate text-xs font-semibold">
                     {{ dashboardEventDisplayTitle(event) }}
@@ -248,10 +248,10 @@
               >
                 <span
                   class="mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset"
-                  [class]="dashboardEventKindBadgeClass(reservation.event.eventKind, reservation.event.facility)"
+                  [class]="dashboardEventKindBadgeClass(reservation.event.eventKind, reservation.event.facility, reservation.event.status)"
                 >
-                  <ui-icon [name]="dashboardEventKindIcon(reservation.event.eventKind)" class="text-[12px]" />
-                  {{ dashboardEventKindLabel(reservation.event.eventKind) }}
+                  <ui-icon [name]="dashboardEventKindIcon(reservation.event.eventKind, reservation.event.status)" class="text-[12px]" />
+                  {{ dashboardEventKindLabel(reservation.event.eventKind, reservation.event.status) }}
                 </span>
                 <span class="block text-xs font-bold opacity-80">{{ reservation.time }}</span>
                 <span class="mt-0.5 block text-sm font-semibold">

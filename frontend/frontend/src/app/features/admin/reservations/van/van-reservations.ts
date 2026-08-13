@@ -193,6 +193,11 @@ interface VanReservationViewRow extends VanReservationRow {
                           <ui-icon name="edit" class="text-sm" />
                           <span class="hidden sm:inline">Edit</span>
                         </button>
+                        <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
+                          class="flex items-center justify-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                          <ui-icon name="delete" class="text-sm" />
+                          <span class="hidden sm:inline">Delete</span>
+                        </button>
                       }
                       <button type="button" (click)="openApprove(row)" [disabled]="acting() === row.id"
                         class="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
@@ -210,6 +215,11 @@ interface VanReservationViewRow extends VanReservationRow {
                           class="flex items-center justify-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                           <ui-icon name="edit" class="text-sm" />
                           <span class="hidden sm:inline">Edit</span>
+                        </button>
+                        <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
+                          class="flex items-center justify-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                          <ui-icon name="delete" class="text-sm" />
+                          <span class="hidden sm:inline">Delete</span>
                         </button>
                       }
                       <button type="button" (click)="requestConfirm(row, 'REJECTED')" [disabled]="acting() === row.id"
@@ -229,6 +239,11 @@ interface VanReservationViewRow extends VanReservationRow {
                             class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                             <ui-icon name="edit" class="text-sm" />
                             Edit
+                          </button>
+                          <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="delete" class="text-sm" />
+                            Delete
                           </button>
                         }
                         <button type="button" (click)="printForm(row)" [disabled]="acting() === row.id"
@@ -257,6 +272,12 @@ interface VanReservationViewRow extends VanReservationRow {
                           Cancel
                         </button>
                       </app-approved-reservation-actions-menu>
+                    } @else if (isSuperAdminRole()) {
+                      <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
+                        class="flex items-center justify-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                        <ui-icon name="delete" class="text-sm" />
+                        <span class="hidden sm:inline">Delete</span>
+                      </button>
                     }
                   </div>
                 </div>
@@ -367,6 +388,11 @@ interface VanReservationViewRow extends VanReservationRow {
                             <ui-icon name="edit" class="text-sm" />
                             <span class="hidden sm:inline">Edit</span>
                           </button>
+                          <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="delete" class="text-sm" />
+                            <span class="hidden sm:inline">Delete</span>
+                          </button>
                         }
                         <button type="button" (click)="openApprove(row)" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
@@ -387,6 +413,11 @@ interface VanReservationViewRow extends VanReservationRow {
                             <ui-icon name="edit" class="text-sm" />
                             <span class="hidden sm:inline">Edit</span>
                           </button>
+                          <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="delete" class="text-sm" />
+                            <span class="hidden sm:inline">Delete</span>
+                          </button>
                         }
                         <button type="button" (click)="requestConfirm(row, 'REJECTED')" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
@@ -406,6 +437,11 @@ interface VanReservationViewRow extends VanReservationRow {
                             class="flex items-center gap-1 rounded-lg bg-violet-50 border border-violet-200 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                             <ui-icon name="edit" class="text-sm" />
                             Edit
+                          </button>
+                          <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
+                            class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <ui-icon name="delete" class="text-sm" />
+                            Delete
                           </button>
                         }
                         <button type="button" (click)="printForm(row)" [disabled]="acting() === row.id"
@@ -434,6 +470,12 @@ interface VanReservationViewRow extends VanReservationRow {
                           Cancel
                         </button>
                       </app-approved-reservation-actions-menu>
+                    } @else if (isSuperAdminRole()) {
+                      <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
+                        class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                        <ui-icon name="delete" class="text-sm" />
+                        <span class="hidden sm:inline">Delete</span>
+                      </button>
                     } @else {
                       <span class="text-xs text-gray-300 italic">—</span>
                     }
@@ -504,6 +546,38 @@ interface VanReservationViewRow extends VanReservationRow {
         </div>
       }
 
+
+      @if (deleteTarget()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" (click)="deleteTarget.set(null)">
+          <div class="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 flex flex-col gap-4" (click)="$event.stopPropagation()">
+            <div class="flex items-start gap-3">
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                <ui-icon name="delete" class="text-red-600 text-xl" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <h2 class="text-sm font-bold text-gray-900">Delete Event</h2>
+                <p class="text-xs text-gray-500 mt-1">
+                  Permanently delete
+                  <strong>"{{ deleteTarget()!.eventTitle }}"</strong>?
+                  This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div class="flex gap-2 justify-end">
+              <button type="button" (click)="deleteTarget.set(null)"
+                class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
+                Cancel
+              </button>
+              <button type="button" (click)="executeDelete()" [disabled]="acting() !== null"
+                class="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-bold text-white cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                @if (acting() !== null) { <ui-icon name="autorenew" class="text-base animate-spin" /> }
+                @else { Delete }
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <ui-toast [message]="toast()" (dismissed)="toast.set('')" />
 
     @if (exportOpen()) {
@@ -567,6 +641,7 @@ export class VanReservations implements OnInit, OnDestroy {
   readonly activeMonth = signal(getCurrentYearMonth());
   readonly acting = signal<number | null>(null);
   readonly confirm = signal<ConfirmState | null>(null);
+  readonly deleteTarget = signal<{ id: number; eventTitle: string } | null>(null);
   readonly detailsTarget = signal<VanReservationRow | null>(null);
   readonly editTarget = signal<VanReservationRow | null>(null);
   readonly editSaving = signal(false);
@@ -606,7 +681,30 @@ export class VanReservations implements OnInit, OnDestroy {
   readonly rescheduleVehicleSummary = signal('');
   private rescheduleScheduleSub: Subscription | null = null;
 
-  readonly rescheduleApprovedEvents = computed<VanRescheduleEvent[]>(() => this.rescheduleVehicleEvents());
+  readonly rescheduleApprovedEvents = computed<VanRescheduleEvent[]>(() => {
+    const target = this.rescheduleTarget();
+    const pending: VanRescheduleEvent[] = [];
+    for (const r of this.reservations()) {
+      if (r.status !== 'PENDING' || r.id === target?.id) continue;
+      try {
+        const slots: ReservedDateSlot[] = JSON.parse(r.reservedDates);
+        for (const s of slots) {
+          pending.push({
+            date: s.date,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            department: r.department,
+            organization: r.organization,
+            travelDestination: r.travelDestination,
+            eventKind: 'PENDING',
+            vehicleId: r.vehicleId,
+            vehicleLabel: r.vehicleLabel,
+          });
+        }
+      } catch { /* skip */ }
+    }
+    return [...this.rescheduleVehicleEvents(), ...pending];
+  });
 
   readonly rescheduleInitialSlots = computed<ReservedDateSlot[]>(() => {
     const target = this.rescheduleTarget();
@@ -711,6 +809,40 @@ export class VanReservations implements OnInit, OnDestroy {
   openReassign(row: VanReservationRow): void {
     this.assignMode.set('reassign');
     this.approveTarget.set(row);
+  }
+
+
+  // ─── Delete event (Super Admin) ─────────────────────────────────
+  requestDelete(row: { id: number; travelDestination: string }): void {
+    if (!this.isSuperAdminRole()) return;
+    this.deleteTarget.set({ id: row.id, eventTitle: row.travelDestination });
+  }
+
+  executeDelete(): void {
+    const target = this.deleteTarget();
+    if (!target) return;
+    this.acting.set(target.id);
+    this.svc.delete(target.id).subscribe({
+      next: (res) => {
+        this.acting.set(null);
+        this.deleteTarget.set(null);
+        if (res.success) {
+          this.reservations.update(list => {
+            let updated = list.filter(r => r.id !== target.id);
+            updated = applyRevertedIds(updated, res.revertedIds);
+            return updated;
+          });
+          this.toast.set('Event deleted.');
+        } else {
+          this.toast.set(res.message ?? 'Failed to delete event.');
+        }
+      },
+      error: (err) => {
+        this.acting.set(null);
+        this.deleteTarget.set(null);
+        this.toast.set(err?.error?.message ?? 'Failed to delete event.');
+      },
+    });
   }
 
   openEditDetails(row: VanReservationRow): void {

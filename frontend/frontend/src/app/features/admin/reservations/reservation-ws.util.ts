@@ -67,6 +67,12 @@ export function applyReservationWsEvent<T extends ReservationRow>(
     return { updated: list, needsReload: true };
   }
 
+  if (ev.status === 'DELETED') {
+    let updated = list.filter(row => row.id !== resId);
+    updated = applyRevertedIds(updated, revertedIds);
+    return { updated, needsReload: false };
+  }
+
   const updated = list.map(row => {
     if (revertedIds.includes(row.id)) {
       return { ...row, status: 'PENDING' as ReservationStatus };

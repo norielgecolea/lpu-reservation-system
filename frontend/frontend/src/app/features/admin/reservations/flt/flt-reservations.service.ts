@@ -54,6 +54,10 @@ export class FltReservationsService {
   updateDetails(id: number, body: FltReservationDetailsEditRequest) {
     return this.http.put<FltAdminActionResponse>(`${this.base}/reservations/${id}/details`, body);
   }
+
+  delete(id: number) {
+    return this.http.delete<FltAdminActionResponse>(`${this.base}/reservations/${id}`);
+  }
 }
 
 function toHttpParams(query?: string | ReservationListQuery): HttpParams {

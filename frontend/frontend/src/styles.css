@@ -18,6 +18,7 @@
   --animate-fade-in: fade-in 0.45s ease-out both;
   --animate-float: float 7s ease-in-out infinite;
   --animate-shimmer: shimmer 3.6s ease-in-out infinite;
+  --animate-pending-conflict: pending-conflict-pulse 0.8s ease-in-out infinite;
 }
 
 @layer base {
@@ -148,5 +149,15 @@
   }
   50% {
     background-position: 100% 50%;
+  }
+}
+
+@keyframes pending-conflict-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.28;
   }
 }

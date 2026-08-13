@@ -128,8 +128,11 @@ type PickerView = 'calendar' | 'timeslots';
                             [class.border-amber-500]="ev.eventKind === 'COORDINATION'"
                             [class.bg-amber-50]="ev.eventKind === 'COORDINATION'"
                             [class.text-amber-800]="ev.eventKind === 'COORDINATION'"
-                            [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department)"
-                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.department }}</li>
+                            [class.border-orange-500]="ev.eventKind === 'PENDING'"
+                            [class.bg-orange-50]="ev.eventKind === 'PENDING'"
+                            [class.text-orange-900]="ev.eventKind === 'PENDING'"
+                            [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.eventKind === 'PENDING' ? 'Pending · ' + ev.department : ev.department)"
+                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'TARGET' ? (ev.eventTitle || eventTitle) : ev.eventKind === 'PENDING' ? 'Pending · ' + ev.department : ev.department }}</li>
                         }
                         @if (cell.events.length > 2) {
                           <li class="truncate text-[10px] font-bold text-amber-600 pl-1">+{{ cell.events.length - 2 }} more</li>
@@ -155,6 +158,10 @@ type PickerView = 'calendar' | 'timeslots';
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-3 h-3 rounded border-l-2 border-amber-500 bg-amber-50"></span>
               Coordination Meeting
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block w-3 h-3 rounded border-l-2 border-orange-500 bg-orange-50"></span>
+              Pending Request
             </span>
             <span class="ml-auto text-[11px] italic">Coordination may overlap other coordinations, but not events</span>
           </div>
@@ -249,6 +256,11 @@ type PickerView = 'calendar' | 'timeslots';
                         <ui-icon name="handshake" class="text-amber-400 text-sm shrink-0" />
                         <span class="text-xs text-amber-700 font-medium truncate">
                           Existing coordination {{ formatTimeShort(coord.startTime) }}–{{ formatTimeShort(coord.endTime) }} — click to overlap
+                        </span>
+                      } @else if (getPendingOnSlot(slot.value); as pending) {
+                        <ui-icon name="schedule" class="text-orange-400 text-sm shrink-0" />
+                        <span class="text-xs text-orange-700 font-medium truncate">
+                          Pending request {{ formatTimeShort(pending.startTime) }}–{{ formatTimeShort(pending.endTime) }} — click to overlap
                         </span>
                       } @else {
                         <span class="text-xs text-gray-400 group-hover:text-amber-600 transition-colors">Available — click to select</span>
@@ -390,6 +402,17 @@ export class FltCoordinationCalendar {
     return this.events.find(ev => {
       if (ev.date !== day || ev.eventKind !== 'COORDINATION') return false;
       // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
+      return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
+    }) ?? null;
+  }
+
+  /** Pending request on this hour — informational only; selection/overlap is allowed. */
+  getPendingOnSlot(hourStr: string): RescheduleEvent | null {
+    const day = this.selectedDay();
+    if (!day) return null;
+    const hour = parseInt(hourStr, 10);
+    return this.events.find(ev => {
+      if (ev.date !== day || ev.eventKind !== 'PENDING') return false;
       return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
     }) ?? null;
   }

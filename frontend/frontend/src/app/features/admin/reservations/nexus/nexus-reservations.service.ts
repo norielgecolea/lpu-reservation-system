@@ -54,6 +54,10 @@ export class NexusReservationsService {
   updateDetails(id: number, body: NexusReservationDetailsEditRequest) {
     return this.http.put<NexusAdminActionResponse>(`${this.base}/reservations/${id}/details`, body);
   }
+
+  delete(id: number) {
+    return this.http.delete<NexusAdminActionResponse>(`${this.base}/reservations/${id}`);
+  }
 }
 
 function toHttpParams(query?: string | ReservationListQuery): HttpParams {

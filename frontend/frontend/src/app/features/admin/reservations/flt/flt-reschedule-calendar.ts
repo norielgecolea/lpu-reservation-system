@@ -20,7 +20,7 @@ export interface RescheduleEvent {
   department: string;
   organization: string;
   eventTitle?: string;
-  eventKind: 'RESERVATION' | 'COORDINATION' | 'TARGET';
+  eventKind: 'RESERVATION' | 'COORDINATION' | 'TARGET' | 'PENDING';
 }
 
 interface CalendarCell {
@@ -125,17 +125,20 @@ type PickerView = 'calendar' | 'timeslots';
                     >{{ cell.day }}</span>
                     @if (cell.events.length > 0) {
                       <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
-                        @for (ev of cell.events.slice(0, 2); track ev.department + ev.startTime + ev.endTime) {
+                        @for (ev of cell.events.slice(0, 2); track ev.department + ev.startTime + ev.endTime + ev.eventKind) {
                           <li
                             class="min-w-0 truncate rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight font-semibold"
-                            [class.border-sky-500]="ev.eventKind !== 'COORDINATION'"
-                            [class.bg-sky-50]="ev.eventKind !== 'COORDINATION'"
-                            [class.text-sky-800]="ev.eventKind !== 'COORDINATION'"
+                            [class.border-sky-500]="ev.eventKind === 'RESERVATION' || ev.eventKind === 'TARGET'"
+                            [class.bg-sky-50]="ev.eventKind === 'RESERVATION' || ev.eventKind === 'TARGET'"
+                            [class.text-sky-800]="ev.eventKind === 'RESERVATION' || ev.eventKind === 'TARGET'"
                             [class.border-amber-500]="ev.eventKind === 'COORDINATION'"
                             [class.bg-amber-50]="ev.eventKind === 'COORDINATION'"
                             [class.text-amber-800]="ev.eventKind === 'COORDINATION'"
-                            [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.department)"
-                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.department }}</li>
+                            [class.border-orange-500]="ev.eventKind === 'PENDING'"
+                            [class.bg-orange-50]="ev.eventKind === 'PENDING'"
+                            [class.text-orange-900]="ev.eventKind === 'PENDING'"
+                            [title]="formatTimeShort(ev.startTime) + '–' + formatTimeShort(ev.endTime) + ' · ' + (ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'PENDING' ? 'Pending · ' + ev.department : ev.department)"
+                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Coordination' : ev.eventKind === 'PENDING' ? 'Pending · ' + ev.department : ev.department }}</li>
                         }
                         @if (cell.events.length > 2) {
                           <li class="truncate text-[10px] font-bold text-primary pl-1">+{{ cell.events.length - 2 }} more</li>
@@ -164,6 +167,10 @@ type PickerView = 'calendar' | 'timeslots';
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-3 h-3 rounded border-l-2 border-amber-500 bg-amber-50"></span>
               Coordination Meeting
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block w-3 h-3 rounded border-l-2 border-orange-500 bg-orange-50"></span>
+              Pending Request
             </span>
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span>
@@ -274,6 +281,11 @@ type PickerView = 'calendar' | 'timeslots';
                       @if (isSlotSelected(slot.value)) {
                         <ui-icon name="check" class="text-primary text-base shrink-0" />
                         <span class="text-xs font-semibold text-primary">Selected</span>
+                      } @else if (getPendingOnSlot(slot.value); as pending) {
+                        <ui-icon name="schedule" class="text-orange-400 text-sm shrink-0" />
+                        <span class="text-xs text-orange-700 font-medium truncate">
+                          Pending request {{ formatTimeShort(pending.startTime) }}–{{ formatTimeShort(pending.endTime) }} — click to overlap
+                        </span>
                       } @else {
                         <span class="text-xs text-gray-400 group-hover:text-emerald-600 transition-colors">Available — click to select</span>
                       }
@@ -422,13 +434,26 @@ export class FltRescheduleCalendar implements OnChanges {
     this.pickerView.set('timeslots');
   }
 
+  /** Locked rows — only approved reservations / coordination block selection. */
   getSlotEvent(hourStr: string): RescheduleEvent | null {
     const day = this.selectedDay();
     if (!day) return null;
     const hour = parseInt(hourStr, 10);
     return this._events().find(ev => {
       if (ev.date !== day) return false;
+      if (ev.eventKind !== 'RESERVATION' && ev.eventKind !== 'COORDINATION') return false;
       // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
+      return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
+    }) ?? null;
+  }
+
+  /** Pending request on this hour — informational only; selection/overlap is allowed. */
+  getPendingOnSlot(hourStr: string): RescheduleEvent | null {
+    const day = this.selectedDay();
+    if (!day) return null;
+    const hour = parseInt(hourStr, 10);
+    return this._events().find(ev => {
+      if (ev.date !== day || ev.eventKind !== 'PENDING') return false;
       return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
     }) ?? null;
   }
@@ -465,9 +490,10 @@ export class FltRescheduleCalendar implements OnChanges {
       this.selectedTimeEnd.set(null);
     } else {
       const [lo, hi] = hour > start ? [start, hour] : [hour, start];
-      // Check no event blocks this range
+      // Check no blocking event in this range (PENDING may overlap)
       const conflict = this._events().find(ev => {
         if (ev.date !== this.selectedDay()) return false;
+        if (ev.eventKind !== 'RESERVATION' && ev.eventKind !== 'COORDINATION') return false;
         const es = parseInt(ev.startTime, 10);
         const ee = parseInt(ev.endTime, 10);
         return lo < ee && hi > es;

@@ -25,6 +25,28 @@ public class VanReservationRepository {
         entityManager.flush();
     }
 
+    /**
+     * Hard-delete: clear ManyToMany join rows first, then remove the reservation entity.
+     */
+    public boolean deleteById(Long id) {
+        Optional<VanReservation> opt = findById(id);
+        if (opt.isEmpty()) {
+            return false;
+        }
+        VanReservation reservation = opt.get();
+        if (reservation.getAssignedVehicles() != null && !reservation.getAssignedVehicles().isEmpty()) {
+            reservation.getAssignedVehicles().clear();
+            entityManager.merge(reservation);
+            entityManager.flush();
+        }
+        VanReservation managed = entityManager.contains(reservation)
+                ? reservation
+                : entityManager.merge(reservation);
+        entityManager.remove(managed);
+        entityManager.flush();
+        return true;
+    }
+
     public Optional<VanReservation> findById(Long id) {
         List<VanReservation> rows = entityManager
                 .createQuery(

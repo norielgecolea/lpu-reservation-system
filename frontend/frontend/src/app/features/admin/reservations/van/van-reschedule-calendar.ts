@@ -20,7 +20,7 @@ export interface VanRescheduleEvent {
   department: string;
   organization: string;
   travelDestination: string;
-  eventKind: 'RESERVATION';
+  eventKind: 'RESERVATION' | 'PENDING';
   vehicleId?: number | null;
   vehicleLabel?: string | null;
 }
@@ -123,12 +123,12 @@ type PickerView = 'calendar' | 'timeslots';
                     >{{ cell.day }}</span>
                     @if (cell.events.length > 0) {
                       <ul class="mt-0.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
-                        @for (ev of cell.events.slice(0, 2); track (ev.vehicleId ?? 0) + ev.department + ev.startTime + ev.endTime) {
+                        @for (ev of cell.events.slice(0, 2); track (ev.vehicleId ?? 0) + ev.department + ev.startTime + ev.endTime + ev.eventKind) {
                           <li
                             class="min-w-0 truncate rounded border-l-2 px-1 py-0.5 text-[10px] leading-tight font-semibold"
-                            [class]="vehicleChipClass(ev.vehicleId)"
-                            [title]="eventTitle(ev)"
-                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.vehicleLabel || ev.travelDestination || ev.department }}</li>
+                            [class]="ev.eventKind === 'PENDING' ? 'border-orange-500 bg-orange-50 text-orange-900' : vehicleChipClass(ev.vehicleId)"
+                            [title]="ev.eventKind === 'PENDING' ? ('Pending · ' + eventTitle(ev)) : eventTitle(ev)"
+                          >{{ formatTimeShort(ev.startTime) }} · {{ ev.eventKind === 'PENDING' ? ('Pending · ' + (ev.travelDestination || ev.department)) : (ev.vehicleLabel || ev.travelDestination || ev.department) }}</li>
                         }
                         @if (cell.events.length > 2) {
                           <li class="truncate text-[10px] font-bold text-primary pl-1">+{{ cell.events.length - 2 }} more</li>
@@ -152,6 +152,10 @@ type PickerView = 'calendar' | 'timeslots';
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-3 h-3 rounded border-l-2 border-sky-500 bg-sky-50"></span>
               Assigned vehicle trip
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block w-3 h-3 rounded border-l-2 border-orange-500 bg-orange-50"></span>
+              Pending Request
             </span>
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span>
@@ -278,6 +282,11 @@ type PickerView = 'calendar' | 'timeslots';
                         <ui-icon name="check" class="text-primary text-base shrink-0" />
                         <span class="text-xs font-semibold text-primary">
                           @if (isDepartureSlot(slot.value)) { Departure } @else { Return }
+                        </span>
+                      } @else if (getPendingOnSlot(slot.value); as pending) {
+                        <ui-icon name="schedule" class="text-orange-400 text-sm shrink-0" />
+                        <span class="text-xs text-orange-700 font-medium truncate">
+                          Pending request {{ formatTimeShort(pending.startTime) }}–{{ formatTimeShort(pending.endTime) }} — click to overlap
                         </span>
                       } @else {
                         <span class="text-xs text-gray-400 group-hover:text-emerald-600 transition-colors">Available</span>
@@ -428,15 +437,27 @@ export class VanRescheduleCalendar implements OnChanges {
     this.pickerView.set('timeslots');
   }
 
+  /** Locked rows — only approved vehicle trips block selection. */
   getSlotEvents(hourStr: string): VanRescheduleEvent[] {
     const day = this.selectedDay();
     if (!day) return [];
     const hour = parseInt(hourStr, 10);
     return this._events().filter(ev => {
-      if (ev.date !== day) return false;
+      if (ev.date !== day || ev.eventKind !== 'RESERVATION') return false;
       // Inclusive of end clock time so 08:00–12:00 highlights through 12:00
       return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
     });
+  }
+
+  /** Pending request on this hour — informational only; selection/overlap is allowed. */
+  getPendingOnSlot(hourStr: string): VanRescheduleEvent | null {
+    const day = this.selectedDay();
+    if (!day) return null;
+    const hour = parseInt(hourStr, 10);
+    return this._events().find(ev => {
+      if (ev.date !== day || ev.eventKind !== 'PENDING') return false;
+      return hour >= parseInt(ev.startTime, 10) && hour <= parseInt(ev.endTime, 10);
+    }) ?? null;
   }
 
   eventTitle(ev: VanRescheduleEvent): string {
@@ -518,7 +539,7 @@ export class VanRescheduleCalendar implements OnChanges {
       }
 
       const conflict = this._events().find(ev => {
-        if (ev.date !== this.selectedDay()) return false;
+        if (ev.date !== this.selectedDay() || ev.eventKind !== 'RESERVATION') return false;
         return start < parseInt(ev.endTime, 10) && hour > parseInt(ev.startTime, 10);
       });
       if (conflict) {
