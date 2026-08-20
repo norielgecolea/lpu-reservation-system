@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+
+import { APP_NAME, APP_VERSION } from '../../../core/app-info';
 import { UiIcon, UiButton } from '../../../shared/ui';
 
 @Component({
@@ -91,10 +93,19 @@ import { UiIcon, UiButton } from '../../../shared/ui';
       </div>
 
       <!-- Footer -->
-      <div class="shrink-0 pb-4 text-center text-xs text-gray-500 font-medium">
+      <div class="shrink-0 pb-4 text-center text-xs font-medium leading-relaxed text-gray-500">
         &copy; 2026 LPU - Laguna. Developed by the Management Information Systems (MIS) Department. All rights reserved.
+        <span class="mt-0.5 block">
+          {{ appName }} {{ appVersion }}.
+          <a routerLink="/about" class="font-semibold text-primary underline-offset-2 hover:underline">
+            About this system
+          </a>
+        </span>
       </div>
     </div>
   `,
 })
-export class LandingPage {}
+export class LandingPage {
+  protected readonly appName = APP_NAME;
+  protected readonly appVersion = APP_VERSION;
+}

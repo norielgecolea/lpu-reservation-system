@@ -345,6 +345,10 @@ export const routes: Routes = [
       import('./features/customer/customer.routes').then((m) => m.CUSTOMER_ROUTES),
   },
   {
+    path: 'about',
+    loadComponent: () => import('./features/about/about').then((m) => m.About),
+  },
+  {
     path: '',
     loadChildren: () =>
       import('./features/auth/auth.routes').then((m) => m.AUTH_ROUTES),

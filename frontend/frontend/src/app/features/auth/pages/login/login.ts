@@ -11,6 +11,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
+import { APP_NAME, APP_VERSION } from '../../../../core/app-info';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { homePathForRole } from '../../../../core/auth/roles';
 import { UiButton, UiCheckbox, UiIcon, UiInput, UiLabel } from '../../../../shared/ui';
@@ -43,6 +44,8 @@ export class Login implements OnDestroy {
   protected readonly forgotSuccess = signal<string | null>(null);
   protected readonly backendStatus = signal<BackendStatus>('checking');
   protected readonly activeImage = signal(0);
+  protected readonly appName = APP_NAME;
+  protected readonly appVersion = APP_VERSION;
   protected readonly heroImages = [
     { src: '/lpu-building.webp', alt: 'LPU Laguna campus' },
     { src: '/background.webp', alt: 'LPU Laguna building' },

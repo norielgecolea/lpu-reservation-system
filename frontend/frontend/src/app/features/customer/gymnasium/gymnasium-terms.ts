@@ -72,59 +72,11 @@ import { UiIcon } from '../../../shared/ui';
 export class GymnasiumTerms {
   readonly sections = [
     {
-      title: 'Eligibility and Authorization',
+      title: 'Comming Soon',
       items: [
-        'Gymnasium reservations are available to LPU Laguna faculty, staff, students, and accredited organizations.',
-        'The requesting party must have a valid LPU Laguna identification or organizational accreditation.',
-        'All reservations must be submitted by an authorized representative who will be responsible for the event.',
-        'Reservations must be made at least 3 days prior to the event date.',
+        'Comming Soon',
+        'Comming Soon',
       ],
-    },
-    {
-      title: 'Reservation and Approval',
-      items: [
-        'Submission of a reservation request does not guarantee approval.',
-        'The Facilities Management Office will review all requests and notify the applicant within 3–5 business days.',
-        'Approved reservations are subject to cancellation if payment (if applicable) or required documents are not submitted on time.',
-        'Only one organization may occupy the Gymnasium at any given time.',
-      ],
-    },
-    {
-      title: 'Facility Use and Conduct',
-      items: [
-        'The Gymnasium must be used strictly for the purpose stated in the reservation.',
-        'Subletting or transferring the reservation to another party is strictly prohibited.',
-        'The facility must be vacated by the end of the reserved time period.',
-        'No food or beverages are allowed inside the Gymnasium unless prior written approval has been granted.',
-        'Smoking, alcoholic beverages, and illegal substances are strictly prohibited.',
-      ],
-    },
-    {
-      title: 'Equipment and Setup',
-      items: [
-        'Any requested equipment must be listed in the reservation form and is subject to availability.',
-        'Only equipment listed in the approved reservation may be used during the event.',
-        'Equipment must be returned to its original location and in good condition after the event.',
-        'Any damage to equipment or the facility must be reported immediately and may result in replacement costs.',
-      ],
-    },
-    {
-      title: 'Cancellation and Rescheduling',
-      items: [
-        'Cancellations must be submitted at least 5 business days before the scheduled event.',
-        'Repeated last-minute cancellations may result in suspension of reservation privileges.',
-        'Rescheduling is subject to availability and must be coordinated with the Facilities Management Office.',
-        'In cases of force majeure or university-declared emergencies, reservations may be cancelled without prior notice.',
-      ],
-    },
-    {
-      title: 'Liability and Responsibility',
-      items: [
-        'The reserving party is responsible for ensuring orderly conduct throughout the event.',
-        'LPU Laguna shall not be held liable for any loss, damage, or injury arising during the use of the Gymnasium.',
-        'The reserving organization accepts full responsibility for the safety and security of all attendees.',
-        'Violations of these terms may result in immediate cancellation of the reservation and future restrictions.',
-      ],
-    },
+    }
   ];
 }
