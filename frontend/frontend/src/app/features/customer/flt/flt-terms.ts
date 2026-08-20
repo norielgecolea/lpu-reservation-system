@@ -72,70 +72,12 @@ import { UiIcon } from '../../../shared/ui';
 export class FltTerms {
   readonly sections = [
     {
-      title: 'Eligibility and Authorization',
+      title: 'Comming Soon',
       items: [
-        'The FLT Theater is available exclusively for official LPU events, academic activities, departmental programs, and recognized student organization activities.',
-        'All reservation requests must be filed by a faculty member, department head, or authorized student organization officer.',
-        'Personal or commercial use of the facility is strictly prohibited.',
+        'Comming Soon',
+        'Comming Soon',
       ],
     },
-    {
-      title: 'Reservation and Lead Time',
-      items: [
-        'All reservation requests must be submitted at least fourteen (14) calendar days before the intended date of use.',
-        'Requests submitted within the 14-day lead time will not be processed.',
-        'Reservations are subject to the approval of the FLT Theater Administrator. Submission of a request does not guarantee approval.',
-        'Only one reservation per event per day is allowed.',
-      ],
-    },
-    {
-      title: 'Room Capacity',
-      items: [
-        'The number of attendees must not exceed the declared capacity of the selected room at any time during the event.',
-        'FLT Theater — Maximum 300 pax.',
-        'Amphitheater — Maximum 150 pax.',
-        'Banquet Hall — Maximum 100 pax.',
-        'Overcrowding beyond the approved capacity is grounds for immediate termination of the event without refund or recourse.',
-      ],
-    },
-    {
-      title: 'Equipment and Facilities',
-      items: [
-        'Only equipment listed and approved through the reservation system may be used.',
-        'Users are responsible for the proper handling of all FLT equipment. Any damage to equipment caused by negligence or misuse will be charged to the requesting party.',
-        'Equipment must be returned in its original state and location after the event.',
-        'Unauthorized removal of equipment from the facility is strictly prohibited.',
-      ],
-    },
-    {
-      title: 'Conduct and House Rules',
-      items: [
-        'The venue must be kept clean and orderly at all times. The requesting party is responsible for cleaning up after the event.',
-        'Food and beverages are not allowed inside the main theater area unless explicitly permitted by the administration.',
-        'Smoking, drinking of alcoholic beverages, and any form of gambling are strictly prohibited within the facility.',
-        'Noise levels must be kept within acceptable limits to avoid disturbance to neighboring areas.',
-      ],
-    },
-    {
-      title: 'Cancellation and No-show Policy',
-      items: [
-        'Cancellations must be formally communicated to the FLT Administration at least three (3) business days before the scheduled event.',
-        "Failure to cancel within this period or a no-show may result in the suspension of the requesting party's reservation privileges for up to one (1) semester.",
-        'The administration reserves the right to cancel any approved reservation due to unforeseen circumstances such as emergencies or university-mandated events.',
-      ],
-    },
-    {
-      title: 'Data Privacy',
-      items: [
-        "Personal information collected during the reservation process is used solely for the purpose of managing reservations in accordance with LPU's Data Privacy Policy and Republic Act No. 10173.",
-        'Information will not be shared with third parties without your consent.',
-      ],
-    },
-    {
-      title: 'Amendments',
-      items: [
-        'LPU reserves the right to amend these Terms and Conditions at any time without prior notice. It is the responsibility of the reserving party to review the current terms before each reservation.',
-      ],
-    },
+    
   ];
 }
