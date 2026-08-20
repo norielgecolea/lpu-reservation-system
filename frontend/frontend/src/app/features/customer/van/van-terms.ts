@@ -72,10 +72,10 @@ import { UiIcon } from '../../../shared/ui';
 export class VanTerms {
   readonly sections = [
     {
-      title: 'Comming Soon',
+      title: 'Coming Soon',
       items: [
-        'Comming Soon',
-        'Comming Soon',
+        'Coming Soon',
+        'Coming Soon',
       ],
     },
     
