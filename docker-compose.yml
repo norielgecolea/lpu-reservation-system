@@ -81,7 +81,7 @@ services:
       - ./frontend/frontend/dist/frontend/browser:/usr/share/nginx/html:ro
     environment:
       NGINX_PORT: 80
-      SERVER_NAME: localhost
+      SERVER_NAME: localhost reservation.lpulaguna.com learnerreservation.lpulaguna.com
       TOMCAT_HOST: reservation-tomcat
       TOMCAT_PORT: 8080
     depends_on:

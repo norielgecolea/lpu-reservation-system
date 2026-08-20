@@ -1,6 +1,14 @@
 import { Routes } from '@angular/router';
 
+import { learnerLandingMatch, staffPortalServicesGuard } from '../../core/portal';
+
 export const CUSTOMER_ROUTES: Routes = [
+  {
+    path: '',
+    canMatch: [learnerLandingMatch],
+    loadComponent: () =>
+      import('./landing-page/learner-landing-page').then((m) => m.LearnerLandingPage),
+  },
   {
     path: '',
     loadComponent: () => import('./landing-page/landing-page').then((m) => m.LandingPage),
@@ -23,11 +31,13 @@ export const CUSTOMER_ROUTES: Routes = [
   },
   {
     path: 'boardroom',
+    canActivate: [staffPortalServicesGuard],
     loadComponent: () =>
       import('./boardroom/boardroom').then((m) => m.BoardroomReservation),
   },
   {
     path: 'conference-room',
+    canActivate: [staffPortalServicesGuard],
     loadComponent: () =>
       import('./conference-room/conference-room').then((m) => m.ConferenceRoomReservation),
   },
@@ -41,10 +51,12 @@ export const CUSTOMER_ROUTES: Routes = [
   },
   {
     path: 'nexus-room',
+    canActivate: [staffPortalServicesGuard],
     loadComponent: () => import('./nexus-room/nexus-reservation').then((m) => m.NexusReservation),
   },
   {
     path: 'nexus-room/terms',
+    canActivate: [staffPortalServicesGuard],
     loadComponent: () => import('./nexus-room/nexus-terms').then((m) => m.NexusTerms),
   },
 ];
