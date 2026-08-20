@@ -15,10 +15,12 @@ export const CUSTOMER_ROUTES: Routes = [
   },
   {
     path: 'van',
+    canActivate: [staffPortalServicesGuard],
     loadComponent: () => import('./van/van-reservation').then((m) => m.VanReservation),
   },
   {
     path: 'van/terms',
+    canActivate: [staffPortalServicesGuard],
     loadComponent: () => import('./van/van-terms').then((m) => m.VanTerms),
   },
   {

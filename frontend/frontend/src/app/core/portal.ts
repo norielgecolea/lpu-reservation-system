@@ -19,7 +19,7 @@ export function currentHostname(): string {
 export const learnerLandingMatch: CanMatchFn = () =>
   isLearnerReservationHostname(currentHostname());
 
-/** Blocks Nexus / Boardroom / Conference on the learner subdomain. */
+/** Blocks Van / Nexus / Boardroom / Conference on the learner subdomain. */
 export const staffPortalServicesGuard: CanActivateFn = () => {
   if (!isLearnerReservationHostname(currentHostname())) {
     return true;

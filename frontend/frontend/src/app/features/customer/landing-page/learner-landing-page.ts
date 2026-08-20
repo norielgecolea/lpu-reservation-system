@@ -45,15 +45,12 @@ import { UiIcon, UiButton } from '../../../shared/ui';
       <div
         class="mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 content-start gap-3 sm:grid-cols-2 md:grid-cols-3 md:content-stretch md:gap-8"
       >
-        <a routerLink="/customer/van" class="facility-card group">
+        <div class="facility-card--disabled">
           <span class="facility-card-icon" aria-hidden="true">
-            <ui-icon
-              name="airport_shuttle"
-              class="text-3xl opacity-80 transition-opacity group-hover:opacity-100 md:text-[80px]"
-            />
+            <ui-icon name="co_present" class="text-3xl opacity-80 md:text-[80px]" />
           </span>
-          <span class="facility-card-label">University Van</span>
-        </a>
+          <span class="facility-card-label">Nexus Room</span>
+        </div>
 
         <a routerLink="/customer/flt" class="facility-card group">
           <span class="facility-card-icon" aria-hidden="true">
