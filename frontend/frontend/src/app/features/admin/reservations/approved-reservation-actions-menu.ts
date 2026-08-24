@@ -1,65 +1,125 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, input, output } from '@angular/core';
+import { Overlay, OverlayModule, OverlayRef } from '@angular/cdk/overlay';
+import { DomPortal } from '@angular/cdk/portal';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  OnDestroy,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 
 import { UiIcon } from '../../../shared/ui';
 
-/** Collapsible action menu for APPROVED reservation rows in admin approver lists. */
+/** Actions trigger that opens a floating vertical menu (does not expand the table row). */
 @Component({
   selector: 'app-approved-reservation-actions-menu',
-  imports: [UiIcon],
+  imports: [UiIcon, OverlayModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'inline-flex justify-end' },
   template: `
-    <div class="flex items-center justify-end">
-      @if (!expanded()) {
-        <button
-          type="button"
-          (click)="open($event)"
-          [disabled]="disabled()"
-          class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm shadow-gray-200/60 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ui-icon name="more_horiz" class="text-sm" />
-          Actions
-        </button>
-      } @else {
-        <div class="flex items-center justify-end gap-1.5 flex-wrap max-sm:w-full max-sm:flex-col max-sm:items-stretch animate-fade-in">
-          <ng-content />
-          <button
-            type="button"
-            (click)="close($event)"
-            aria-label="Hide actions"
-            title="Hide actions"
-            class="flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm hover:bg-gray-50 hover:text-gray-700 transition-colors cursor-pointer"
-          >
-            <ui-icon name="expand_less" class="text-base" />
-          </button>
-        </div>
-      }
+    <button
+      #trigger
+      type="button"
+      (click)="toggle($event)"
+      [disabled]="disabled()"
+      [attr.aria-expanded]="menuOpen()"
+      aria-haspopup="menu"
+      class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm shadow-gray-200/60 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <ui-icon name="more_horiz" class="text-sm" />
+      Actions
+    </button>
+
+    <div
+      #panel
+      role="menu"
+      class="hidden min-w-48 max-w-[min(18rem,calc(100vw-1.5rem))] flex-col gap-1 rounded-2xl bg-white/95 p-1.5 shadow-xl shadow-gray-900/15 ring-1 ring-black/8 backdrop-blur-md [&_button]:w-full [&_button]:justify-start"
+      (click)="onPanelClick($event)"
+    >
+      <ng-content />
     </div>
   `,
 })
-export class ApprovedReservationActionsMenu {
-  private readonly host = inject(ElementRef<HTMLElement>);
+export class ApprovedReservationActionsMenu implements OnDestroy {
+  private readonly overlay = inject(Overlay);
+  private overlayRef: OverlayRef | null = null;
 
-  readonly rowId = input.required<number>();
-  readonly expanded = input(false);
+  private readonly trigger = viewChild.required<ElementRef<HTMLButtonElement>>('trigger');
+  private readonly panel = viewChild.required<ElementRef<HTMLElement>>('panel');
+
   readonly disabled = input(false);
-  readonly expandedChange = output<boolean>();
+  protected readonly menuOpen = signal(false);
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: Event): void {
-    if (!this.expanded()) return;
-    const target = event.target;
-    if (target instanceof Node && !this.host.nativeElement.contains(target)) {
-      this.expandedChange.emit(false);
+  ngOnDestroy(): void {
+    this.close();
+  }
+
+  protected toggle(event: Event): void {
+    event.stopPropagation();
+    if (this.menuOpen()) {
+      this.close();
+      return;
     }
+    this.open();
   }
 
-  protected open(event: Event): void {
-    event.stopPropagation();
-    this.expandedChange.emit(true);
+  private open(): void {
+    this.close();
+    const panelEl = this.panel().nativeElement;
+    const overlayRef = this.overlay.create({
+      positionStrategy: this.overlay
+        .position()
+        .flexibleConnectedTo(this.trigger())
+        .withFlexibleDimensions(false)
+        .withPush(true)
+        .withPositions([
+          {
+            originX: 'end',
+            originY: 'bottom',
+            overlayX: 'end',
+            overlayY: 'top',
+            offsetY: 6,
+          },
+          {
+            originX: 'end',
+            originY: 'top',
+            overlayX: 'end',
+            overlayY: 'bottom',
+            offsetY: -6,
+          },
+        ]),
+      scrollStrategy: this.overlay.scrollStrategies.close(),
+      hasBackdrop: true,
+      backdropClass: 'cdk-overlay-transparent-backdrop',
+      disposeOnNavigation: true,
+    });
+    overlayRef.backdropClick().subscribe(() => this.close());
+    overlayRef.attachments().subscribe(() => {
+      panelEl.classList.remove('hidden');
+      panelEl.classList.add('flex');
+    });
+    overlayRef.detachments().subscribe(() => {
+      panelEl.classList.add('hidden');
+      panelEl.classList.remove('flex');
+    });
+    overlayRef.attach(new DomPortal(panelEl));
+    this.overlayRef = overlayRef;
+    this.menuOpen.set(true);
   }
 
-  protected close(event: Event): void {
-    event.stopPropagation();
-    this.expandedChange.emit(false);
+  private close(): void {
+    this.overlayRef?.dispose();
+    this.overlayRef = null;
+    this.menuOpen.set(false);
+  }
+
+  protected onPanelClick(event: Event): void {
+    const target = event.target;
+    if (target instanceof HTMLElement && target.closest('button')) {
+      this.close();
+    }
   }
 }

@@ -281,9 +281,6 @@ interface FltReservationViewRow extends FltReservationRecord {
                       </button>
                     } @else if (row.status === 'APPROVED') {
                       <app-approved-reservation-actions-menu
-                        [rowId]="row.id"
-                        [expanded]="isApprovedActionsExpanded(row.id)"
-                        (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
                         @if (isSuperAdminRole()) {
@@ -357,15 +354,17 @@ interface FltReservationViewRow extends FltReservationRecord {
                         </button>
                       </app-approved-reservation-actions-menu>
                     } @else if (isSuperAdminRole()) {
-                      <button
-                        type="button"
-                        (click)="requestDelete(row)"
-                        [disabled]="acting() === row.id"
-                        class="flex items-center justify-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ui-icon name="delete" class="text-sm" />
-                        <span class="hidden sm:inline">Delete</span>
-                      </button>
+                      <app-approved-reservation-actions-menu [disabled]="acting() === row.id">
+                        <button
+                          type="button"
+                          (click)="requestDelete(row)"
+                          [disabled]="acting() === row.id"
+                          class="flex items-center justify-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ui-icon name="delete" class="text-sm" />
+                          Delete
+                        </button>
+                      </app-approved-reservation-actions-menu>
                     }
                   </div>
                 </div>
@@ -545,9 +544,6 @@ interface FltReservationViewRow extends FltReservationRecord {
                       </div>
                     } @else if (row.status === 'APPROVED') {
                       <app-approved-reservation-actions-menu
-                        [rowId]="row.id"
-                        [expanded]="isApprovedActionsExpanded(row.id)"
-                        (expandedChange)="setApprovedActionsExpanded(row.id, $event)"
                         [disabled]="acting() === row.id"
                       >
                         @if (isSuperAdminRole()) {
@@ -621,11 +617,13 @@ interface FltReservationViewRow extends FltReservationRecord {
                         </button>
                       </app-approved-reservation-actions-menu>
                     } @else if (isSuperAdminRole()) {
-                      <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
-                        class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                        <ui-icon name="delete" class="text-sm" />
-                        <span class="hidden sm:inline">Delete</span>
-                      </button>
+                      <app-approved-reservation-actions-menu [disabled]="acting() === row.id">
+                        <button type="button" (click)="requestDelete(row)" [disabled]="acting() === row.id"
+                          class="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                          <ui-icon name="delete" class="text-sm" />
+                          Delete
+                        </button>
+                      </app-approved-reservation-actions-menu>
                     } @else {
                       <span class="text-xs text-gray-300 italic">—</span>
                     }
@@ -835,23 +833,6 @@ export class FltReservations implements OnInit, OnDestroy {
   });
   readonly toast = signal('');
   readonly exportOpen = signal(false);
-  readonly expandedApprovedActions = signal<Set<number>>(new Set());
-
-  protected isApprovedActionsExpanded(id: number): boolean {
-    return this.expandedApprovedActions().has(id);
-  }
-
-  protected setApprovedActionsExpanded(id: number, expanded: boolean): void {
-    this.expandedApprovedActions.update(set => {
-      const next = new Set(set);
-      if (expanded) {
-        next.add(id);
-      } else {
-        next.delete(id);
-      }
-      return next;
-    });
-  }
 
   // Maintenance
   readonly showMaintenance = signal(false);
