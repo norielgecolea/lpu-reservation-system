@@ -381,17 +381,17 @@ interface CalendarCell {
                   </div>
                 </div>
               } @else if (isPublicCoordinationDayLocked()) {
-                <!-- Leftover hours locked by a coordination meeting -->
+                <!-- Same as a coordination row so the real meeting time is not obvious -->
                 <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
                   <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
                     {{ slot.label }}
                   </div>
                   <div class="flex-1 px-3 py-2.5 bg-amber-50 flex items-center gap-2">
                     <div class="flex-1 min-w-0">
-                      <p class="text-xs font-bold text-amber-700 truncate">Locked — Coordination Meeting</p>
-                      <p class="text-[10px] text-amber-500">Not available</p>
+                      <p class="text-xs font-bold text-amber-700 truncate">📋 Coordination Meeting</p>
+                      <p class="text-[10px] text-amber-500">Blocked</p>
                     </div>
-                    <ui-icon name="lock" class="text-sm shrink-0 text-amber-400" />
+                    <ui-icon name="handshake" class="text-sm shrink-0 text-amber-400" />
                   </div>
                 </div>
               } @else {
