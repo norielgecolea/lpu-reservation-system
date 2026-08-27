@@ -124,6 +124,35 @@ public class FltReservationService {
         return result;
     }
 
+    /**
+     * Public users cannot book any slot on a day that already has a coordination meeting.
+     * Staff booking is allowed to use leftover hours on those days.
+     */
+    public boolean conflictsWithCoordinationDay(FltReservationRequest req) {
+        if (req == null || req.getReservedDates() == null || req.getReservedDates().isEmpty()) {
+            return false;
+        }
+        Set<String> requestedDates = new LinkedHashSet<>();
+        for (FltReservationRequest.ReservedDateSlot slot : req.getReservedDates()) {
+            if (slot != null && slot.getDate() != null && !slot.getDate().isBlank()) {
+                requestedDates.add(slot.getDate());
+            }
+        }
+        if (requestedDates.isEmpty()) return false;
+        try {
+            List<FltReservation> approved = fltReservationRepository.findAllApproved();
+            for (FltReservation r : approved) {
+                String coordDate = r.getCoordinationDate();
+                if (coordDate != null && !coordDate.isEmpty() && requestedDates.contains(coordDate)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error checking coordination day conflicts", e);
+        }
+        return false;
+    }
+
     @Transactional(readOnly = true)
     public List<FltReservationAdminDto> getAllReservations(String month) {
         return getAllReservations(month, null, null);

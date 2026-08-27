@@ -183,8 +183,8 @@ interface CalendarCell {
                               [class.border-orange-500]="plot.kind === 'MAINTENANCE'"
                               [class.bg-orange-50]="plot.kind === 'MAINTENANCE'"
                               [class.text-orange-800]="plot.kind === 'MAINTENANCE'"
-                              [title]="formatTimeShort(plot.startTime) + '–' + formatTimeShort(plot.endTime) + ' · ' + plot.title"
-                            >{{ formatTimeShort(plot.startTime) }}–{{ formatTimeShort(plot.endTime) }} · {{ plot.label }}</li>
+                              [title]="plotChipTitle(plot)"
+                            >{{ plotChipLabel(plot) }}</li>
                           }
                         </ul>
                       }
@@ -294,7 +294,11 @@ interface CalendarCell {
             </button>
             <div class="flex-1 min-w-0 text-center">
               <h2 class="text-base sm:text-xl font-black tracking-tight truncate">{{ formatDateLong(selectedDay()) }}</h2>
-              <p class="text-white/60 text-xs hidden sm:block">FLT Theater — Select start and end time</p>
+              <p class="text-white/60 text-xs hidden sm:block">
+                {{ isPublicCoordinationDayLocked()
+                  ? 'FLT Theater — This day is reserved for a coordination meeting'
+                  : 'FLT Theater — Select start and end time' }}
+              </p>
             </div>
             @if (adminMode()) {
               <a
@@ -351,11 +355,11 @@ interface CalendarCell {
                         [class.text-sky-700]="ev.eventKind !== 'COORDINATION'"
                         [class.text-amber-700]="ev.eventKind === 'COORDINATION'"
                       >{{ ev.eventKind === 'COORDINATION' ? '📋 Coordination Meeting' : ev.department }}</p>
-                      <p
-                        class="text-[10px]"
-                        [class.text-sky-500]="ev.eventKind !== 'COORDINATION'"
-                        [class.text-amber-500]="ev.eventKind === 'COORDINATION'"
-                      >{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · {{ ev.eventKind === 'COORDINATION' ? 'Blocked' : 'Reserved' }}</p>
+                      @if (ev.eventKind === 'COORDINATION') {
+                        <p class="text-[10px] text-amber-500">Blocked</p>
+                      } @else {
+                        <p class="text-[10px] text-sky-500">{{ formatTimeShort(ev.startTime) }} – {{ formatTimeShort(ev.endTime) }} · Reserved</p>
+                      }
                     </div>
                     <ui-icon
                       [name]="ev.eventKind === 'COORDINATION' ? 'handshake' : 'lock'"
@@ -374,6 +378,20 @@ interface CalendarCell {
                   <div class="flex-1 px-3 py-2.5 bg-primary/5 flex items-center gap-2">
                     <ui-icon name="check_circle" class="text-primary text-base shrink-0" />
                     <span class="text-xs font-semibold text-primary">Your selection</span>
+                  </div>
+                </div>
+              } @else if (isPublicCoordinationDayLocked()) {
+                <!-- Leftover hours locked by a coordination meeting -->
+                <div class="flex items-stretch border-b border-gray-100 last:border-b-0">
+                  <div class="w-20 sm:w-24 shrink-0 flex items-center justify-end pr-3 py-3 text-xs font-semibold text-gray-400 border-r border-gray-100">
+                    {{ slot.label }}
+                  </div>
+                  <div class="flex-1 px-3 py-2.5 bg-amber-50 flex items-center gap-2">
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-bold text-amber-700 truncate">Locked — Coordination Meeting</p>
+                      <p class="text-[10px] text-amber-500">Not available</p>
+                    </div>
+                    <ui-icon name="lock" class="text-sm shrink-0 text-amber-400" />
                   </div>
                 </div>
               } @else {
@@ -429,7 +447,7 @@ interface CalendarCell {
               <button
                 type="button"
                 (click)="addToBasket()"
-                [disabled]="selectedTimeStart() === null || selectedTimeEnd() === null"
+                [disabled]="isPublicCoordinationDayLocked() || selectedTimeStart() === null || selectedTimeEnd() === null"
                 class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
               >
                 <ui-icon name="add" class="text-base" />
@@ -632,36 +650,46 @@ export class FltReservation implements OnInit {
       const dateStr = this.formatDate(new Date(year, month, day));
       // "isPast" here means not bookable — includes today through today+13
       const isPast = dateStr < minBookableStr;
-      const plots: CalendarPlot[] = [
-        ...events
-          .filter((e) => e.date === dateStr)
-          .map((e) => {
-            const isCoord = e.eventKind === 'COORDINATION';
-            const label = isCoord ? 'Coordination' : e.department;
-            return {
-              kind: (isCoord ? 'COORDINATION' : 'EVENT') as CalendarPlot['kind'],
-              startTime: e.startTime,
-              endTime: e.endTime,
-              label,
-              title: label,
-              trackKey: `ev-${e.eventTitle}-${e.startTime}-${e.endTime}-${e.eventKind ?? 'RESERVATION'}`,
-            };
-          }),
-        ...maintenance
-          .filter((b) => b.blockDate === dateStr)
-          .map((b) => ({
-            kind: 'MAINTENANCE' as const,
-            startTime: b.startTime,
-            endTime: b.endTime,
-            label: 'Maint',
-            title: b.reason || 'Maintenance',
-            trackKey: `mb-${b.id}`,
-          })),
-      ].sort((a, b) => {
+      const dayEvents = events.filter((e) => e.date === dateStr);
+      const hasCoord = dayEvents.some((e) => e.eventKind === 'COORDINATION');
+      const eventPlots: CalendarPlot[] = dayEvents
+        .filter((e) => e.eventKind !== 'COORDINATION')
+        .map((e) => ({
+          kind: 'EVENT' as const,
+          startTime: e.startTime,
+          endTime: e.endTime,
+          label: e.department,
+          title: e.department,
+          trackKey: `ev-${e.eventTitle}-${e.startTime}-${e.endTime}`,
+        }));
+      const maintPlots: CalendarPlot[] = maintenance
+        .filter((b) => b.blockDate === dateStr)
+        .map((b) => ({
+          kind: 'MAINTENANCE' as const,
+          startTime: b.startTime,
+          endTime: b.endTime,
+          label: 'Maint',
+          title: b.reason || 'Maintenance',
+          trackKey: `mb-${b.id}`,
+        }));
+      const timedPlots = [...eventPlots, ...maintPlots].sort((a, b) => {
         const byStart = (a.startTime || '').localeCompare(b.startTime || '');
         if (byStart !== 0) return byStart;
         return (a.endTime || '').localeCompare(b.endTime || '');
       });
+      const plots: CalendarPlot[] = [
+        ...timedPlots,
+        ...(hasCoord
+          ? [{
+              kind: 'COORDINATION' as const,
+              startTime: '',
+              endTime: '',
+              label: 'Coordination Meeting',
+              title: 'Coordination Meeting',
+              trackKey: `coord-${dateStr}`,
+            }]
+          : []),
+      ];
       return {
         day,
         dateStr,
@@ -726,6 +754,27 @@ export class FltReservation implements OnInit {
     this.view.set('timeslots');
   }
 
+  hasCoordinationOnDay(date: string | null): boolean {
+    if (!date) return false;
+    return this.approvedEvents().some(
+      (ev) => ev.date === date && ev.eventKind === 'COORDINATION',
+    );
+  }
+
+  isPublicCoordinationDayLocked(): boolean {
+    return !this.adminMode() && this.hasCoordinationOnDay(this.selectedDay());
+  }
+
+  plotChipLabel(plot: CalendarPlot): string {
+    if (plot.kind === 'COORDINATION') return plot.label;
+    return `${this.formatTimeShort(plot.startTime)}–${this.formatTimeShort(plot.endTime)} · ${plot.label}`;
+  }
+
+  plotChipTitle(plot: CalendarPlot): string {
+    if (plot.kind === 'COORDINATION') return plot.title;
+    return `${this.formatTimeShort(plot.startTime)}–${this.formatTimeShort(plot.endTime)} · ${plot.title}`;
+  }
+
   /** Returns the approved event that occupies a given hour on the selected day, or null */
   getSlotEvent(hourStr: string): FltApprovedEvent | null {
     const day = this.selectedDay();
@@ -778,6 +827,10 @@ export class FltReservation implements OnInit {
 
   toggleTimeSlot(hourStr: string): void {
     this.timeSlotError.set('');
+    if (this.isPublicCoordinationDayLocked()) {
+      this.timeSlotError.set('This day is reserved for a coordination meeting.');
+      return;
+    }
     const hour = parseInt(hourStr, 10);
     const start = this.selectedTimeStart();
 
@@ -816,6 +869,10 @@ export class FltReservation implements OnInit {
     const start = this.selectedTimeStart();
     const end = this.selectedTimeEnd();
     if (!day || start === null || end === null) return;
+    if (!this.adminMode() && this.hasCoordinationOnDay(day)) {
+      this.timeSlotError.set('This day is reserved for a coordination meeting.');
+      return;
+    }
 
     const startStr = `${String(start).padStart(2, '0')}:00`;
     const endStr = `${String(end).padStart(2, '0')}:00`;

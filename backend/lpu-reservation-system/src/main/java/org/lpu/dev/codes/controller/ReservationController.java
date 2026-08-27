@@ -92,6 +92,12 @@ public class ReservationController {
                 res.setMessage("Email verification required. Please verify the code sent to your contact email.");
                 return res;
             }
+            if (!reservationOtpService.isStaffBypass(authHeader)
+                    && fltReservationService.conflictsWithCoordinationDay(request)) {
+                res.setSuccess(false);
+                res.setMessage("That date is reserved for a coordination meeting and cannot be booked.");
+                return res;
+            }
             boolean created = fltReservationService.createReservation(request);
             res.setSuccess(created);
             res.setMessage(created ? "Reservation submitted successfully" : "Failed to submit reservation");
