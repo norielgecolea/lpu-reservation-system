@@ -76,9 +76,9 @@ public class GymnasiumReservationController {
                 res.setMessage("Email verification required. Please verify the code sent to your contact email.");
                 return res;
             }
-            boolean created = gymService.createReservation(request);
-            res.setSuccess(created);
-            res.setMessage(created ? "Reservation submitted successfully" : "Failed to submit reservation");
+            String error = gymService.createReservation(request);
+            res.setSuccess(error == null);
+            res.setMessage(error == null ? "Reservation submitted successfully" : error);
         } catch (Exception e) {
             logger.error("Error submitting gymnasium reservation", e);
             res.setSuccess(false);

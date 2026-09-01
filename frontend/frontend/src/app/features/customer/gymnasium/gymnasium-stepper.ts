@@ -25,6 +25,7 @@ import { ReservationSubmittedModal } from '../reservation-submitted-modal';
 import { ReservationOtpModal } from '../reservation-otp-modal';
 import { formatTime12 } from '../../../shared/utils/datetime.util';
 import { philippinePhoneValidator } from '../../../shared/utils/ph-phone.util';
+import { UNIVERSITY_EMAIL_DOMAINS_LABEL, isUniversityEmail } from '../../../shared/constants/lpu-email';
 
 @Component({
   selector: 'app-gymnasium-stepper',
@@ -248,11 +249,12 @@ import { philippinePhoneValidator } from '../../../shared/utils/ph-phone.util';
             </div>
             <div class="flex flex-col gap-2">
               <label uiLabel for="contactEmail">Contact Email <span class="text-red-500">*</span></label>
-              <input uiInput id="contactEmail" type="email" formControlName="contactEmail" placeholder="you@example.com" />
+              <input uiInput id="contactEmail" type="email" formControlName="contactEmail" placeholder="name@lpulaguna.edu.ph" />
               @if (contactForm.get('contactEmail')?.invalid && contactForm.get('contactEmail')?.touched) {
                 <p class="text-xs text-red-500">
                   @if (contactForm.get('contactEmail')?.errors?.['required']) { Email is required. }
                   @if (contactForm.get('contactEmail')?.errors?.['email']) { Please enter a valid email address. }
+                  @if (contactForm.get('contactEmail')?.errors?.['lpuDomain']) { Only {{ universityEmailHint }} addresses are allowed. }
                 </p>
               }
             </div>
@@ -402,6 +404,8 @@ export class GymnasiumStepper implements OnChanges {
 
   private readonly reservationService = inject(GymReservationService);
 
+  readonly universityEmailHint = UNIVERSITY_EMAIL_DOMAINS_LABEL;
+
   readonly steps = [
     { id: 1, label: 'DATES & TIMES' },
     { id: 2, label: 'EVENT DETAILS' },
@@ -433,7 +437,11 @@ export class GymnasiumStepper implements OnChanges {
 
   readonly contactForm = new FormGroup({
     contactPerson: new FormControl('', Validators.required),
-    contactEmail: new FormControl('', [Validators.required, Validators.email]),
+    contactEmail: new FormControl('', [
+      Validators.required,
+      Validators.email,
+      (control) => (isUniversityEmail(control.value ?? '') ? null : { lpuDomain: true }),
+    ]),
     contactNumber: new FormControl('', [Validators.required, philippinePhoneValidator]),
   });
 

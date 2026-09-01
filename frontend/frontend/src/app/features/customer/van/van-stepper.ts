@@ -15,8 +15,7 @@ import { RouterLink } from '@angular/router';
 import { UiButton, UiInput, UiLabel, UiIcon, UiSelect } from '../../../shared/ui';
 import { VAN_DEPARTMENT_SELECT_OPTIONS } from '../../../shared/constants/van-department-options';
 import { VAN_SCHOOL_OPTIONS } from '../../../shared/constants/van-school-options';
-import { LPU_LAGUNA_EMAIL_DOMAIN, isLpuLagunaEmail } from '../../../shared/constants/lpu-email';
-import { AllowedEmailsService } from '../../admin/allowed-emails/allowed-emails.service';
+import { UNIVERSITY_EMAIL_DOMAINS_LABEL, isUniversityEmail } from '../../../shared/constants/lpu-email';
 import { VanReservationPayload, ReservedDateSlot } from './van-reservation.models';
 import { VanReservationService } from './van-reservation.service';
 import { ReservationSubmittedModal } from '../reservation-submitted-modal';
@@ -289,7 +288,7 @@ import { philippinePhoneValidator } from '../../../shared/utils/ph-phone.util';
                 <p class="text-xs text-red-500">
                   @if (contactForm.get('contactEmail')?.errors?.['required']) { Email is required. }
                   @if (contactForm.get('contactEmail')?.errors?.['email']) { Please enter a valid email address. }
-                  @if (contactForm.get('contactEmail')?.errors?.['lpuDomain']) { Only {{ lpuEmailDomain }} addresses are allowed. }
+                  @if (contactForm.get('contactEmail')?.errors?.['lpuDomain']) { Only {{ universityEmailHint }} addresses are allowed. }
                 </p>
               }
             </div>
@@ -453,9 +452,8 @@ export class VanStepper implements OnChanges {
   }
 
   private readonly reservationService = inject(VanReservationService);
-  private readonly allowedEmailsService = inject(AllowedEmailsService);
 
-  readonly lpuEmailDomain = LPU_LAGUNA_EMAIL_DOMAIN;
+  readonly universityEmailHint = UNIVERSITY_EMAIL_DOMAINS_LABEL;
 
   readonly steps = [
     { id: 1, label: 'DATES & TIMES' },
@@ -494,7 +492,7 @@ export class VanStepper implements OnChanges {
     contactEmail: new FormControl('', [
       Validators.required,
       Validators.email,
-      (control) => (isLpuLagunaEmail(control.value ?? '') ? null : { lpuDomain: true }),
+      (control) => (isUniversityEmail(control.value ?? '') ? null : { lpuDomain: true }),
     ]),
     contactNumber: new FormControl('', [Validators.required, philippinePhoneValidator]),
   });
@@ -573,23 +571,9 @@ export class VanStepper implements OnChanges {
       return;
     }
 
-    this.submitting.set(true);
-    this.allowedEmailsService.checkEmail(email).subscribe({
-      next: (check) => {
-        this.submitting.set(false);
-        if (!check.allowed) {
-          this.submitError.set(check.message || 'This email is not authorized to make reservations.');
-          return;
-        }
-        this.otpEmail.set(email);
-        this.otpContactPerson.set(contactPerson);
-        this.otpOpen.set(true);
-      },
-      error: () => {
-        this.submitting.set(false);
-        this.submitError.set('Unable to verify email. Please try again.');
-      },
-    });
+    this.otpEmail.set(email);
+    this.otpContactPerson.set(contactPerson);
+    this.otpOpen.set(true);
   }
 
   onOtpVerified(otpToken: string): void {

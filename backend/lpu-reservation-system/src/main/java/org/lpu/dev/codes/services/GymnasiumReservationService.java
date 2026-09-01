@@ -37,6 +37,7 @@ public class GymnasiumReservationService {
     @Autowired private GymnasiumEmailService gymEmailService;
     @Autowired private ReservationEventPublisher eventPublisher;
     @Autowired private AdminAuditService auditService;
+    @Autowired private AllowedReservationEmailService allowedEmailService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -477,7 +478,12 @@ public class GymnasiumReservationService {
     // ── Create reservation ────────────────────────────────────────────────────
 
     @Transactional
-    public boolean createReservation(GymnasiumReservationRequest req) {
+    public String createReservation(GymnasiumReservationRequest req) {
+        String emailError = allowedEmailService.validateRestrictedServiceEmail(req.getContactEmail());
+        if (emailError != null) {
+            return emailError;
+        }
+
         try {
             GymnasiumReservation r = new GymnasiumReservation();
             r.setEventTitle(req.getEventTitle());
@@ -485,7 +491,7 @@ public class GymnasiumReservationService {
             r.setOrganization(req.getOrganization());
             r.setNumberOfAttendees(req.getNumberOfAttendees());
             r.setContactPerson(req.getContactPerson());
-            r.setContactEmail(req.getContactEmail());
+            r.setContactEmail(allowedEmailService.normalizeEmail(req.getContactEmail()));
             r.setContactNumber(req.getContactNumber());
             r.setAdditionalInstructions(req.getAdditionalInstructions());
             r.setReservedDates(objectMapper.writeValueAsString(req.getReservedDates()));
@@ -496,10 +502,10 @@ public class GymnasiumReservationService {
             gymEmailService.sendReservationConfirmation(r);
             publishCreatedEvent("gymnasium", r.getId());
             logger.info("Gymnasium reservation created. Event: {}, Contact: {}", req.getEventTitle(), req.getContactEmail());
-            return true;
+            return null;
         } catch (Exception e) {
             logger.error("Failed to create gymnasium reservation", e);
-            return false;
+            return "Failed to submit reservation";
         }
     }
 }

@@ -34,11 +34,6 @@ const superAdminRoutes: Routes = [
     loadComponent: () => import('./features/admin/roles/roles').then((m) => m.RolesPage),
   },
   {
-    path: 'allowed-emails',
-    loadComponent: () =>
-      import('./features/admin/allowed-emails/allowed-emails').then((m) => m.AllowedEmails),
-  },
-  {
     path: 'equipments',
     loadComponent: () =>
       import('./features/admin/equipments/equipments').then((m) => m.Equipments),

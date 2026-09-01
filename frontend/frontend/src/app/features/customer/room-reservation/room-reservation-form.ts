@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component, Input, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiButton, UiCalendar, UiInput, UiLabel, UiIcon } from '../../../shared/ui';
-import { AllowedEmailsService } from '../../admin/allowed-emails/allowed-emails.service';
 import { LPU_LAGUNA_EMAIL_DOMAIN, isLpuLagunaEmail } from '../../../shared/constants/lpu-email';
 import { ReservationOtpModal } from '../reservation-otp-modal';
 import type { RoomReservationFacility, RoomReservationFeature } from './room-reservation.models';
@@ -190,8 +189,6 @@ const DEFAULT_FEATURES: RoomReservationFeature[] = [
   `,
 })
 export class RoomReservationForm {
-  private readonly allowedEmailsService = inject(AllowedEmailsService);
-
   protected readonly lpuEmailDomain = LPU_LAGUNA_EMAIL_DOMAIN;
   protected readonly submitting = signal(false);
   protected readonly submitError = signal('');
@@ -266,26 +263,10 @@ export class RoomReservationForm {
 
     const email = this.form.value.contactEmail!.trim().toLowerCase();
     const contactPerson = this.form.value.contactPerson!;
-    this.submitting.set(true);
     this.submitError.set('');
-
-    this.allowedEmailsService.checkEmail(email).subscribe({
-      next: (check) => {
-        this.submitting.set(false);
-        if (!check.allowed) {
-          this.submitError.set(check.message || 'This email is not authorized to make reservations.');
-          return;
-        }
-
-        this.otpEmail.set(email);
-        this.otpContactPerson.set(contactPerson);
-        this.otpOpen.set(true);
-      },
-      error: () => {
-        this.submitting.set(false);
-        this.submitError.set('Unable to verify email. Please try again.');
-      },
-    });
+    this.otpEmail.set(email);
+    this.otpContactPerson.set(contactPerson);
+    this.otpOpen.set(true);
   }
 
   onOtpVerified(_otpToken: string): void {

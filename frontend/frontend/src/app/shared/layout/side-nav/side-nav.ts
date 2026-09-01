@@ -63,7 +63,6 @@ export class SideNav implements OnInit {
         { label: 'Dashboard', icon: 'grid_view', link: '/dashboard' },
         { label: 'Users', icon: 'group', link: '/users' },
         { label: 'Roles', icon: 'admin_panel_settings', link: '/roles' },
-        { label: 'Allowed Emails', icon: 'mail', link: '/allowed-emails' },
         { label: 'Equipments', icon: 'inventory_2', link: '/equipments' },
         { label: 'Vehicles', icon: 'directions_car', link: '/vehicles' },
         ...(reservationChildren.length
