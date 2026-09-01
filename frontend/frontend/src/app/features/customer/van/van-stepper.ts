@@ -22,6 +22,7 @@ import { VanReservationService } from './van-reservation.service';
 import { ReservationSubmittedModal } from '../reservation-submitted-modal';
 import { ReservationOtpModal } from '../reservation-otp-modal';
 import { formatTime12 } from '../../../shared/utils/datetime.util';
+import { philippinePhoneValidator } from '../../../shared/utils/ph-phone.util';
 
 @Component({
   selector: 'app-van-stepper',
@@ -295,8 +296,11 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
             <div class="flex flex-col gap-2">
               <label uiLabel for="contactNumber">Contact Number <span class="text-red-500">*</span></label>
               <input uiInput id="contactNumber" type="tel" formControlName="contactNumber" placeholder="e.g. 09171234567" />
-              @if (contactForm.get('contactNumber')?.invalid && contactForm.get('contactNumber')?.touched) {
-                <p class="text-xs text-red-500">Contact number is required.</p>
+              @if (contactForm.get('contactNumber')?.invalid && (contactForm.get('contactNumber')?.touched || contactForm.get('contactNumber')?.dirty)) {
+                <p class="text-xs text-red-500">
+                  @if (contactForm.get('contactNumber')?.errors?.['required']) { Contact number is required. }
+                  @if (contactForm.get('contactNumber')?.errors?.['phPhone']) { Enter a valid Philippine phone number (e.g. 09171234567). }
+                </p>
               }
             </div>
           </div>
@@ -492,7 +496,7 @@ export class VanStepper implements OnChanges {
       Validators.email,
       (control) => (isLpuLagunaEmail(control.value ?? '') ? null : { lpuDomain: true }),
     ]),
-    contactNumber: new FormControl('', Validators.required),
+    contactNumber: new FormControl('', [Validators.required, philippinePhoneValidator]),
   });
 
   ngOnChanges(changes: SimpleChanges): void {

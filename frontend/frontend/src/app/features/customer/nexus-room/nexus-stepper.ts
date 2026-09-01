@@ -24,6 +24,7 @@ import { NexusReservationService } from './nexus-reservation.service';
 import { ReservationSubmittedModal } from '../reservation-submitted-modal';
 import { ReservationOtpModal } from '../reservation-otp-modal';
 import { formatTime12 } from '../../../shared/utils/datetime.util';
+import { philippinePhoneValidator } from '../../../shared/utils/ph-phone.util';
 
 @Component({
   selector: 'app-nexus-stepper',
@@ -258,8 +259,11 @@ import { formatTime12 } from '../../../shared/utils/datetime.util';
             <div class="flex flex-col gap-2">
               <label uiLabel for="contactNumber">Contact Number <span class="text-red-500">*</span></label>
               <input uiInput id="contactNumber" type="tel" formControlName="contactNumber" placeholder="e.g. 09171234567" />
-              @if (contactForm.get('contactNumber')?.invalid && contactForm.get('contactNumber')?.touched) {
-                <p class="text-xs text-red-500">Contact number is required.</p>
+              @if (contactForm.get('contactNumber')?.invalid && (contactForm.get('contactNumber')?.touched || contactForm.get('contactNumber')?.dirty)) {
+                <p class="text-xs text-red-500">
+                  @if (contactForm.get('contactNumber')?.errors?.['required']) { Contact number is required. }
+                  @if (contactForm.get('contactNumber')?.errors?.['phPhone']) { Enter a valid Philippine phone number (e.g. 09171234567). }
+                </p>
               }
             </div>
           </div>
@@ -430,7 +434,7 @@ export class NexusStepper implements OnChanges {
   readonly contactForm = new FormGroup({
     contactPerson: new FormControl('', Validators.required),
     contactEmail: new FormControl('', [Validators.required, Validators.email]),
-    contactNumber: new FormControl('', Validators.required),
+    contactNumber: new FormControl('', [Validators.required, philippinePhoneValidator]),
   });
 
   ngOnChanges(changes: SimpleChanges): void {
