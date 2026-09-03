@@ -244,16 +244,29 @@ import {
           }
         </div>
 
-        @if ((event().facility === 'VAN' || event().facility === 'Gymnasium' || event().facility === 'Nexus') && event().status === 'APPROVED' && event().eventKind !== 'maintenance') {
-          <div class="shrink-0 flex justify-end gap-2 border-t border-gray-100 p-4">
-            <button
-              type="button"
-              class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
-              (click)="printForm.emit()"
-            >
-              <ui-icon name="download" class="text-base" />
-              Download Form
-            </button>
+        @if (showFooterActions()) {
+          <div class="shrink-0 flex flex-wrap justify-end gap-2 border-t border-gray-100 p-4">
+            @if (canSetCoordination()) {
+              <button
+                type="button"
+                class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100"
+                [title]="event().coordinationDate ? 'Update coordination: ' + event().coordinationDate : 'Set coordination meeting'"
+                (click)="setCoordination.emit()"
+              >
+                <ui-icon name="handshake" class="text-base" />
+                {{ event().coordinationDate ? 'Coordination ✓' : 'Coordination' }}
+              </button>
+            }
+            @if (canDownloadForm()) {
+              <button
+                type="button"
+                class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+                (click)="printForm.emit()"
+              >
+                <ui-icon name="download" class="text-base" />
+                Download Form
+              </button>
+            }
           </div>
         }
       </div>
@@ -264,6 +277,25 @@ export class DashboardEventSummaryModal {
   readonly event = input.required<DashboardEvent>();
   readonly closed = output<void>();
   readonly printForm = output<void>();
+  readonly setCoordination = output<void>();
+
+  protected canSetCoordination(): boolean {
+    const event = this.event();
+    if (event.eventKind === 'maintenance') return false;
+    if (event.status !== 'APPROVED') return false;
+    return event.facility === 'FLT' || event.facility === 'Gymnasium';
+  }
+
+  protected canDownloadForm(): boolean {
+    const event = this.event();
+    if (event.eventKind === 'maintenance') return false;
+    if (event.status !== 'APPROVED') return false;
+    return event.facility === 'VAN' || event.facility === 'Gymnasium' || event.facility === 'Nexus';
+  }
+
+  protected showFooterActions(): boolean {
+    return this.canSetCoordination() || this.canDownloadForm();
+  }
 
   protected formatDate(value: string | null | undefined): string {
     return formatReadableDate(value);

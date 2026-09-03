@@ -638,7 +638,7 @@ interface FltReservationViewRow extends FltReservationRecord {
       </section>
 
       @if (detailsSummaryEvent(); as event) {
-        <app-dashboard-event-summary-modal [event]="event" (closed)="closeDetails()" />
+        <app-dashboard-event-summary-modal [event]="event" (closed)="closeDetails()" (setCoordination)="openCoordinationFromDetails()" />
       }
 
       <!-- Confirmation Dialog -->
@@ -1072,6 +1072,13 @@ export class FltReservations implements OnInit, OnDestroy {
 
   closeDetails(): void {
     this.detailsTarget.set(null);
+  }
+
+  openCoordinationFromDetails(): void {
+    const row = this.detailsTarget();
+    if (!row) return;
+    this.closeDetails();
+    this.openCoordination(row);
   }
 
   executeAction(): void {

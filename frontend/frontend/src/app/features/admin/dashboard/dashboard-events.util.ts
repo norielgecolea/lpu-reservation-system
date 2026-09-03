@@ -912,3 +912,70 @@ export function vanRecordsToDashboardRecords(
     satisfactionRating: r.satisfactionRating ?? null,
   }));
 }
+
+export interface DashboardCoordinationCalendarEvent {
+  date: string;
+  startTime: string;
+  endTime: string;
+  department: string;
+  organization: string;
+  eventTitle?: string;
+  eventKind: 'RESERVATION' | 'COORDINATION' | 'TARGET' | 'PENDING';
+}
+
+type CoordinationSourceRow = {
+  id: number;
+  status: string;
+  reservedDates: string;
+  department: string;
+  organization: string;
+  eventTitle: string;
+  coordinationDate: string | null;
+  coordinationStartTime: string | null;
+  coordinationEndTime: string | null;
+};
+
+/** Events plotted on the FLT/Gymnasium coordination picker (excludes the target meeting). */
+export function buildCoordinationCalendarEvents(
+  rows: CoordinationSourceRow[],
+  targetId: number | null,
+): DashboardCoordinationCalendarEvent[] {
+  if (targetId == null) return [];
+  return rows.flatMap((r): DashboardCoordinationCalendarEvent[] => {
+    const isTarget = r.id === targetId;
+    if (!isTarget && r.status !== 'APPROVED' && r.status !== 'COMPLETED' && r.status !== 'PENDING') {
+      return [];
+    }
+    const events: DashboardCoordinationCalendarEvent[] = [];
+    for (const s of parseReservedDates(r.reservedDates)) {
+      events.push({
+        date: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        department: r.department,
+        organization: r.organization,
+        eventTitle: r.eventTitle,
+        eventKind: isTarget ? 'TARGET' : r.status === 'PENDING' ? 'PENDING' : 'RESERVATION',
+      });
+    }
+    if (
+      r.coordinationDate &&
+      r.coordinationStartTime &&
+      r.coordinationEndTime &&
+      !isTarget &&
+      r.status !== 'PENDING'
+    ) {
+      events.push({
+        date: r.coordinationDate,
+        startTime: r.coordinationStartTime,
+        endTime: r.coordinationEndTime,
+        department: r.department,
+        organization: r.organization,
+        eventTitle: r.eventTitle,
+        eventKind: 'COORDINATION',
+      });
+    }
+    return events;
+  });
+}
+

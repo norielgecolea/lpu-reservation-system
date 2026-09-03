@@ -61,11 +61,15 @@ import {
   isServiceImplemented,
   reservationStats,
   vanRecordsToDashboardRecords,
+  buildCoordinationCalendarEvents,
 } from './dashboard-events.util';
 import { observePanelHeight } from './dashboard-calendar-layout.util';
 import { downloadVanReservationFormFromEvent } from '../reservations/van/van-reservation-form-export.util';
 import { downloadGymnasiumReservationFormFromEvent } from '../reservations/gymnasium/gymnasium-reservation-form-export.util';
 import { downloadNexusReservationFormFromEvent } from '../reservations/nexus/nexus-reservation-form-export.util';
+import { FltCoordinationCalendar, CoordinationSlot } from '../reservations/flt/flt-coordination-calendar';
+import { GymnasiumCoordinationCalendar, GymCoordinationSlot } from '../reservations/gymnasium/gymnasium-coordination-calendar';
+import { SetCoordinationRequest } from '../reservations/flt/flt-reservations.models';
 
 interface StatCard {
   label: string;
@@ -91,6 +95,8 @@ const DAYS_PER_WEEK = 7;
     RouterLink,
     DashboardEventSummaryModal,
     DashboardAnalyticsSection,
+    FltCoordinationCalendar,
+    GymnasiumCoordinationCalendar,
   ],
   templateUrl: './dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -274,6 +280,48 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   protected readonly selectedDayForModal = signal<CalendarDay | null>(null);
   protected readonly selectedEvent = signal<DashboardEvent | null>(null);
   protected readonly calendarPanelHeight = signal<number | null>(null);
+  protected readonly coordinationTarget = signal<{
+    facility: 'FLT' | 'Gymnasium';
+    id: number;
+    eventTitle: string;
+  } | null>(null);
+  protected readonly coordSaving = signal(false);
+
+  protected readonly fltCoordinationEvents = computed(() => {
+    const target = this.coordinationTarget();
+    if (target?.facility !== 'FLT') return [];
+    return buildCoordinationCalendarEvents(this.fltReservations(), target.id);
+  });
+
+  protected readonly gymCoordinationEvents = computed(() => {
+    const target = this.coordinationTarget();
+    if (target?.facility !== 'Gymnasium') return [];
+    return buildCoordinationCalendarEvents(this.gymReservations(), target.id);
+  });
+
+  protected readonly fltCoordinationInitial = computed<CoordinationSlot | null>(() => {
+    const target = this.coordinationTarget();
+    if (target?.facility !== 'FLT') return null;
+    const row = this.fltReservations().find((r) => r.id === target.id);
+    if (!row?.coordinationDate || !row.coordinationStartTime || !row.coordinationEndTime) return null;
+    return {
+      date: row.coordinationDate,
+      startTime: row.coordinationStartTime,
+      endTime: row.coordinationEndTime,
+    };
+  });
+
+  protected readonly gymCoordinationInitial = computed<GymCoordinationSlot | null>(() => {
+    const target = this.coordinationTarget();
+    if (target?.facility !== 'Gymnasium') return null;
+    const row = this.gymReservations().find((r) => r.id === target.id);
+    if (!row?.coordinationDate || !row.coordinationStartTime || !row.coordinationEndTime) return null;
+    return {
+      date: row.coordinationDate,
+      startTime: row.coordinationStartTime,
+      endTime: row.coordinationEndTime,
+    };
+  });
 
   @ViewChild('calendarPanel') private calendarPanel?: ElementRef<HTMLElement>;
   private disconnectCalendarHeightObserver?: () => void;
@@ -326,6 +374,82 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   protected closeEventSummary(): void {
     this.selectedEvent.set(null);
+  }
+
+  protected openCoordination(event: DashboardEvent): void {
+    if (event.facility !== 'FLT' && event.facility !== 'Gymnasium') return;
+    this.closeEventSummary();
+    this.coordinationTarget.set({
+      facility: event.facility,
+      id: event.reservationId,
+      eventTitle: event.eventTitle,
+    });
+  }
+
+  protected closeCoordination(): void {
+    this.coordinationTarget.set(null);
+    this.coordSaving.set(false);
+  }
+
+  protected saveFltCoordination(slot: CoordinationSlot): void {
+    this.saveCoordination('FLT', slot);
+  }
+
+  protected saveGymCoordination(slot: GymCoordinationSlot): void {
+    this.saveCoordination('Gymnasium', slot);
+  }
+
+  private saveCoordination(
+    facility: 'FLT' | 'Gymnasium',
+    slot: CoordinationSlot | GymCoordinationSlot,
+  ): void {
+    const target = this.coordinationTarget();
+    if (!target || target.facility !== facility) return;
+    this.coordSaving.set(true);
+    const body: SetCoordinationRequest = {
+      date: slot.date,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+    };
+    const request =
+      facility === 'FLT'
+        ? this.fltSvc.setCoordination(target.id, body)
+        : this.gymSvc.setCoordination(target.id, body);
+    request.subscribe({
+      next: (res) => {
+        this.coordSaving.set(false);
+        if (!res.success) return;
+        if (facility === 'FLT') {
+          this.fltReservations.update((list) =>
+            list.map((r) =>
+              r.id === target.id
+                ? {
+                    ...r,
+                    coordinationDate: body.date,
+                    coordinationStartTime: body.startTime,
+                    coordinationEndTime: body.endTime,
+                  }
+                : r,
+            ),
+          );
+        } else {
+          this.gymReservations.update((list) =>
+            list.map((r) =>
+              r.id === target.id
+                ? {
+                    ...r,
+                    coordinationDate: body.date,
+                    coordinationStartTime: body.startTime,
+                    coordinationEndTime: body.endTime,
+                  }
+                : r,
+            ),
+          );
+        }
+        this.closeCoordination();
+      },
+      error: () => this.coordSaving.set(false),
+    });
   }
 
   protected async printVanForm(event: DashboardEvent): Promise<void> {

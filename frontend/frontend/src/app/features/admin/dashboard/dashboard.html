@@ -270,6 +270,29 @@
       [event]="event"
       (closed)="closeEventSummary()"
       (printForm)="printVanForm(event)"
+      (setCoordination)="openCoordination(event)"
     />
+  }
+
+  @if (coordinationTarget(); as target) {
+    @if (target.facility === 'FLT') {
+      <app-flt-coordination-calendar
+        [events]="fltCoordinationEvents()"
+        [eventTitle]="target.eventTitle"
+        [saving]="coordSaving"
+        [initial]="fltCoordinationInitial()"
+        (saved)="saveFltCoordination($event)"
+        (cancelled)="closeCoordination()"
+      />
+    } @else {
+      <app-gymnasium-coordination-calendar
+        [events]="gymCoordinationEvents()"
+        [eventTitle]="target.eventTitle"
+        [saving]="coordSaving"
+        [initial]="gymCoordinationInitial()"
+        (saved)="saveGymCoordination($event)"
+        (cancelled)="closeCoordination()"
+      />
+    }
   }
 </div>

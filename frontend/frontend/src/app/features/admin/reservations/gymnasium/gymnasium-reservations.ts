@@ -583,7 +583,7 @@ interface GymReservationViewRow extends GymReservationRecord {
       </section>
 
       @if (detailsSummaryEvent(); as event) {
-        <app-dashboard-event-summary-modal [event]="event" (closed)="closeDetails()" (printForm)="printFormFromDetails()" />
+        <app-dashboard-event-summary-modal [event]="event" (closed)="closeDetails()" (printForm)="printFormFromDetails()" (setCoordination)="openCoordinationFromDetails()" />
       }
 
       <!-- Confirmation Dialog -->
@@ -976,6 +976,13 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
 
   openDetails(row: GymReservationRecord): void { this.detailsTarget.set(row); }
   closeDetails(): void { this.detailsTarget.set(null); }
+
+  openCoordinationFromDetails(): void {
+    const row = this.detailsTarget();
+    if (!row) return;
+    this.closeDetails();
+    this.openCoordination(row);
+  }
 
   async printForm(row: GymReservationRecord): Promise<void> {
     try {
