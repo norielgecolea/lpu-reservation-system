@@ -1,4 +1,3 @@
-import { SlicePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { EMPTY, Subject, Subscription, catchError, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { allottedEoRooms } from '../../core/auth/roles';
@@ -43,7 +42,7 @@ type View = 'calendar' | 'timeslots' | 'form';
 
 @Component({
   selector: 'app-eo-dashboard',
-  imports: [SlicePipe, UiDateSelector, UiIcon, UiSegmented, EoStepper],
+  imports: [UiDateSelector, UiIcon, UiSegmented, EoStepper],
   templateUrl: './eo-dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-full min-h-0 flex-1 flex-col' },
@@ -52,8 +51,10 @@ export class EoDashboard implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly api = inject(EoReservationsService);
   private readonly realtime = inject(ReservationRealtimeService);
+  private readonly reload$ = new Subject<{ quiet: boolean; month: string }>();
   private wsSub?: Subscription;
   private pollSub?: Subscription;
+  private reloadSub?: Subscription;
 
   protected readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   protected readonly timeSlots = EO_TIME_SLOTS;
@@ -151,6 +152,22 @@ export class EoDashboard implements OnInit, OnDestroy {
     if (rooms.length && !rooms.includes(this.activeRoom())) {
       this.activeRoom.set(rooms[0]);
     }
+    this.reloadSub = this.reload$
+      .pipe(
+        switchMap(({ quiet, month }) => {
+          if (!quiet) this.loading.set(true);
+          return this.api.listEvents(month).pipe(
+            catchError(() => {
+              this.loading.set(false);
+              return EMPTY;
+            }),
+          );
+        }),
+      )
+      .subscribe((res) => {
+        this.reservations.set(res.reservations ?? []);
+        this.loading.set(false);
+      });
     this.loadEvents();
     this.realtime.ensureConnected();
     this.wsSub = this.realtime.eoUpdates$.subscribe(() => this.loadEvents({ quiet: true }));
@@ -160,6 +177,7 @@ export class EoDashboard implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.wsSub?.unsubscribe();
     this.pollSub?.unsubscribe();
+    this.reloadSub?.unsubscribe();
   }
 
   protected selectDate(value: string): void {
@@ -369,14 +387,7 @@ export class EoDashboard implements OnInit, OnDestroy {
   }
 
   private loadEvents(opts?: { quiet?: boolean }): void {
-    if (!opts?.quiet) this.loading.set(true);
-    this.api.listEvents(this.activeDate(), this.activeRoom()).subscribe({
-      next: (res) => {
-        this.reservations.set(res.reservations ?? []);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    this.reload$.next({ quiet: !!opts?.quiet, month: this.activeDate() });
   }
 }
 

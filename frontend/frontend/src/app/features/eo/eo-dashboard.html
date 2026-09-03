@@ -53,31 +53,35 @@
                       {{ day.day }}
                     </span>
                     @if (day.reservations.length) {
-                      <ul class="mt-2 flex-1 space-y-1 overflow-hidden text-left">
-                        @for (reservation of day.reservations | slice: 0 : 3; track reservation.id) {
+                      <ul
+                        class="mt-1 min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain text-left"
+                        style="scrollbar-width: thin"
+                      >
+                        @for (reservation of day.reservations; track reservation.id) {
                           <li
-                            class="min-w-0 cursor-pointer rounded border-l-4 px-1.5 py-1 text-[11px] leading-tight shadow-sm"
+                            class="min-w-0 cursor-pointer rounded border-l-4 px-1 py-0.5 text-[10px] leading-snug shadow-sm sm:text-[11px]"
                             [class]="reservation.colorClass"
                             [title]="reservation.time + ' - ' + reservation.title"
                             (click)="openEventSummary(reservation.event, $event)"
                           >
-                            <span class="block truncate font-bold">{{ reservation.time }}</span>
-                            <span class="block truncate font-medium">{{ reservation.title }}</span>
+                            <span class="block truncate font-semibold">
+                              {{ reservation.time }} · {{ reservation.title }}
+                            </span>
                           </li>
                         }
                       </ul>
                       @if (day.reservations.length > 3) {
                         <button
                           type="button"
-                          class="mt-1 w-full shrink-0 cursor-pointer text-left text-[11px] font-bold text-primary hover:underline"
+                          class="mt-0.5 w-full shrink-0 cursor-pointer text-left text-[10px] font-bold text-primary hover:underline sm:text-[11px]"
                           (click)="openDayModal(day, $event)"
                         >
-                          +{{ day.reservations.length - 3 }} more
+                          View all {{ day.reservations.length }}
                         </button>
                       }
                     }
                     @if (isBasketDay(day.day)) {
-                      <span class="mt-auto inline-flex items-center justify-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+                      <span class="mt-1 inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
                         Selected
                       </span>
                     }
