@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import { DEPARTMENT_SELECT_OPTIONS } from '../../../../shared/constants/department-options';
+import { VAN_DEPARTMENT_SELECT_OPTIONS } from '../../../../shared/constants/van-department-options';
 import { VAN_SCHOOL_OPTIONS } from '../../../../shared/constants/van-school-options';
 import { UiIcon, UiInput, UiLabel, UiSelect } from '../../../../shared/ui';
 import {
@@ -129,7 +129,7 @@ export class VanEditDetailsModal {
   readonly cancelled = output<void>();
 
   readonly error = signal('');
-  readonly departmentOptions = DEPARTMENT_SELECT_OPTIONS;
+  readonly departmentOptions = VAN_DEPARTMENT_SELECT_OPTIONS;
   readonly schoolOptions = [...VAN_SCHOOL_OPTIONS];
 
   readonly form = new FormGroup({
