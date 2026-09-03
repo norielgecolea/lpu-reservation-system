@@ -4,6 +4,7 @@ import { catchError, map, of, timeout } from 'rxjs';
 
 import { AuthService } from './auth.service';
 import {
+  hasEoOfficeAccess,
   hasService,
   homePathForRole,
   isFltTech,
@@ -160,6 +161,34 @@ export function serviceGuard(service: ServiceCode): CanActivateFn {
     );
   };
 }
+
+/** Guards /eo/* — EO Admin, Super Admin, or roles allotted Boardroom/Conference. */
+export const eoGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  if (!auth.token()) return loginUrl(router);
+
+  const validate = () => {
+    const user = auth.user();
+    if (hasEoOfficeAccess(user)) return true;
+    if (user) {
+      const home = homePathForRole(user.role, user.homePath);
+      if (home !== '/login') return router.parseUrl(home);
+    }
+    return loginUrl(router);
+  };
+
+  if (auth.user()) return validate();
+
+  return sessionCheck(auth).pipe(
+    map((res) => (res.success ? validate() : loginUrl(router))),
+    catchError(() => {
+      auth.logout();
+      return of(loginUrl(router));
+    }),
+  );
+};
 
 /** Blocks auth pages (login) for an already-authenticated user. */
 export const guestGuard: CanActivateFn = () => {

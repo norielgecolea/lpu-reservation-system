@@ -18,6 +18,8 @@ export const SERVICES = {
   GYMNASIUM: 'GYMNASIUM',
   VAN: 'VAN',
   NEXUS: 'NEXUS',
+  BOARDROOM: 'BOARDROOM',
+  CONFERENCE: 'CONFERENCE',
 } as const;
 
 export const SERVICE_OPTIONS: { code: ServiceCode; label: string }[] = [
@@ -25,7 +27,12 @@ export const SERVICE_OPTIONS: { code: ServiceCode; label: string }[] = [
   { code: 'GYMNASIUM', label: 'Gymnasium' },
   { code: 'VAN', label: 'University Van' },
   { code: 'NEXUS', label: 'Nexus Room' },
+  { code: 'BOARDROOM', label: 'Boardroom' },
+  { code: 'CONFERENCE', label: 'Conference Room' },
 ];
+
+export const EO_SERVICE_CODES: ServiceCode[] = ['BOARDROOM', 'CONFERENCE'];
+export const PUBLIC_SERVICE_CODES: ServiceCode[] = ['FLT', 'GYMNASIUM', 'VAN', 'NEXUS'];
 
 /** Every bookable service code (SUPERADMIN always receives this set). */
 export const ALL_SERVICE_CODES: ServiceCode[] = SERVICE_OPTIONS.map((o) => o.code);
@@ -44,6 +51,31 @@ export function isSuperAdmin(role: string | null | undefined): boolean {
 
 export function isFacilitiesAdmin(role: string | null | undefined): boolean {
   return normalizeRole(role) === ROLES.FACILITIESADMIN;
+}
+
+export function isEoAdmin(role: string | null | undefined): boolean {
+  return normalizeRole(role) === ROLES.EOADMIN;
+}
+
+export function isEoService(service: string | null | undefined): boolean {
+  const n = (service ?? '').trim().toUpperCase();
+  return n === SERVICES.BOARDROOM || n === SERVICES.CONFERENCE;
+}
+
+/** Super Admin, EO Admin, or a role allotted Boardroom and/or Conference. */
+export function hasEoOfficeAccess(user: AuthUser | null | undefined): boolean {
+  if (!user) return false;
+  if (isSuperAdmin(user.role) || isEoAdmin(user.role)) return true;
+  return hasService(user, 'BOARDROOM') || hasService(user, 'CONFERENCE');
+}
+
+/** Rooms this user may plot on the EO Office calendar. */
+export function allottedEoRooms(user: AuthUser | null | undefined): ServiceCode[] {
+  if (!user) return [];
+  if (isSuperAdmin(user.role)) return [...EO_SERVICE_CODES];
+  const rooms = EO_SERVICE_CODES.filter((code) => hasService(user, code));
+  if (isEoAdmin(user.role) && rooms.length === 0) return [...EO_SERVICE_CODES];
+  return rooms;
 }
 
 export function normalizeServices(services: string[] | null | undefined): ServiceCode[] {
@@ -82,10 +114,11 @@ export function effectiveServices(user: AuthUser | null | undefined): ServiceCod
 /** True for facilities-shell roles (Facilities Admin or custom roles with /facilities home). */
 export function usesFacilitiesShell(user: AuthUser | null | undefined): boolean {
   if (!user) return false;
-  if (isSuperAdmin(user.role) || isFltTech(user.role)) return false;
+  if (isSuperAdmin(user.role) || isFltTech(user.role) || isEoAdmin(user.role)) return false;
   const home = (user.homePath ?? '').trim();
+  if (home.startsWith('/eo')) return false;
   if (home.startsWith('/facilities')) return true;
-  return isFacilitiesAdmin(user.role) || user.services.length > 0;
+  return isFacilitiesAdmin(user.role) || PUBLIC_SERVICE_CODES.some((s) => hasService(user, s));
 }
 
 /** Post-login / guest-guard home path for a role. */
@@ -116,6 +149,7 @@ export function reservationLinkForService(
   service: ServiceCode,
   shell: 'super' | 'facilities' | 'flt-tech',
 ): string {
+  if (isEoService(service)) return '/eo/dashboard';
   const slug =
     service === 'FLT'
       ? 'flt'
@@ -143,5 +177,9 @@ export function serviceIcon(service: ServiceCode): string {
       return 'airport_shuttle';
     case 'NEXUS':
       return 'co_present';
+    case 'BOARDROOM':
+      return 'meeting_room';
+    case 'CONFERENCE':
+      return 'groups';
   }
 }

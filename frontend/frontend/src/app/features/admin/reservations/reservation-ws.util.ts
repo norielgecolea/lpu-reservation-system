@@ -1,6 +1,6 @@
 import { ReservationWsEvent } from './reservation-realtime.service';
 
-export type ReservationFacility = 'flt' | 'gymnasium' | 'van' | 'nexus';
+export type ReservationFacility = 'flt' | 'gymnasium' | 'van' | 'nexus' | 'eo';
 
 export type ReservationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED' | 'CONFLICT';
 
@@ -9,6 +9,7 @@ export const RESERVATION_WS_TOPICS: Record<ReservationFacility, string> = {
   gymnasium: '/topic/reservations/gymnasium',
   van: '/topic/reservations/van',
   nexus: '/topic/reservations/nexus',
+  eo: '/topic/reservations/eo',
 };
 
 /** Normalize STOMP JSON payload field types from the backend. */

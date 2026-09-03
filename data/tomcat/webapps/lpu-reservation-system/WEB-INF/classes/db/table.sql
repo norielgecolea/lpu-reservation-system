@@ -5,7 +5,8 @@ VALUES
 (2, 'Van', 'University Transportation Service'),
 (3, 'Nexus', 'Nexus Facility'),
 (4, 'Boardroom', 'Boardroom Meeting Facility'),
-(5, 'Gymnasium', 'University Gymnasium');
+(5, 'Gymnasium', 'University Gymnasium'),
+(6, 'Conference', 'Executive Office Conference Room');
 
 INSERT INTO users (
     id,
@@ -307,3 +308,31 @@ CREATE TABLE IF NOT EXISTS role_service_access (
 
 CREATE INDEX IF NOT EXISTS idx_role_service_access_service
     ON role_service_access (service_code);
+
+INSERT INTO facilities (facility_name, description)
+SELECT 'Conference', 'Executive Office Conference Room'
+WHERE NOT EXISTS (SELECT 1 FROM facilities WHERE facility_name = 'Conference');
+
+CREATE TABLE IF NOT EXISTS eo_reservations (
+    id BIGSERIAL PRIMARY KEY,
+    room_type VARCHAR(20) NOT NULL,
+    agenda VARCHAR(255) NOT NULL,
+    department VARCHAR(255) NOT NULL,
+    organization VARCHAR(255) NOT NULL,
+    notes TEXT,
+    contact_person VARCHAR(150),
+    contact_email VARCHAR(100),
+    contact_number VARCHAR(20),
+    reserved_dates JSONB NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'APPROVED',
+    created_by VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    approved_at TIMESTAMP,
+    approved_by VARCHAR(100)
+);
+
+CREATE INDEX IF NOT EXISTS idx_eo_reservations_room_status
+    ON eo_reservations (room_type, status);
+
+CREATE INDEX IF NOT EXISTS idx_eo_reservations_created_at
+    ON eo_reservations (created_at DESC);

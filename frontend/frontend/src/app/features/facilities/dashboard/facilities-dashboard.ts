@@ -27,6 +27,8 @@ import { NexusReservationsService } from '../../admin/reservations/nexus/nexus-r
 import { NexusReservationRecord } from '../../admin/reservations/nexus/nexus-reservations.models';
 import { VanReservationsService } from '../../admin/reservations/van/van-reservations.service';
 import { VanReservationRow } from '../../admin/reservations/van/van-reservations.models';
+import { EoReservationsService } from '../../eo/eo-reservations.service';
+import { EoReservationRecord } from '../../eo/eo-reservations.models';
 import { ReservationRealtimeService } from '../../admin/reservations/reservation-realtime.service';
 import { ReservationAlertService } from '../../admin/reservations/reservation-alert.service';
 import { DashboardEventSummaryModal } from '../../admin/dashboard/dashboard-event-summary-modal';
@@ -52,6 +54,7 @@ import {
   dashboardServiceFilterOptions,
   dashboardServicesFromRoleCodes,
   dashboardStatCardBg,
+  eoRecordsToDashboardRecords,
   formatEventDay,
   formatEventMonth,
   getCurrentYearMonth,
@@ -97,6 +100,7 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   private readonly gymSvc = inject(GymReservationsService);
   private readonly nexusSvc = inject(NexusReservationsService);
   private readonly vanSvc = inject(VanReservationsService);
+  private readonly eoSvc = inject(EoReservationsService);
   private readonly maintSvc = inject(MaintenanceService);
   private readonly realtime = inject(ReservationRealtimeService);
   private readonly alerts = inject(ReservationAlertService);
@@ -114,6 +118,7 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
   protected readonly gymReservations = signal<GymReservationRecord[]>([]);
   protected readonly nexusReservations = signal<NexusReservationRecord[]>([]);
   protected readonly vanReservations = signal<VanReservationRow[]>([]);
+  protected readonly eoReservations = signal<EoReservationRecord[]>([]);
   protected readonly fltMaintenance = signal<MaintenanceBlock[]>([]);
   protected readonly gymMaintenance = signal<MaintenanceBlock[]>([]);
   protected readonly nexusMaintenance = signal<MaintenanceBlock[]>([]);
@@ -141,6 +146,9 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
     if (this.isComingSoon()) {
       return [{ label: facility, className: SERVICE_EVENT_COLORS[facility] }];
     }
+    if (facility === 'Boardroom' || facility === 'Conference') {
+      return [{ label: facility, className: SERVICE_EVENT_COLORS[facility] }];
+    }
     if (facility === 'VAN') {
       return [
         { label: 'Pending', className: PENDING_EVENT_COLOR },
@@ -165,6 +173,14 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
         return this.fltReservations();
       case 'VAN':
         return vanRecordsToDashboardRecords(this.vanReservations());
+      case 'Boardroom':
+        return eoRecordsToDashboardRecords(
+          this.eoReservations().filter((r) => r.roomType === 'BOARDROOM'),
+        );
+      case 'Conference':
+        return eoRecordsToDashboardRecords(
+          this.eoReservations().filter((r) => r.roomType === 'CONFERENCE'),
+        );
       default:
         return [];
     }
@@ -326,16 +342,18 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
     const loadGym = allowed.has('Gymnasium');
     const loadNexus = allowed.has('Nexus');
     const loadVan = allowed.has('VAN');
+    const loadEo = allowed.has('Boardroom') || allowed.has('Conference');
     forkJoin({
       flt: loadFlt ? this.fltSvc.getAll({ month }) : of({ reservations: [] as FltReservationRecord[] }),
       gym: loadGym ? this.gymSvc.getAll({ month }) : of({ reservations: [] as GymReservationRecord[] }),
       nexus: loadNexus ? this.nexusSvc.getAll({ month }) : of({ reservations: [] as NexusReservationRecord[] }),
       van: loadVan ? this.vanSvc.getAll({ month }) : of({ reservations: [] as VanReservationRow[] }),
+      eo: loadEo ? this.eoSvc.listEvents(month) : of({ reservations: [] as EoReservationRecord[] }),
       fltMaint: loadFlt ? this.maintSvc.getBlocks('FLT') : of({ blocks: [] as MaintenanceBlock[] }),
       gymMaint: loadGym ? this.maintSvc.getBlocks('GYMNASIUM') : of({ blocks: [] as MaintenanceBlock[] }),
       nexusMaint: loadNexus ? this.maintSvc.getBlocks('NEXUS') : of({ blocks: [] as MaintenanceBlock[] }),
     }).subscribe({
-      next: ({ flt, gym, nexus, van, fltMaint, gymMaint, nexusMaint }) => {
+      next: ({ flt, gym, nexus, van, eo, fltMaint, gymMaint, nexusMaint }) => {
         const fltRows = flt.reservations ?? [];
         const gymRows = gym.reservations ?? [];
         const nexusRows = nexus.reservations ?? [];
@@ -344,6 +362,7 @@ export class FacilitiesDashboard implements OnInit, AfterViewInit, OnDestroy {
         this.gymReservations.set(gymRows);
         this.nexusReservations.set(nexusRows);
         this.vanReservations.set(vanRows);
+        this.eoReservations.set(eo.reservations ?? []);
         this.fltMaintenance.set(fltMaint.blocks ?? []);
         this.gymMaintenance.set(gymMaint.blocks ?? []);
         this.nexusMaintenance.set(nexusMaint.blocks ?? []);

@@ -44,6 +44,7 @@ export class ReservationRealtimeService {
   private gymStompSub: StompSubscription | null = null;
   private vanStompSub: StompSubscription | null = null;
   private nexusStompSub: StompSubscription | null = null;
+  private eoStompSub: StompSubscription | null = null;
   private pollSub: Subscription | null = null;
   private startedSockJsFallback = false;
 
@@ -51,12 +52,14 @@ export class ReservationRealtimeService {
   private readonly gymSubject = new Subject<ReservationWsEvent>();
   private readonly vanSubject = new Subject<ReservationWsEvent>();
   private readonly nexusSubject = new Subject<ReservationWsEvent>();
+  private readonly eoSubject = new Subject<ReservationWsEvent>();
   private readonly refreshSubject = new Subject<ReservationRefreshTick>();
 
   readonly fltUpdates$: Observable<ReservationWsEvent> = this.fltSubject.asObservable();
   readonly gymUpdates$: Observable<ReservationWsEvent> = this.gymSubject.asObservable();
   readonly vanUpdates$: Observable<ReservationWsEvent> = this.vanSubject.asObservable();
   readonly nexusUpdates$: Observable<ReservationWsEvent> = this.nexusSubject.asObservable();
+  readonly eoUpdates$: Observable<ReservationWsEvent> = this.eoSubject.asObservable();
   /** Always fires while a page has called ensureConnected — works even if WS fails. */
   readonly refreshTicks$: Observable<ReservationRefreshTick> = this.refreshSubject.asObservable();
   readonly anyUpdates$: Observable<ReservationWsEvent> = merge(
@@ -64,6 +67,7 @@ export class ReservationRealtimeService {
     this.gymUpdates$,
     this.vanUpdates$,
     this.nexusUpdates$,
+    this.eoUpdates$,
   );
 
   constructor() {
@@ -211,6 +215,9 @@ export class ReservationRealtimeService {
     this.nexusStompSub = this.client.subscribe('/topic/reservations/nexus', (msg: IMessage) => {
       this.emit(this.nexusSubject, msg);
     });
+    this.eoStompSub = this.client.subscribe('/topic/reservations/eo', (msg: IMessage) => {
+      this.emit(this.eoSubject, msg);
+    });
   }
 
   private emit(subject: Subject<ReservationWsEvent>, msg: IMessage): void {
@@ -227,9 +234,11 @@ export class ReservationRealtimeService {
     this.gymStompSub?.unsubscribe();
     this.vanStompSub?.unsubscribe();
     this.nexusStompSub?.unsubscribe();
+    this.eoStompSub?.unsubscribe();
     this.fltStompSub = null;
     this.gymStompSub = null;
     this.vanStompSub = null;
     this.nexusStompSub = null;
+    this.eoStompSub = null;
   }
 }

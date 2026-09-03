@@ -33,15 +33,13 @@ export const CUSTOMER_ROUTES: Routes = [
   },
   {
     path: 'boardroom',
-    canActivate: [staffPortalServicesGuard],
-    loadComponent: () =>
-      import('./boardroom/boardroom').then((m) => m.BoardroomReservation),
+    redirectTo: '',
+    pathMatch: 'full',
   },
   {
     path: 'conference-room',
-    canActivate: [staffPortalServicesGuard],
-    loadComponent: () =>
-      import('./conference-room/conference-room').then((m) => m.ConferenceRoomReservation),
+    redirectTo: '',
+    pathMatch: 'full',
   },
   {
     path: 'gymnasium',

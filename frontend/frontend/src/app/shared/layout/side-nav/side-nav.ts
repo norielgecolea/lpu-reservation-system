@@ -5,6 +5,9 @@ import { filter } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
   effectiveServices,
+  hasEoOfficeAccess,
+  isEoAdmin,
+  isEoService,
   isFltTech,
   isSuperAdmin,
   reservationLinkForService,
@@ -52,13 +55,22 @@ export class SideNav implements OnInit {
     }
 
     const services = effectiveServices(user);
+    const publicServices = services.filter((s) => !isEoService(s));
+    const eoOfficeChild: NavChild = {
+      label: 'EO Office',
+      icon: 'meeting_room',
+      link: '/eo/dashboard',
+    };
 
     if (isSuperAdmin(role)) {
-      const reservationChildren = services.map((s) => ({
-        label: serviceLabel(s),
-        icon: serviceIcon(s),
-        link: reservationLinkForService(s, 'super'),
-      }));
+      const reservationChildren = [
+        ...publicServices.map((s) => ({
+          label: serviceLabel(s),
+          icon: serviceIcon(s),
+          link: reservationLinkForService(s, 'super'),
+        })),
+        ...(hasEoOfficeAccess(user) ? [eoOfficeChild] : []),
+      ];
       return [
         { label: 'Dashboard', icon: 'grid_view', link: '/dashboard' },
         { label: 'Users', icon: 'group', link: '/users' },
@@ -85,12 +97,15 @@ export class SideNav implements OnInit {
       ];
     }
 
-    if (usesFacilitiesShell(user)) {
-      const schedulingChildren = services.map((s) => ({
-        label: serviceLabel(s),
-        icon: serviceIcon(s),
-        link: reservationLinkForService(s, 'facilities'),
-      }));
+    if (usesFacilitiesShell(user) && !isEoAdmin(role)) {
+      const schedulingChildren = [
+        ...publicServices.map((s) => ({
+          label: serviceLabel(s),
+          icon: serviceIcon(s),
+          link: reservationLinkForService(s, 'facilities'),
+        })),
+        ...(hasEoOfficeAccess(user) ? [eoOfficeChild] : []),
+      ];
       return [
         { label: 'Dashboard', icon: 'grid_view', link: '/facilities/dashboard' },
         { label: 'Users', icon: 'group', link: '/facilities/users' },

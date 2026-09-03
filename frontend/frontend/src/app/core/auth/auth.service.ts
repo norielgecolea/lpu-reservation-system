@@ -111,7 +111,12 @@ function toUser(res: AuthResponse): AuthUser {
     : (res.services ?? [])
         .map((s) => (s ?? '').trim().toUpperCase())
         .filter((s): s is AuthUser['services'][number] =>
-          s === 'FLT' || s === 'GYMNASIUM' || s === 'VAN' || s === 'NEXUS',
+          s === 'FLT' ||
+          s === 'GYMNASIUM' ||
+          s === 'VAN' ||
+          s === 'NEXUS' ||
+          s === 'BOARDROOM' ||
+          s === 'CONFERENCE',
         );
   return {
     username: res.username,

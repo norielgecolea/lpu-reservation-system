@@ -132,7 +132,14 @@ export interface CalendarDay {
 const DAYS_PER_WEEK = 7;
 const MIN_CALENDAR_ROWS = 5;
 
-export const IMPLEMENTED_SERVICES = new Set<DashboardService>(['FLT', 'Gymnasium', 'VAN', 'Nexus']);
+export const IMPLEMENTED_SERVICES = new Set<DashboardService>([
+  'FLT',
+  'Gymnasium',
+  'VAN',
+  'Nexus',
+  'Boardroom',
+  'Conference',
+]);
 
 export const DASHBOARD_SERVICE_FILTER_ORDER: DashboardService[] = [
   'FLT',
@@ -175,6 +182,8 @@ export function dashboardServicesFromRoleCodes(
     GYMNASIUM: 'Gymnasium',
     VAN: 'VAN',
     NEXUS: 'Nexus',
+    BOARDROOM: 'Boardroom',
+    CONFERENCE: 'Conference',
   };
   const allowed = new Set<DashboardService>();
   for (const code of codes ?? []) {
@@ -308,6 +317,15 @@ export function dashboardApproverRoute(
   month: string,
   context: 'admin' | 'facilities' | 'flt-tech' = 'admin',
 ): { routerLink: string; queryParams: { status: string; month: string } } | null {
+  if (service === 'Boardroom' || service === 'Conference') {
+    return {
+      routerLink: '/eo/dashboard',
+      queryParams: {
+        status: dashboardStatStatusParam(kind),
+        month,
+      },
+    };
+  }
   const slug = SERVICE_APPROVER_SLUG[service];
   if (!slug || !isServiceImplemented(service)) return null;
   const prefix =
@@ -810,7 +828,41 @@ export function getRoomTypeLabel(value: string | null | undefined): string {
   return ROOM_TYPE_LABELS[trimmed] ?? trimmed;
 }
 
-/** Map van admin reservation rows to dashboard calendar records. */
+/** Map EO Office rows onto the shared dashboard calendar record shape. */
+export function eoRecordsToDashboardRecords(
+  records: Array<{
+    id: number;
+    agenda: string;
+    department: string;
+    organization: string;
+    notes?: string | null;
+    contactPerson?: string | null;
+    contactEmail?: string | null;
+    contactNumber?: string | null;
+    reservedDates: string;
+    status: string;
+    createdAt?: string | null;
+    approvedAt?: string | null;
+  }>,
+): DashboardReservationRecord[] {
+  return records.map((rec) => ({
+    id: rec.id,
+    eventTitle: rec.agenda,
+    department: rec.department,
+    organization: rec.organization,
+    contactPerson: rec.contactPerson || '—',
+    contactEmail: rec.contactEmail || '',
+    contactNumber: rec.contactNumber || undefined,
+    status: rec.status,
+    reservedDates: rec.reservedDates,
+    additionalInstructions: rec.notes ?? null,
+    coordinationDate: null,
+    coordinationStartTime: null,
+    coordinationEndTime: null,
+    createdAt: rec.createdAt ?? null,
+    approvedAt: rec.approvedAt ?? null,
+  }));
+}
 export function vanRecordsToDashboardRecords(
   records: Array<{
     id: number;

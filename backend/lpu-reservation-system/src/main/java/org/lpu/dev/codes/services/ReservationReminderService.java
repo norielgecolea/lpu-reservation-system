@@ -10,7 +10,9 @@ import org.lpu.dev.codes.model.data.FltReservation;
 import org.lpu.dev.codes.model.data.GymnasiumReservation;
 import org.lpu.dev.codes.model.data.NexusReservation;
 import org.lpu.dev.codes.model.data.ReservationReminder;
+import org.lpu.dev.codes.model.data.EoReservation;
 import org.lpu.dev.codes.model.data.VanReservation;
+import org.lpu.dev.codes.repository.EoReservationRepository;
 import org.lpu.dev.codes.repository.FltReservationRepository;
 import org.lpu.dev.codes.repository.GymnasiumReservationRepository;
 import org.lpu.dev.codes.repository.NexusReservationRepository;
@@ -36,17 +38,20 @@ public class ReservationReminderService {
     private static final String SERVICE_GYM = "GYMNASIUM";
     private static final String SERVICE_VAN = "VAN";
     private static final String SERVICE_NEXUS = "NEXUS";
+    private static final String SERVICE_EO = "EO";
 
     @Autowired private FltReservationRepository fltReservationRepository;
     @Autowired private GymnasiumReservationRepository gymnasiumReservationRepository;
     @Autowired private NexusReservationRepository nexusReservationRepository;
     @Autowired private VanReservationRepository vanReservationRepository;
+    @Autowired private EoReservationRepository eoReservationRepository;
     @Autowired private ReservationReminderRepository reminderRepository;
 
     @Autowired private FltEmailService fltEmailService;
     @Autowired private GymnasiumEmailService gymnasiumEmailService;
     @Autowired private NexusEmailService nexusEmailService;
     @Autowired private VanEmailService vanEmailService;
+    @Autowired private EoEmailService eoEmailService;
 
     /** Runs every day at 8:00 AM Asia/Manila. */
     @Scheduled(cron = "0 0 8 * * *", zone = "Asia/Manila")
@@ -63,6 +68,7 @@ public class ReservationReminderService {
             sent += processGymnasium(targetDate, daysBefore, reminderType);
             sent += processNexus(targetDate, daysBefore, reminderType);
             sent += processVan(targetDate, daysBefore, reminderType);
+            sent += processEo(targetDate, daysBefore, reminderType);
         }
 
         logger.info("Reservation reminder job finished — {} email(s) sent", sent);
@@ -124,6 +130,21 @@ public class ReservationReminderService {
             }
             if (vanEmailService.sendReminderEmail(r, daysBefore)) {
                 recordSent(SERVICE_VAN, r.getId(), targetDate, reminderType);
+                sent++;
+            }
+        }
+        return sent;
+    }
+
+    private int processEo(String targetDate, int daysBefore, String reminderType) {
+        List<EoReservation> reservations = eoReservationRepository.findApprovedByReservedDate(targetDate);
+        int sent = 0;
+        for (EoReservation r : reservations) {
+            if (alreadySent(SERVICE_EO, r.getId(), targetDate, reminderType)) {
+                continue;
+            }
+            if (eoEmailService.sendReminderEmail(r, daysBefore)) {
+                recordSent(SERVICE_EO, r.getId(), targetDate, reminderType);
                 sent++;
             }
         }

@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import {
   authGuard,
+  eoGuard,
   facilitiesGuard,
   fltTechGuard,
   serviceGuard,
@@ -333,6 +334,20 @@ export const routes: Routes = [
     canActivate: [fltTechGuard],
     loadComponent: adminLayout,
     children: fltTechRoutes,
+  },
+  {
+    path: 'eo',
+    canActivate: [eoGuard],
+    loadComponent: () =>
+      import('./shared/layout/eo-layout/eo-layout').then((m) => m.EoLayout),
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/eo/eo-dashboard').then((m) => m.EoDashboard),
+      },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+    ],
   },
   {
     path: 'customer',
