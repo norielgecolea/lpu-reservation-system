@@ -1,12 +1,9 @@
 import { SlicePipe } from '@angular/common';
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   OnDestroy,
   OnInit,
-  ViewChild,
   computed,
   inject,
   signal,
@@ -31,7 +28,6 @@ import {
   getCurrentYearMonth,
   parseReservedDates,
 } from '../admin/dashboard/dashboard-events.util';
-import { observePanelHeight } from '../admin/dashboard/dashboard-calendar-layout.util';
 import { ReservationRealtimeService } from '../admin/reservations/reservation-realtime.service';
 import { EoStepper } from './eo-stepper';
 import {
@@ -50,9 +46,9 @@ type View = 'calendar' | 'timeslots' | 'form';
   imports: [SlicePipe, UiDateSelector, UiIcon, UiSegmented, EoStepper],
   templateUrl: './eo-dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex min-h-0 flex-1 flex-col' },
+  host: { class: 'flex h-full min-h-0 flex-1 flex-col' },
 })
-export class EoDashboard implements OnInit, AfterViewInit, OnDestroy {
+export class EoDashboard implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly api = inject(EoReservationsService);
   private readonly realtime = inject(ReservationRealtimeService);
@@ -94,10 +90,6 @@ export class EoDashboard implements OnInit, AfterViewInit, OnDestroy {
   protected readonly cancelling = signal(false);
   protected readonly cancelError = signal('');
   protected readonly saveNotice = signal('');
-  protected readonly calendarPanelHeight = signal<number | null>(null);
-
-  @ViewChild('calendarPanel') private calendarPanel?: ElementRef<HTMLElement>;
-  private disconnectCalendarHeightObserver?: () => void;
 
   protected readonly roomEvents = computed<DashboardEvent[]>(() => {
     const room = this.activeRoom();
@@ -145,7 +137,7 @@ export class EoDashboard implements OnInit, AfterViewInit, OnDestroy {
   );
 
   protected readonly calendarDateRows = computed(
-    () => `repeat(${Math.max(this.calendarDays().length / 7, 1)}, minmax(min-content, 1fr))`,
+    () => `repeat(${Math.max(this.calendarDays().length / 7, 1)}, minmax(0, 1fr))`,
   );
 
   protected readonly upcomingEvents = computed(() =>
@@ -165,14 +157,9 @@ export class EoDashboard implements OnInit, AfterViewInit, OnDestroy {
     this.pollSub = this.realtime.refreshTicks$.subscribe(() => this.loadEvents({ quiet: true }));
   }
 
-  ngAfterViewInit(): void {
-    this.bindCalendarHeightObserver();
-  }
-
   ngOnDestroy(): void {
     this.wsSub?.unsubscribe();
     this.pollSub?.unsubscribe();
-    this.disconnectCalendarHeightObserver?.();
   }
 
   protected selectDate(value: string): void {
@@ -390,14 +377,6 @@ export class EoDashboard implements OnInit, AfterViewInit, OnDestroy {
       },
       error: () => this.loading.set(false),
     });
-  }
-
-  private bindCalendarHeightObserver(): void {
-    this.disconnectCalendarHeightObserver?.();
-    this.disconnectCalendarHeightObserver = observePanelHeight(
-      this.calendarPanel?.nativeElement,
-      (height) => this.calendarPanelHeight.set(height),
-    );
   }
 }
 

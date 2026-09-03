@@ -65,7 +65,7 @@ import { UiButton, UiIcon } from '../../ui';
           {{ clockDate() }} · {{ clockTime() }}
         </div>
       </header>
-      <main class="flex min-h-0 flex-1 flex-col overflow-y-auto" style="scrollbar-width: thin">
+      <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <router-outlet />
       </main>
     </div>
