@@ -16,6 +16,36 @@ export interface Release {
  */
 export const RELEASES: Release[] = [
   {
+    version: '1.5.0',
+    notes: [
+      {
+        title: 'Executive Office booking',
+        detail:
+          'Staff can reserve the Boardroom and Conference Room from a dedicated EO calendar. Bookings are auto-approved. Contact details are optional; email is sent only when an address is encoded.',
+      },
+      {
+        title: 'EO calendar plotting',
+        detail:
+          'Each date shows the time with the agenda underneath, matching the main dashboard. Busy days grow with the bookings; empty months keep a readable minimum size. Switching Boardroom and Conference no longer clears the calendar.',
+      },
+      {
+        title: 'Coordination from the dashboard',
+        detail:
+          'Open an approved FLT Theater or Gymnasium event on the dashboard and set or update the coordination meeting without leaving the calendar.',
+      },
+      {
+        title: 'Nexus Studio',
+        detail:
+          'Nexus joins FLT, Gymnasium, and Van as a bookable service, with its own calendar, approvals, and forms.',
+      },
+      {
+        title: 'Coordination meetings',
+        detail:
+          'Schedule a pre-event coordination slot for FLT and Gymnasium so it plots on the calendar and stays clear of the actual event.',
+      },
+    ],
+  },
+  {
     version: '1.0.0',
     notes: [
       {
