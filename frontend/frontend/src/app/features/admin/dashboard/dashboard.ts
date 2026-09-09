@@ -36,6 +36,7 @@ import { DashboardAnalyticsSection } from './dashboard-analytics-section';
 import {
   CalendarDay,
   COORD_EVENT_COLOR,
+  COMPLETED_EVENT_COLOR,
   DashboardEvent,
   DashboardService,
   DashboardStatKind,
@@ -167,12 +168,14 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     if (service === 'VAN') {
       return [
         { label: 'Pending', className: PENDING_EVENT_COLOR },
+        { label: 'Completed', className: COMPLETED_EVENT_COLOR },
         ...getVanVehicleLegends(this.vanReservations()),
       ];
     }
     return [
       { label: service, className: SERVICE_EVENT_COLORS[service] },
       { label: 'Pending', className: PENDING_EVENT_COLOR },
+      { label: 'Completed', className: COMPLETED_EVENT_COLOR },
       { label: 'Coordination', className: COORD_EVENT_COLOR },
       { label: 'Maintenance', className: MAINTENANCE_EVENT_COLOR },
     ];
@@ -279,6 +282,8 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly selectedDayForModal = signal<CalendarDay | null>(null);
   protected readonly selectedEvent = signal<DashboardEvent | null>(null);
+  protected readonly completingEvent = signal(false);
+  protected readonly completeError = signal<string | null>(null);
   protected readonly calendarPanelHeight = signal<number | null>(null);
   protected readonly coordinationTarget = signal<{
     facility: 'FLT' | 'Gymnasium';
@@ -368,12 +373,82 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openEventSummary(event: DashboardEvent): void {
+    this.completeError.set(null);
+    this.completingEvent.set(false);
     this.selectedEvent.set(event);
     this.closeDayModal();
   }
 
   protected closeEventSummary(): void {
     this.selectedEvent.set(null);
+    this.completeError.set(null);
+    this.completingEvent.set(false);
+  }
+
+  protected markEventComplete(event: DashboardEvent): void {
+    if (event.status !== 'APPROVED' || this.completingEvent()) return;
+    const request =
+      event.facility === 'FLT'
+        ? this.fltSvc.updateStatus(event.reservationId, 'COMPLETED')
+        : event.facility === 'Gymnasium'
+          ? this.gymSvc.updateStatus(event.reservationId, 'COMPLETED')
+          : event.facility === 'Nexus'
+            ? this.nexusSvc.updateStatus(event.reservationId, 'COMPLETED')
+            : event.facility === 'VAN'
+              ? this.vanSvc.updateStatus(event.reservationId, 'COMPLETED')
+              : null;
+    if (!request) return;
+    this.completingEvent.set(true);
+    this.completeError.set(null);
+    request.subscribe({
+      next: (res) => {
+        this.completingEvent.set(false);
+        if (!res.success) {
+          this.completeError.set(res.blockedReason ?? res.message ?? 'Could not mark as complete.');
+          return;
+        }
+        this.applyCompletedStatus(event.facility, event.reservationId, res.conflictedIds ?? []);
+        this.selectedEvent.update((current) =>
+          current && current.reservationId === event.reservationId
+            ? { ...current, status: 'COMPLETED' }
+            : current,
+        );
+      },
+      error: (err) => {
+        this.completingEvent.set(false);
+        const body = err?.error;
+        this.completeError.set(body?.blockedReason ?? body?.message ?? 'Could not mark as complete.');
+      },
+    });
+  }
+
+  private applyCompletedStatus(
+    facility: DashboardService,
+    reservationId: number,
+    conflictedIds: number[],
+  ): void {
+    const patch = <T extends { id: number; status: string }>(list: T[]): T[] =>
+      list.map((row) => {
+        if (row.id === reservationId) return { ...row, status: 'COMPLETED' };
+        if (conflictedIds.includes(row.id)) return { ...row, status: 'CONFLICT' };
+        return row;
+      });
+    switch (facility) {
+      case 'FLT':
+        this.fltReservations.update(patch);
+        break;
+      case 'Gymnasium':
+        this.gymReservations.update(patch);
+        break;
+      case 'Nexus':
+        this.nexusReservations.update(patch);
+        break;
+      case 'VAN':
+        this.vanReservations.update(patch);
+        break;
+      default:
+        break;
+    }
   }
 
   protected openCoordination(event: DashboardEvent): void {

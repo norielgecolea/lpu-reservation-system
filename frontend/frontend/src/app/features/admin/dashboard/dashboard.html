@@ -110,10 +110,19 @@
                           <li
                             class="min-w-0 cursor-pointer rounded border-l-4 px-1.5 py-1 text-[11px] leading-tight shadow-sm"
                             [class]="reservation.colorClass"
-                            [title]="reservation.time + ' - ' + reservation.title + (reservation.event.hasScheduleConflict ? ' — Conflicts with approved / coordination / maintenance' : '') + (reservation.event.description ? ' — ' + reservation.event.description : '')"
+                            [title]="reservation.time + ' - ' + reservation.title + (reservation.event.status === 'COMPLETED' ? ' — Completed' : '') + (reservation.event.hasScheduleConflict ? ' — Conflicts with approved / coordination / maintenance' : '') + (reservation.event.description ? ' — ' + reservation.event.description : '')"
                             (click)="openEventSummary(reservation.event)"
                           >
-                            <span class="block truncate font-bold">{{ reservation.time }}</span>
+                            <div class="flex items-start justify-between gap-0.5">
+                              <span class="min-w-0 truncate font-bold">{{ reservation.time }}</span>
+                              @if (reservation.event.status === 'COMPLETED') {
+                                <ui-icon
+                                  name="check_circle"
+                                  class="shrink-0 text-[12px] text-teal-700"
+                                  title="Completed"
+                                />
+                              }
+                            </div>
                             <span class="block truncate font-medium">{{ reservation.title }}</span>
                           </li>
                         }
@@ -166,13 +175,18 @@
                   <span class="text-lg font-bold leading-none">{{ formatEventDay(event.date) }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <span
-                    class="mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset"
-                    [class]="dashboardEventKindBadgeClass(event.eventKind, event.facility, event.status)"
-                  >
-                    <ui-icon [name]="dashboardEventKindIcon(event.eventKind, event.status)" class="text-[12px]" />
-                    {{ dashboardEventKindLabel(event.eventKind, event.status) }}
-                  </span>
+                  <div class="mb-1 flex items-center justify-between gap-1">
+                    <span
+                      class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset"
+                      [class]="dashboardEventKindBadgeClass(event.eventKind, event.facility, event.status)"
+                    >
+                      <ui-icon [name]="dashboardEventKindIcon(event.eventKind, event.status)" class="text-[12px]" />
+                      {{ dashboardEventKindLabel(event.eventKind, event.status) }}
+                    </span>
+                    @if (event.status === 'COMPLETED') {
+                      <ui-icon name="check_circle" class="text-base text-teal-700" title="Completed" />
+                    }
+                  </div>
                   <h3 class="min-w-0 truncate text-xs font-semibold">
                     {{ dashboardEventDisplayTitle(event) }}
                   </h3>
@@ -246,13 +260,18 @@
                 [class]="reservation.colorClass"
                 (click)="openEventSummary(reservation.event)"
               >
-                <span
-                  class="mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset"
-                  [class]="dashboardEventKindBadgeClass(reservation.event.eventKind, reservation.event.facility, reservation.event.status)"
-                >
-                  <ui-icon [name]="dashboardEventKindIcon(reservation.event.eventKind, reservation.event.status)" class="text-[12px]" />
-                  {{ dashboardEventKindLabel(reservation.event.eventKind, reservation.event.status) }}
-                </span>
+                <div class="mb-1 flex items-center justify-between gap-1">
+                  <span
+                    class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset"
+                    [class]="dashboardEventKindBadgeClass(reservation.event.eventKind, reservation.event.facility, reservation.event.status)"
+                  >
+                    <ui-icon [name]="dashboardEventKindIcon(reservation.event.eventKind, reservation.event.status)" class="text-[12px]" />
+                    {{ dashboardEventKindLabel(reservation.event.eventKind, reservation.event.status) }}
+                  </span>
+                  @if (reservation.event.status === 'COMPLETED') {
+                    <ui-icon name="check_circle" class="text-base text-teal-700" title="Completed" />
+                  }
+                </div>
                 <span class="block text-xs font-bold opacity-80">{{ reservation.time }}</span>
                 <span class="mt-0.5 block text-sm font-semibold">
                   {{ dashboardEventDisplayTitle(reservation.event) }}
@@ -268,9 +287,12 @@
   @if (selectedEvent(); as event) {
     <app-dashboard-event-summary-modal
       [event]="event"
+      [completing]="completingEvent()"
+      [completeError]="completeError()"
       (closed)="closeEventSummary()"
       (printForm)="printVanForm(event)"
       (setCoordination)="openCoordination(event)"
+      (markComplete)="markEventComplete(event)"
     />
   }
 

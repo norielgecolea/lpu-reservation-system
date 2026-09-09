@@ -213,6 +213,8 @@ export const PENDING_EVENT_COLOR =
   'border-orange-500 bg-orange-50 text-orange-950';
 export const PENDING_CONFLICT_EVENT_COLOR =
   'border-orange-500 bg-orange-50 text-orange-950 animate-pending-conflict';
+export const COMPLETED_EVENT_COLOR =
+  'border-teal-500 bg-teal-50 text-teal-900';
 export const VAN_EVENT_COLOR =
   'border-sky-500 bg-sky-50 text-sky-900';
 export const VAN_UNASSIGNED_COLOR =
@@ -367,8 +369,28 @@ export function formatEventDay(dateStr: string): string {
   return d ? String(d.getDate()) : dateStr;
 }
 
+export function isDashboardEventCompleted(
+  event: Pick<DashboardEvent, 'status'> | { status?: string },
+): boolean {
+  return event.status === 'COMPLETED';
+}
+
+export function canMarkDashboardEventComplete(
+  event: Pick<DashboardEvent, 'eventKind' | 'status' | 'facility'>,
+): boolean {
+  if (event.eventKind === 'maintenance') return false;
+  if (event.status !== 'APPROVED') return false;
+  return (
+    event.facility === 'FLT' ||
+    event.facility === 'Gymnasium' ||
+    event.facility === 'Nexus' ||
+    event.facility === 'VAN'
+  );
+}
+
 export function dashboardEventKindLabel(kind: DashboardEventKind, status?: string): string {
   if (kind === 'reservation' && status === 'PENDING') return 'Pending';
+  if (kind === 'reservation' && status === 'COMPLETED') return 'Complete';
   switch (kind) {
     case 'coordination':
       return 'Coordination';
@@ -381,6 +403,7 @@ export function dashboardEventKindLabel(kind: DashboardEventKind, status?: strin
 
 export function dashboardEventKindIcon(kind: DashboardEventKind, status?: string): string {
   if (kind === 'reservation' && status === 'PENDING') return 'pending_actions';
+  if (kind === 'reservation' && status === 'COMPLETED') return 'task_alt';
   switch (kind) {
     case 'coordination':
       return 'handshake';
@@ -398,6 +421,7 @@ export function dashboardEventDateBadgeClass(
   if (event.eventKind === 'coordination') return 'bg-amber-500 text-white';
   if (event.eventKind === 'maintenance') return 'bg-zinc-600 text-white';
   if (event.status === 'PENDING') return 'bg-orange-600 text-white';
+  if (event.status === 'COMPLETED') return 'bg-teal-600 text-white';
   if (event.facility === 'Gymnasium') return 'bg-emerald-600 text-white';
   return 'bg-sky-600 text-white';
 }
@@ -410,6 +434,9 @@ export function dashboardEventKindBadgeClass(
 ): string {
   if (kind === 'reservation' && status === 'PENDING') {
     return 'bg-orange-100 text-orange-950 ring-orange-200/80';
+  }
+  if (kind === 'reservation' && status === 'COMPLETED') {
+    return 'bg-teal-100 text-teal-900 ring-teal-200/80';
   }
   switch (kind) {
     case 'coordination':

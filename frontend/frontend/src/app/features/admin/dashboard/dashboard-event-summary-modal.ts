@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
 
 import { UiIcon } from '../../../shared/ui';
 import {
   DashboardEvent,
+  canMarkDashboardEventComplete,
   formatReadableDate,
   formatReadableTime,
   getRoomTypeLabel,
@@ -245,27 +246,66 @@ import {
         </div>
 
         @if (showFooterActions()) {
-          <div class="shrink-0 flex flex-wrap justify-end gap-2 border-t border-gray-100 p-4">
-            @if (canSetCoordination()) {
-              <button
-                type="button"
-                class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100"
-                [title]="event().coordinationDate ? 'Update coordination: ' + event().coordinationDate : 'Set coordination meeting'"
-                (click)="setCoordination.emit()"
-              >
-                <ui-icon name="handshake" class="text-base" />
-                {{ event().coordinationDate ? 'Coordination ✓' : 'Coordination' }}
-              </button>
+          <div class="shrink-0 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 p-4">
+            @if (completeError()) {
+              <p class="w-full text-right text-xs font-medium text-red-600">{{ completeError() }}</p>
             }
-            @if (canDownloadForm()) {
+            @if (confirmingComplete()) {
+              <p class="mr-auto text-sm text-gray-600">Mark this event as complete?</p>
               <button
                 type="button"
-                class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
-                (click)="printForm.emit()"
+                class="cursor-pointer rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="completing()"
+                (click)="confirmingComplete.set(false)"
               >
-                <ui-icon name="download" class="text-base" />
-                Download Form
+                Cancel
               </button>
+              <button
+                type="button"
+                class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-sm font-bold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="completing()"
+                (click)="submitComplete()"
+              >
+                @if (completing()) {
+                  <ui-icon name="autorenew" class="animate-spin text-base" />
+                } @else {
+                  <ui-icon name="task_alt" class="text-base" />
+                }
+                Confirm
+              </button>
+            } @else {
+              @if (canSetCoordination()) {
+                <button
+                  type="button"
+                  class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100"
+                  [title]="event().coordinationDate ? 'Update coordination: ' + event().coordinationDate : 'Set coordination meeting'"
+                  (click)="setCoordination.emit()"
+                >
+                  <ui-icon name="handshake" class="text-base" />
+                  {{ event().coordinationDate ? 'Coordination ✓' : 'Coordination' }}
+                </button>
+              }
+              @if (canDownloadForm()) {
+                <button
+                  type="button"
+                  class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+                  (click)="printForm.emit()"
+                >
+                  <ui-icon name="download" class="text-base" />
+                  Download Form
+                </button>
+              }
+              @if (canMarkComplete()) {
+                <button
+                  type="button"
+                  class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  [disabled]="completing()"
+                  (click)="confirmingComplete.set(true)"
+                >
+                  <ui-icon name="task_alt" class="text-base" />
+                  Complete
+                </button>
+              }
             }
           </div>
         }
@@ -275,9 +315,21 @@ import {
 })
 export class DashboardEventSummaryModal {
   readonly event = input.required<DashboardEvent>();
+  readonly completing = input(false);
+  readonly completeError = input<string | null>(null);
   readonly closed = output<void>();
   readonly printForm = output<void>();
   readonly setCoordination = output<void>();
+  readonly markComplete = output<void>();
+
+  protected readonly confirmingComplete = signal(false);
+
+  constructor() {
+    effect(() => {
+      this.event();
+      this.confirmingComplete.set(false);
+    });
+  }
 
   protected canSetCoordination(): boolean {
     const event = this.event();
@@ -293,8 +345,17 @@ export class DashboardEventSummaryModal {
     return event.facility === 'VAN' || event.facility === 'Gymnasium' || event.facility === 'Nexus';
   }
 
+  protected canMarkComplete(): boolean {
+    return canMarkDashboardEventComplete(this.event());
+  }
+
   protected showFooterActions(): boolean {
-    return this.canSetCoordination() || this.canDownloadForm();
+    return this.canSetCoordination() || this.canDownloadForm() || this.canMarkComplete();
+  }
+
+  protected submitComplete(): void {
+    if (!this.canMarkComplete() || this.completing()) return;
+    this.markComplete.emit();
   }
 
   protected formatDate(value: string | null | undefined): string {

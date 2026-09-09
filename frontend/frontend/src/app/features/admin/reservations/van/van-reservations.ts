@@ -490,12 +490,14 @@ interface VanReservationViewRow extends VanReservationRow {
       @if (detailsSummaryEvent(); as event) {
         <app-dashboard-event-summary-modal
           [event]="event"
+          [completing]="acting() === event.reservationId"
           (closed)="closeDetails()"
           (printForm)="printFormFromDetails()"
+          (markComplete)="completeFromDetails()"
         />
       }
 
-      @if (confirm()) {
+      @if (confirm() && !detailsTarget()) {
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" (click)="confirm.set(null)">
           <div class="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 flex flex-col gap-4" (click)="$event.stopPropagation()">
             <div class="flex items-start gap-3">
@@ -946,6 +948,9 @@ export class VanReservations implements OnInit, OnDestroy {
             ? ` ${res.revertedIds.length} conflict(s) reverted to PENDING.`
             : '';
           this.toast.set(`Reservation ${state.action.toLowerCase()} successfully.${conflictNote}${revertNote}`);
+          this.detailsTarget.update((r) =>
+            r && r.id === state.id ? { ...r, status: state.action } : r,
+          );
         } else {
           this.toast.set(res.blockedReason ?? res.message ?? 'Action failed. Please try again.');
         }
@@ -957,6 +962,13 @@ export class VanReservations implements OnInit, OnDestroy {
         this.toast.set(body?.blockedReason ?? body?.message ?? 'An error occurred. Please try again.');
       },
     });
+  }
+
+  completeFromDetails(): void {
+    const row = this.detailsTarget();
+    if (!row) return;
+    this.requestConfirm(row, 'COMPLETED');
+    this.executeAction();
   }
 
   openReschedule(row: VanReservationRow): void {
