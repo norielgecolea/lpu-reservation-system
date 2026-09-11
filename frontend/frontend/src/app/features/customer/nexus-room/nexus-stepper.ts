@@ -20,6 +20,7 @@ import {
   NexusReservationPayload,
   ReservedDateSlot,
 } from './nexus-reservation.models';
+import { httpErrorMessage } from '../../../core/http-error-message';
 import { NexusReservationService } from './nexus-reservation.service';
 import { ReservationSubmittedModal } from '../reservation-submitted-modal';
 import { ReservationOtpModal } from '../reservation-otp-modal';
@@ -550,9 +551,9 @@ export class NexusStepper implements OnChanges {
           this.submitError.set(res.message || 'Failed to submit reservation. Please try again.');
         }
       },
-      error: () => {
+      error: (err) => {
         this.submitting.set(false);
-        this.submitError.set('A server error occurred. Please try again later.');
+        this.submitError.set(httpErrorMessage(err, 'A server error occurred. Please try again later.'));
       },
     });
   }

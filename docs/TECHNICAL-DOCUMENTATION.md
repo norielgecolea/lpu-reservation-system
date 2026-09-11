@@ -491,13 +491,23 @@ Daily 08:00 Asia/Manila: for each approved reservation date that is 7, 3, or 1 d
 - OTP token: 15 minutes, single use, must match contact email on `POST /reserve`.
 - Email must match `^[a-z0-9._%+-]+@(lpulaguna|lpusc)\.edu\.ph$`.
 
-## 10.4 Transport and uploads
+## 10.4 Rate limiting
+
+In-memory token buckets (reset on Tomcat restart), applied by `RateLimitFilter` after JWT validation:
+
+- **Staff session:** each valid `LpuL` JWT is its own bucket (SHA-256 of the token). Burst 40, sustained 120 requests/minute. Two staff on the same ISP are limited independently.
+- **Public person:** `POST`/`PUT` `/api/public/*` JSON bodies are keyed by `email` / `contactEmail` (else `otpToken`) so classmates on campus NAT are not one quota. Burst 8, sustained 15 requests/minute per person.
+- **Public IP backstop:** unauthenticated `/api/public/*` also consume a high per-IP bucket (burst 60, sustained 600/minute) so a bot cannot flood calendars by rotating emails. This is intentionally loose for shared campus/ISP addresses.
+- **Not limited:** `/api/health`, `/api/flt/survey`, `/ws`, CORS `OPTIONS`, login / forgot-password.
+- Over quota returns HTTP **429** with `Retry-After` and `{ "success": false, "message": "Too many requests. Please try again shortly." }`. Angular guards do not log out on 429.
+
+## 10.5 Transport and uploads
 
 - Production should terminate TLS at Cloudflare or a campus reverse proxy. Compose Nginx listens on port 80.
 - Multipart uploads max 10 MB (`spring.servlet.multipart`).
 - Vehicle images served only under `/uploads/`.
 
-## 10.5 Known hardening gaps (treat as follow-up)
+## 10.6 Known hardening gaps (treat as follow-up)
 
 - CSRF is disabled (stateless API).
 - Many controllers use `@CrossOrigin("*")`.

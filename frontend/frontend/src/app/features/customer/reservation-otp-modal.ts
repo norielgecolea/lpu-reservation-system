@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { httpErrorMessage } from '../../core/http-error-message';
 import { UiButton, UiIcon, UiInput, UiLabel } from '../../shared/ui';
 import { ReservationOtpService } from './reservation-otp.service';
 
@@ -156,9 +157,9 @@ export class ReservationOtpModal implements OnInit, OnDestroy {
         }
         this.error.set(res.message || 'Invalid verification code.');
       },
-      error: () => {
+      error: (err) => {
         this.verifying.set(false);
-        this.error.set('Unable to verify code. Please try again.');
+        this.error.set(httpErrorMessage(err, 'Unable to verify code. Please try again.'));
       },
     });
   }
@@ -183,9 +184,9 @@ export class ReservationOtpModal implements OnInit, OnDestroy {
         }
         this.error.set(res.message || 'Failed to send verification code.');
       },
-      error: () => {
+      error: (err) => {
         this.sending.set(false);
-        this.error.set('Unable to send verification code. Please try again.');
+        this.error.set(httpErrorMessage(err, 'Unable to send verification code. Please try again.'));
       },
     });
   }

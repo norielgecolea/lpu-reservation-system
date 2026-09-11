@@ -17,6 +17,7 @@ import { VAN_DEPARTMENT_SELECT_OPTIONS } from '../../../shared/constants/van-dep
 import { VAN_SCHOOL_OPTIONS } from '../../../shared/constants/van-school-options';
 import { UNIVERSITY_EMAIL_DOMAINS_LABEL, isUniversityEmail } from '../../../shared/constants/lpu-email';
 import { VanReservationPayload, ReservedDateSlot } from './van-reservation.models';
+import { httpErrorMessage } from '../../../core/http-error-message';
 import { VanReservationService } from './van-reservation.service';
 import { ReservationSubmittedModal } from '../reservation-submitted-modal';
 import { ReservationOtpModal } from '../reservation-otp-modal';
@@ -621,7 +622,7 @@ export class VanStepper implements OnChanges {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.submitError.set(err?.error?.message || 'A server error occurred. Please try again later.');
+        this.submitError.set(httpErrorMessage(err, 'A server error occurred. Please try again later.'));
       },
     });
   }

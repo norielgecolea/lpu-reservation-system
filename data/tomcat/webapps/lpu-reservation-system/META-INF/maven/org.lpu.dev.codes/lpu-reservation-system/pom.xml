@@ -103,6 +103,16 @@
 			<artifactId>junit-platform-launcher</artifactId>
 			<version>1.14.3</version>
 		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-engine</artifactId>
+			<version>1.14.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-commons</artifactId>
+			<version>1.14.3</version>
+		</dependency>
 
 		<!-- Mockito -->
 		<dependency>
