@@ -1,7 +1,8 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
-import { catchError, map, of, timeout } from 'rxjs';
+import { Observable, catchError, map, of, timeout } from 'rxjs';
 
+import { isRateLimited } from '../http-error-message';
 import { AuthService } from './auth.service';
 import {
   hasEoOfficeAccess,
@@ -28,6 +29,21 @@ function roleFrom(auth: AuthService): string | undefined {
   return auth.user()?.role;
 }
 
+type GuardResult = boolean | UrlTree;
+
+function onSessionError(
+  auth: AuthService,
+  error: unknown,
+  whenLimited: () => GuardResult,
+  whenFatal: () => GuardResult,
+): Observable<GuardResult> {
+  if (isRateLimited(error)) {
+    return of(whenLimited());
+  }
+  auth.logout();
+  return of(whenFatal());
+}
+
 /** Guards a route by validating the stored token against `/auth/me`. */
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
@@ -47,10 +63,9 @@ export const authGuard: CanActivateFn = () => {
       auth.logout();
       return loginUrl(router);
     }),
-    catchError(() => {
-      auth.logout();
-      return of(loginUrl(router));
-    }),
+    catchError((error) =>
+      onSessionError(auth, error, () => true, () => loginUrl(router)),
+    ),
   );
 };
 
@@ -71,10 +86,9 @@ export const facilitiesGuard: CanActivateFn = () => {
 
   return sessionCheck(auth).pipe(
     map((res) => (res.success ? validate() : loginUrl(router))),
-    catchError(() => {
-      auth.logout();
-      return of(loginUrl(router));
-    }),
+    catchError((error) =>
+      onSessionError(auth, error, () => (auth.user() ? validate() : true), () => loginUrl(router)),
+    ),
   );
 };
 
@@ -94,10 +108,14 @@ export const fltTechGuard: CanActivateFn = () => {
 
   return sessionCheck(auth).pipe(
     map((res) => validate(res.success ? roleFrom(auth) : undefined)),
-    catchError(() => {
-      auth.logout();
-      return of(loginUrl(router));
-    }),
+    catchError((error) =>
+      onSessionError(
+        auth,
+        error,
+        () => (auth.user() ? validate(roleFrom(auth)) : true),
+        () => loginUrl(router),
+      ),
+    ),
   );
 };
 
@@ -122,10 +140,9 @@ export const superAdminGuard: CanActivateFn = () => {
 
   return sessionCheck(auth).pipe(
     map((res) => (res.success ? validate() : loginUrl(router))),
-    catchError(() => {
-      auth.logout();
-      return of(loginUrl(router));
-    }),
+    catchError((error) =>
+      onSessionError(auth, error, () => (auth.user() ? validate() : true), () => loginUrl(router)),
+    ),
   );
 };
 
@@ -154,10 +171,9 @@ export function serviceGuard(service: ServiceCode): CanActivateFn {
 
     return sessionCheck(auth).pipe(
       map((res) => (res.success ? validate() : loginUrl(router))),
-      catchError(() => {
-        auth.logout();
-        return of(loginUrl(router));
-      }),
+      catchError((error) =>
+        onSessionError(auth, error, () => (auth.user() ? validate() : true), () => loginUrl(router)),
+      ),
     );
   };
 }
@@ -183,10 +199,9 @@ export const eoGuard: CanActivateFn = () => {
 
   return sessionCheck(auth).pipe(
     map((res) => (res.success ? validate() : loginUrl(router))),
-    catchError(() => {
-      auth.logout();
-      return of(loginUrl(router));
-    }),
+    catchError((error) =>
+      onSessionError(auth, error, () => (auth.user() ? validate() : true), () => loginUrl(router)),
+    ),
   );
 };
 
@@ -212,9 +227,8 @@ export const guestGuard: CanActivateFn = () => {
 
   return sessionCheck(auth).pipe(
     map((res) => (res.success ? toHome() : true)),
-    catchError(() => {
-      auth.logout();
-      return of(true);
-    }),
+    catchError((error) =>
+      onSessionError(auth, error, () => (auth.user() ? toHome() : true), () => true),
+    ),
   );
 };

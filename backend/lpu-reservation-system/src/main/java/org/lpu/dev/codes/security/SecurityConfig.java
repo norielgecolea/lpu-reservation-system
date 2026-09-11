@@ -18,8 +18,12 @@ public class SecurityConfig {
 	@Autowired
 	private JWTAuthenticationFilter jwtFilter;
 
-	public SecurityConfig(JWTAuthenticationFilter jwtFilter) {
+	@Autowired
+	private RateLimitFilter rateLimitFilter;
+
+	public SecurityConfig(JWTAuthenticationFilter jwtFilter, RateLimitFilter rateLimitFilter) {
 		this.jwtFilter = jwtFilter;
+		this.rateLimitFilter = rateLimitFilter;
 	}
 
 	@Bean
@@ -33,7 +37,8 @@ public class SecurityConfig {
 		http.csrf(csrf -> csrf.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(
 						org.springframework.security.config.http.SessionCreationPolicy.STATELESS)) 
-				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterAfter(rateLimitFilter, JWTAuthenticationFilter.class);
 
 		return http.build();
 	}
