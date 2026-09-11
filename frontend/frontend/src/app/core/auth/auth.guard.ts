@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
-import { catchError, map, of, timeout } from 'rxjs';
+import { Observable, catchError, map, of, timeout } from 'rxjs';
 
 import { isRateLimited } from '../http-error-message';
 import { AuthService } from './auth.service';
@@ -29,12 +29,14 @@ function roleFrom(auth: AuthService): string | undefined {
   return auth.user()?.role;
 }
 
-function onSessionError<T>(
+type GuardResult = boolean | UrlTree;
+
+function onSessionError(
   auth: AuthService,
   error: unknown,
-  whenLimited: () => T,
-  whenFatal: () => T,
-) {
+  whenLimited: () => GuardResult,
+  whenFatal: () => GuardResult,
+): Observable<GuardResult> {
   if (isRateLimited(error)) {
     return of(whenLimited());
   }
