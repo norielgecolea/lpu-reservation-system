@@ -216,6 +216,9 @@ ALTER TABLE gymnasium_reservations ADD COLUMN IF NOT EXISTS approved_at TIMESTAM
 ALTER TABLE gymnasium_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
 ALTER TABLE nexus_reservations ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
 ALTER TABLE nexus_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
+ALTER TABLE flt_reservations ADD COLUMN IF NOT EXISTS cancellation_remarks TEXT;
+ALTER TABLE gymnasium_reservations ADD COLUMN IF NOT EXISTS cancellation_remarks TEXT;
+ALTER TABLE nexus_reservations ADD COLUMN IF NOT EXISTS cancellation_remarks TEXT;
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
 ALTER TABLE van_reservations ADD COLUMN IF NOT EXISTS additional_remarks TEXT;

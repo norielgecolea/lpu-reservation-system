@@ -262,6 +262,7 @@ export function gymFormRowFromDashboardEvent(event: DashboardEvent): GymReservat
     coordinationStartTime: event.coordinationStartTime ?? null,
     coordinationEndTime: event.coordinationEndTime ?? null,
     additionalInstructions: event.additionalInstructions ?? null,
+    cancellationRemarks: event.cancellationRemarks ?? null,
     status: event.status as GymReservationRecord['status'],
     createdAt: '',
     satisfactionRating: null,

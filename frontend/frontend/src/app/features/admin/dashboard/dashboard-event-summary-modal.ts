@@ -231,7 +231,7 @@ import {
             </div>
           }
 
-          @if (event().eventKind !== 'maintenance' && event().facility !== 'VAN') {
+            @if (event().eventKind !== 'maintenance' && event().facility !== 'VAN') {
             <div class="rounded-xl border border-gray-200 p-4">
               <p class="text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">Additional Instructions</p>
               @if (event().additionalInstructions?.trim()) {
@@ -241,6 +241,13 @@ import {
               } @else {
                 <p class="text-sm text-gray-500">None provided</p>
               }
+            </div>
+          }
+
+          @if (event().cancellationRemarks?.trim()) {
+            <div class="rounded-xl border border-rose-200 bg-rose-50/70 p-4">
+              <p class="text-xs font-bold uppercase tracking-wide text-rose-600 mb-1">Remarks</p>
+              <p class="text-sm whitespace-pre-wrap text-gray-800">{{ event().cancellationRemarks }}</p>
             </div>
           }
         </div>

@@ -54,6 +54,7 @@ export interface DashboardReservationRecord {
   coordinationStartTime: string | null;
   coordinationEndTime: string | null;
   additionalInstructions?: string | null;
+  cancellationRemarks?: string | null;
   eventType?: string;
   roomType?: string | null;
   expectedAttendees?: string | null;
@@ -101,6 +102,7 @@ export interface DashboardEvent {
   coordinationEndTime?: string | null;
   coordinationTime?: string | null;
   additionalInstructions?: string | null;
+  cancellationRemarks?: string | null;
   maintenanceReason?: string;
   /** Pending reservation overlaps an approved, coordination, or maintenance slot. */
   hasScheduleConflict?: boolean;
@@ -540,6 +542,7 @@ function recordContext(rec: DashboardReservationRecord, facility: DashboardServi
     coordinationEndTime: rec.coordinationEndTime,
     coordinationTime,
     additionalInstructions: rec.additionalInstructions,
+    cancellationRemarks: rec.cancellationRemarks ?? null,
     travelDestination: rec.travelDestination ?? null,
     passengerNames: rec.passengerNames ?? null,
     numberOfPassengers: rec.numberOfPassengers ?? null,

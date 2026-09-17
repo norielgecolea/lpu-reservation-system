@@ -9,6 +9,7 @@ import org.lpu.dev.codes.model.apiresponse.ReservationActionResponse;
 import org.lpu.dev.codes.model.apiresponse.EquipmentResponse;
 import org.lpu.dev.codes.model.apiresponse.NexusReservationResponse;
 import org.lpu.dev.codes.model.dto.NexusReservationAdminDto;
+import org.lpu.dev.codes.model.dto.ReservationStatusRemarksRequest;
 import org.lpu.dev.codes.services.AuthenticationService;
 import org.lpu.dev.codes.services.NexusReservationService;
 import org.lpu.dev.codes.services.JWTService;
@@ -79,7 +80,8 @@ public class NexusAdminController {
     public ResponseEntity<ReservationActionResponse> updateStatus(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable Long id,
-            @RequestParam String status) {
+            @RequestParam String status,
+            @RequestBody(required = false) ReservationStatusRemarksRequest body) {
         ReservationActionResponse res = new ReservationActionResponse();
         String token = tok(authHeader);
         if (!auth.userActive(jwtService.getUsername(token))) {
@@ -90,7 +92,8 @@ public class NexusAdminController {
             res.setSuccess(false); res.setMessage("Access denied");
             return ResponseEntity.status(403).body(res);
         }
-        res = nexusService.updateStatus(id, status, jwtService.getUsername(token));
+        String remarks = body == null ? null : body.getRemarks();
+        res = nexusService.updateStatus(id, status, jwtService.getUsername(token), remarks);
         if (!res.isSuccess() && res.getBlockedReason() != null) {
             return ResponseEntity.status(409).body(res);
         }

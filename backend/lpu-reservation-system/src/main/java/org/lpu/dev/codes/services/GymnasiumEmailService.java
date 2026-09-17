@@ -193,6 +193,7 @@ public class GymnasiumEmailService {
             + detailRow("Scheduled Date(s)", datesDisplay)
             + detailRow("Contact Person", r.getContactPerson())
             + detailRow("Contact Number", r.getContactNumber())
+            + detailRow("Remarks", r.getCancellationRemarks())
             + "</table>"
             + (extraHtml != null ? extraHtml : "")
             + "</td></tr>"

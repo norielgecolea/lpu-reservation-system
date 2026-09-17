@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.apiresponse.ReservationActionResponse;
 import org.lpu.dev.codes.model.apiresponse.FltReservationResponse;
 import org.lpu.dev.codes.model.dto.FltReservationAdminDto;
+import org.lpu.dev.codes.model.dto.ReservationStatusRemarksRequest;
 import org.lpu.dev.codes.services.AuthenticationService;
 import org.lpu.dev.codes.services.FltReservationService;
 import org.lpu.dev.codes.services.JWTService;
@@ -89,7 +90,8 @@ public class FltAdminController {
     public ResponseEntity<ReservationActionResponse> updateStatus(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable Long id,
-            @RequestParam String status) {
+            @RequestParam String status,
+            @RequestBody(required = false) ReservationStatusRemarksRequest body) {
 
         ReservationActionResponse res = new ReservationActionResponse();
         String token = authHeader.replace("LpuL ", "");
@@ -114,7 +116,8 @@ public class FltAdminController {
             return ResponseEntity.status(403).body(res);
         }
 
-        res = fltReservationService.updateStatus(id, status, jwtService.getUsername(token));
+        res = fltReservationService.updateStatus(id, status, jwtService.getUsername(token),
+                body == null ? null : body.getRemarks());
         if (!res.isSuccess() && res.getBlockedReason() != null) {
             return ResponseEntity.status(409).body(res);
         }

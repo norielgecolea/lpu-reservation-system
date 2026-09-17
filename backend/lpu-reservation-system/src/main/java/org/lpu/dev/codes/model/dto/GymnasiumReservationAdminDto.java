@@ -21,6 +21,7 @@ public class GymnasiumReservationAdminDto {
     private String additionalInstructions;
     private String approvedAt;
     private String approvedBy;
+    private String cancellationRemarks;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -78,4 +79,7 @@ public class GymnasiumReservationAdminDto {
 
     public String getApprovedBy() { return approvedBy; }
     public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
+
+    public String getCancellationRemarks() { return cancellationRemarks; }
+    public void setCancellationRemarks(String cancellationRemarks) { this.cancellationRemarks = cancellationRemarks; }
 }

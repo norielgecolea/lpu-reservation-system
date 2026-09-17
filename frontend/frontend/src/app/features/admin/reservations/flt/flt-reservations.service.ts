@@ -29,10 +29,10 @@ export class FltReservationsService {
     });
   }
 
-  updateStatus(id: number, status: ReservationStatus) {
+  updateStatus(id: number, status: ReservationStatus, remarks?: string) {
     return this.http.patch<FltAdminActionResponse>(
       `${this.base}/reservations/${id}/status`,
-      {},
+      remarks ? { remarks } : {},
       { params: { status } },
     );
   }
