@@ -87,5 +87,8 @@ export function applyReservationWsEvent<T extends ReservationRow>(
     return row;
   });
 
-  return { updated, needsReload: false };
+  return {
+    updated,
+    needsReload: ev.status === 'REJECTED' || ev.status === 'CANCELLED',
+  };
 }

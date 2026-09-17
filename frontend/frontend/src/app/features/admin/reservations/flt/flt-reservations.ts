@@ -42,6 +42,7 @@ import { MaintenanceBlock, MaintenanceService } from '../../../admin/maintenance
 import { countUpcomingMaintenanceBlocks } from '../../../admin/maintenance/maintenance.util';
 import { MaintenanceCalendarPicker, MaintenanceSlot, ScheduledEvent } from '../../../admin/maintenance/maintenance-calendar-picker';
 import { ReservationExportModal } from '../reservation-export-modal';
+import { ReservationStatusReasonModal } from '../reservation-status-reason-modal';
 import { exportFltReservationsCsv, ExportDateRange } from '../reservation-export.util';
 import { adminAddReservationPath } from '../admin-reservation-path.util';
 import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-menu';
@@ -72,7 +73,7 @@ interface FltReservationViewRow extends FltReservationRecord {
 
 @Component({
   selector: 'app-flt-reservations',
-  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, FltRescheduleCalendar, FltCoordinationCalendar, FltEditDetailsModal, MaintenanceCalendarPicker, ReservationExportModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
+  imports: [ RouterLink, UiButton, UiIcon, UiInputSearch, UiToast, UiDateSelector, FltRescheduleCalendar, FltCoordinationCalendar, FltEditDetailsModal, MaintenanceCalendarPicker, ReservationExportModal, ReservationStatusReasonModal, ApprovedReservationActionsMenu, ReservationApproverTableSkeleton, ReservationApproverMobileSkeleton, DashboardEventSummaryModal, ReservationApproverStatusChips, ReservationStatusPill],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-none flex-col gap-4 md:min-h-0 md:flex-1' },
   template: `
@@ -648,7 +649,16 @@ interface FltReservationViewRow extends FltReservationRecord {
       }
 
       <!-- Confirmation Dialog -->
-      @if (confirm() && !detailsTarget()) {
+      @if (confirm(); as state) {
+        @if ((state.action === 'REJECTED' || state.action === 'CANCELLED') && !detailsTarget()) {
+          <app-reservation-status-reason-modal
+            [action]="state.action"
+            [eventTitle]="state.eventTitle"
+            [submitting]="acting() === state.id"
+            (closed)="confirm.set(null)"
+            (confirmed)="executeAction($event)"
+          />
+        } @else if (!detailsTarget()) {
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" (click)="confirm.set(null)">
           <div class="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 flex flex-col gap-4" (click)="$event.stopPropagation()">
             <div class="flex items-start gap-3">
@@ -710,6 +720,7 @@ interface FltReservationViewRow extends FltReservationRecord {
             </div>
           </div>
         </div>
+        }
       }
 
       <!-- Toast -->
@@ -1087,18 +1098,28 @@ export class FltReservations implements OnInit, OnDestroy {
     this.openCoordination(row);
   }
 
-  executeAction(): void {
+  executeAction(remarks?: string): void {
     const state = this.confirm();
     if (!state) return;
+    const needsRemarks = state.action === 'REJECTED' || state.action === 'CANCELLED';
+    const trimmedRemarks = remarks?.trim() ?? '';
+    if (needsRemarks && !trimmedRemarks) {
+      this.toast.set('Please provide a reason.');
+      return;
+    }
 
     this.acting.set(state.id);
-    this.svc.updateStatus(state.id, state.action).subscribe({
+    this.svc.updateStatus(state.id, state.action, needsRemarks ? trimmedRemarks : undefined).subscribe({
       next: (res) => {
         this.acting.set(null);
         this.confirm.set(null);
         if (res.success) {
           this.reservations.update(list => {
-            let updated = list.map(r => r.id === state.id ? { ...r, status: state.action } : r);
+            let updated = list.map(r => r.id === state.id ? {
+              ...r,
+              status: state.action,
+              cancellationRemarks: needsRemarks ? trimmedRemarks : r.cancellationRemarks,
+            } : r);
             for (const cid of res.conflictedIds ?? []) {
               updated = updated.map(r => r.id === cid ? { ...r, status: 'CONFLICT' as ReservationStatus } : r);
             }
@@ -1113,7 +1134,9 @@ export class FltReservations implements OnInit, OnDestroy {
             : '';
           this.toast.set(`Reservation ${state.action.toLowerCase()} successfully.${conflictNote}${revertNote}`);
           this.detailsTarget.update((r) =>
-            r && r.id === state.id ? { ...r, status: state.action } : r,
+            r && r.id === state.id
+              ? { ...r, status: state.action, cancellationRemarks: needsRemarks ? trimmedRemarks : r.cancellationRemarks }
+              : r,
           );
         } else {
           this.toast.set(res.blockedReason ?? res.message ?? 'Action failed. Please try again.');

@@ -66,7 +66,8 @@ public class FltReservationRepository {
                 "reserved_dates::text, requested_equipment::text, " +
                 "status, created_at, room_type, expected_attendees, " +
                 "coordination_date, coordination_start_time, coordination_end_time, " +
-                "satisfaction_rating, additional_instructions, approved_at, approved_by " +
+                "satisfaction_rating, additional_instructions, approved_at, approved_by, " +
+                "cancellation_remarks " +
                 "FROM flt_reservations");
 
         boolean useRange = isPresent(fromDate) && isPresent(toDate);
@@ -139,9 +140,22 @@ public class FltReservationRepository {
     }
 
     public void updateStatus(Long id, String status) {
+        updateStatus(id, status, null);
+    }
+
+    public void updateStatus(Long id, String status, String cancellationRemarks) {
+        if (cancellationRemarks == null) {
+            entityManager.createNativeQuery(
+                    "UPDATE flt_reservations SET status = :status WHERE id = :id")
+                    .setParameter("status", status)
+                    .setParameter("id", id)
+                    .executeUpdate();
+            return;
+        }
         entityManager.createNativeQuery(
-                "UPDATE flt_reservations SET status = :status WHERE id = :id")
+                "UPDATE flt_reservations SET status = :status, cancellation_remarks = :remarks WHERE id = :id")
                 .setParameter("status", status)
+                .setParameter("remarks", cancellationRemarks)
                 .setParameter("id", id)
                 .executeUpdate();
     }

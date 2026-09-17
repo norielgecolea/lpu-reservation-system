@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.lpu.dev.codes.model.apiresponse.ReservationActionResponse;
 import org.lpu.dev.codes.util.AppDateTimes;
+import org.lpu.dev.codes.util.CancellationRemarksUtil;
 import org.lpu.dev.codes.util.ReservationSlot;
 import org.lpu.dev.codes.util.ReservationSlotUtil;
 
@@ -121,6 +122,7 @@ public class GymnasiumReservationService {
             dto.setAdditionalInstructions((String) row[16]);
             dto.setApprovedAt(AppDateTimes.toApiUtc(row[17]));
             dto.setApprovedBy((String) row[18]);
+            dto.setCancellationRemarks((String) row[19]);
             result.add(dto);
         }
         return result;
@@ -130,6 +132,11 @@ public class GymnasiumReservationService {
 
     @Transactional
     public ReservationActionResponse updateStatus(Long id, String status, String approvedBy) {
+        return updateStatus(id, status, approvedBy, null);
+    }
+
+    @Transactional
+    public ReservationActionResponse updateStatus(Long id, String status, String approvedBy, String remarks) {
         ReservationActionResponse response = new ReservationActionResponse();
         List<String> allowed = java.util.Arrays.asList("APPROVED", "REJECTED", "CANCELLED", "COMPLETED");
         if (!allowed.contains(status)) {
@@ -137,13 +144,21 @@ public class GymnasiumReservationService {
             response.setMessage("Invalid status");
             return response;
         }
+        String cancellationRemarks = CancellationRemarksUtil.normalize(remarks);
+        if (CancellationRemarksUtil.requiredMissing(status, cancellationRemarks)) {
+            response.setSuccess(false);
+            response.setMessage("A reason is required when rejecting or cancelling a reservation");
+            return response;
+        }
         try {
             if ("APPROVED".equals(status)) {
                 return approveReservation(id, approvedBy);
             }
-            gymRepository.updateStatus(id, status);
+            gymRepository.updateStatus(id, status, cancellationRemarks);
             var existingOpt = gymRepository.findById(id);
             existingOpt.ifPresent(r -> {
+                r.setStatus(status);
+                if (cancellationRemarks != null) r.setCancellationRemarks(cancellationRemarks);
                 switch (status) {
                     case "REJECTED"  -> gymEmailService.sendRejectionEmail(r);
                     case "CANCELLED" -> gymEmailService.sendCancellationEmail(r);
@@ -158,7 +173,7 @@ public class GymnasiumReservationService {
 
             String label = existingOpt.map(GymnasiumReservation::getEventTitle).orElse("Reservation #" + id);
             auditService.log("GYMNASIUM", status, approvedBy, "reservation", id, label,
-                    AdminAuditService.detailsOf("newStatus", status, "revertedIds", revertedIds));
+                    AdminAuditService.detailsOf("newStatus", status, "revertedIds", revertedIds, "remarks", cancellationRemarks));
 
             response.setSuccess(true);
             response.setMessage("Status updated to " + status);

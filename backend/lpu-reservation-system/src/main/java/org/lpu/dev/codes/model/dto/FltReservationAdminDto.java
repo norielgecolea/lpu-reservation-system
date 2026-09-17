@@ -23,6 +23,7 @@ public class FltReservationAdminDto {
     private Integer satisfactionRating;
     private String approvedAt;
     private String approvedBy;
+    private String cancellationRemarks;
 
     public FltReservationAdminDto() {}
 
@@ -88,4 +89,7 @@ public class FltReservationAdminDto {
 
     public String getApprovedBy() { return approvedBy; }
     public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
+
+    public String getCancellationRemarks() { return cancellationRemarks; }
+    public void setCancellationRemarks(String cancellationRemarks) { this.cancellationRemarks = cancellationRemarks; }
 }

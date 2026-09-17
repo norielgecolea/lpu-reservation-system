@@ -26,6 +26,7 @@ export interface GymReservationRecord {
   coordinationStartTime: string | null;
   coordinationEndTime: string | null;
   additionalInstructions: string | null;
+  cancellationRemarks?: string | null;
   status: ReservationStatus;
   createdAt: string;
   satisfactionRating: number | null;

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.lpu.dev.codes.model.apiresponse.ReservationActionResponse;
 import org.lpu.dev.codes.util.AppDateTimes;
+import org.lpu.dev.codes.util.CancellationRemarksUtil;
 import org.lpu.dev.codes.util.ReservationSlot;
 import org.lpu.dev.codes.util.ReservationSlotUtil;
 
@@ -185,6 +186,7 @@ public class FltReservationService {
             dto.setAdditionalInstructions((String) row[18]);
             dto.setApprovedAt(AppDateTimes.toApiUtc(row[19]));
             dto.setApprovedBy((String) row[20]);
+            dto.setCancellationRemarks((String) row[21]);
             result.add(dto);
         }
         return result;
@@ -192,6 +194,11 @@ public class FltReservationService {
 
     @Transactional
     public ReservationActionResponse updateStatus(Long id, String status, String approvedBy) {
+        return updateStatus(id, status, approvedBy, null);
+    }
+
+    @Transactional
+    public ReservationActionResponse updateStatus(Long id, String status, String approvedBy, String remarks) {
         ReservationActionResponse response = new ReservationActionResponse();
         List<String> allowed = java.util.Arrays.asList("APPROVED", "REJECTED", "CANCELLED", "COMPLETED");
         if (!allowed.contains(status)) {
@@ -200,14 +207,22 @@ public class FltReservationService {
             response.setMessage("Invalid status");
             return response;
         }
+        String cancellationRemarks = CancellationRemarksUtil.normalize(remarks);
+        if (CancellationRemarksUtil.requiredMissing(status, cancellationRemarks)) {
+            response.setSuccess(false);
+            response.setMessage("A reason is required when rejecting or cancelling a reservation");
+            return response;
+        }
         try {
             if ("APPROVED".equals(status)) {
                 return approveReservation(id, approvedBy);
             }
-            fltReservationRepository.updateStatus(id, status);
+            fltReservationRepository.updateStatus(id, status, cancellationRemarks);
             logger.info("FLT reservation {} status updated to {}", id, status);
             var existingOpt = fltReservationRepository.findById(id);
             existingOpt.ifPresent(r -> {
+                r.setStatus(status);
+                if (cancellationRemarks != null) r.setCancellationRemarks(cancellationRemarks);
                 switch (status) {
                     case "REJECTED"   -> fltEmailService.sendRejectionEmail(r);
                     case "CANCELLED"  -> fltEmailService.sendCancellationEmail(r);
@@ -222,7 +237,7 @@ public class FltReservationService {
 
             String label = existingOpt.map(FltReservation::getEventTitle).orElse("Reservation #" + id);
             auditService.log("FLT", status, approvedBy, "reservation", id, label,
-                    AdminAuditService.detailsOf("newStatus", status, "revertedIds", revertedIds));
+                    AdminAuditService.detailsOf("newStatus", status, "revertedIds", revertedIds, "remarks", cancellationRemarks));
 
             response.setSuccess(true);
             response.setMessage("Status updated to " + status);

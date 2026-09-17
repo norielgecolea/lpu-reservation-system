@@ -53,7 +53,8 @@ public class GymnasiumReservationRepository {
                 "reserved_dates::text, requested_equipment::text, " +
                 "status, created_at, " +
                 "coordination_date, coordination_start_time, coordination_end_time, " +
-                "satisfaction_rating, additional_instructions, approved_at, approved_by " +
+                "satisfaction_rating, additional_instructions, approved_at, approved_by, " +
+                "cancellation_remarks " +
                 "FROM gymnasium_reservations");
 
         boolean useRange = isPresent(fromDate) && isPresent(toDate);
@@ -126,9 +127,22 @@ public class GymnasiumReservationRepository {
     }
 
     public void updateStatus(Long id, String status) {
+        updateStatus(id, status, null);
+    }
+
+    public void updateStatus(Long id, String status, String cancellationRemarks) {
+        if (cancellationRemarks == null) {
+            entityManager.createNativeQuery(
+                    "UPDATE gymnasium_reservations SET status = :status WHERE id = :id")
+                    .setParameter("status", status)
+                    .setParameter("id", id)
+                    .executeUpdate();
+            return;
+        }
         entityManager.createNativeQuery(
-                "UPDATE gymnasium_reservations SET status = :status WHERE id = :id")
+                "UPDATE gymnasium_reservations SET status = :status, cancellation_remarks = :remarks WHERE id = :id")
                 .setParameter("status", status)
+                .setParameter("remarks", cancellationRemarks)
                 .setParameter("id", id)
                 .executeUpdate();
     }

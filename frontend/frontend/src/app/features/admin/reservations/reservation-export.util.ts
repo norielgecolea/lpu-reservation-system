@@ -123,6 +123,7 @@ export function exportFltReservationsCsv(
     coordinationStartTime: string | null;
     coordinationEndTime: string | null;
     additionalInstructions: string | null;
+    cancellationRemarks?: string | null;
     createdAt: string;
     approvedAt?: string | null;
     approvedBy?: string | null;
@@ -136,7 +137,7 @@ export function exportFltReservationsCsv(
     'ID', 'Event Title', 'Event Type', 'Department', 'Organization', 'Contact Person',
     'Contact Email', 'Contact Number', 'Status', 'Reserved Dates', 'Requested Equipment',
     'Room Type', 'Expected Attendees', 'Coordination Date', 'Coordination Time',
-    'Additional Instructions', 'Created At', 'Approved Date', 'Approved By',
+    'Additional Instructions', 'Remarks', 'Created At', 'Approved Date', 'Approved By',
   ];
   const rows = filtered.map(r => [
     r.id,
@@ -155,6 +156,7 @@ export function exportFltReservationsCsv(
     formatReadableDate(r.coordinationDate),
     formatCoordinationTime(r.coordinationStartTime, r.coordinationEndTime),
     r.additionalInstructions ?? '',
+    r.cancellationRemarks ?? '',
     formatReadableDateTime(r.createdAt),
     formatReadableDateTime(r.approvedAt),
     r.approvedBy ?? '',
@@ -180,6 +182,7 @@ export function exportGymReservationsCsv(
     coordinationStartTime: string | null;
     coordinationEndTime: string | null;
     additionalInstructions: string | null;
+    cancellationRemarks?: string | null;
     createdAt: string;
     approvedAt?: string | null;
     approvedBy?: string | null;
@@ -192,7 +195,7 @@ export function exportGymReservationsCsv(
   const headers = [
     'ID', 'Event Title', 'Department', 'Organization', 'Number of Attendees', 'Contact Person',
     'Contact Email', 'Contact Number', 'Status', 'Reserved Dates', 'Requested Equipment',
-    'Coordination Date', 'Coordination Time', 'Additional Instructions', 'Created At',
+    'Coordination Date', 'Coordination Time', 'Additional Instructions', 'Remarks', 'Created At',
     'Approved Date', 'Approved By',
   ];
   const rows = filtered.map(r => [
@@ -210,6 +213,7 @@ export function exportGymReservationsCsv(
     formatReadableDate(r.coordinationDate),
     formatCoordinationTime(r.coordinationStartTime, r.coordinationEndTime),
     r.additionalInstructions ?? '',
+    r.cancellationRemarks ?? '',
     formatReadableDateTime(r.createdAt),
     formatReadableDateTime(r.approvedAt),
     r.approvedBy ?? '',
@@ -228,7 +232,7 @@ export function exportNexusReservationsCsv(
   const headers = [
     'ID', 'Event Title', 'Department', 'Organization', 'Number of Attendees', 'Contact Person',
     'Contact Email', 'Contact Number', 'Status', 'Reserved Dates', 'Requested Equipment',
-    'Coordination Date', 'Coordination Time', 'Additional Instructions', 'Created At',
+    'Coordination Date', 'Coordination Time', 'Additional Instructions', 'Remarks', 'Created At',
     'Approved Date', 'Approved By',
   ];
   const rows = filtered.map(r => [
@@ -246,6 +250,7 @@ export function exportNexusReservationsCsv(
     formatReadableDate(r.coordinationDate),
     formatCoordinationTime(r.coordinationStartTime, r.coordinationEndTime),
     r.additionalInstructions ?? '',
+    r.cancellationRemarks ?? '',
     formatReadableDateTime(r.createdAt),
     formatReadableDateTime(r.approvedAt),
     r.approvedBy ?? '',

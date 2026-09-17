@@ -85,6 +85,9 @@ public class FltReservation {
     @Column(name = "approved_by")
     private String approvedBy;
 
+    @Column(name = "cancellation_remarks", columnDefinition = "TEXT")
+    private String cancellationRemarks;
+
     @PrePersist
     protected void onCreate() {
         if (this.status == null) this.status = "PENDING";
@@ -153,4 +156,7 @@ public class FltReservation {
 
     public String getApprovedBy() { return approvedBy; }
     public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
+
+    public String getCancellationRemarks() { return cancellationRemarks; }
+    public void setCancellationRemarks(String cancellationRemarks) { this.cancellationRemarks = cancellationRemarks; }
 }

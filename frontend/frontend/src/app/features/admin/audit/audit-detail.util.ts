@@ -62,6 +62,7 @@ export function formatAuditDetails(actionType: string, detailsRaw: string | null
     parts.push(`Block: ${d['blockDate']} ${start}–${end}`.trim());
   }
   if (d['reason']) parts.push(`Reason: ${d['reason']}`);
+  if (d['remarks']) parts.push(`Remarks: ${d['remarks']}`);
 
   if (d['employeeId']) parts.push(`Employee ID: ${d['employeeId']}`);
   if (d['username']) parts.push(`Username: ${d['username']}`);
