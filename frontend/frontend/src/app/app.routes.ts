@@ -8,6 +8,7 @@ import {
   serviceGuard,
   superAdminGuard,
 } from './core/auth/auth.guard';
+import { withRoutePreload } from './core/idle-preloading.strategy';
 
 const adminLayout = () =>
   import('./shared/layout/admin-layout/admin-layout').then((m) => m.AdminLayout);
@@ -327,27 +328,28 @@ export const routes: Routes = [
     path: 'facilities',
     canActivate: [facilitiesGuard],
     loadComponent: adminLayout,
-    children: facilitiesRoutes,
+    children: withRoutePreload(facilitiesRoutes),
   },
   {
     path: 'flt-tech',
     canActivate: [fltTechGuard],
     loadComponent: adminLayout,
-    children: fltTechRoutes,
+    children: withRoutePreload(fltTechRoutes),
   },
   {
     path: 'eo',
     canActivate: [eoGuard],
     loadComponent: () =>
       import('./shared/layout/eo-layout/eo-layout').then((m) => m.EoLayout),
-    children: [
+    data: { preload: true },
+    children: withRoutePreload([
       {
         path: 'dashboard',
         loadComponent: () =>
           import('./features/eo/eo-dashboard').then((m) => m.EoDashboard),
       },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
-    ],
+    ]),
   },
   {
     path: 'customer',
@@ -367,7 +369,7 @@ export const routes: Routes = [
     path: '',
     canActivate: [authGuard, superAdminGuard],
     loadComponent: adminLayout,
-    children: superAdminRoutes,
+    children: withRoutePreload(superAdminRoutes),
   },
   { path: '**', redirectTo: 'customer' },
 ];
