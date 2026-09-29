@@ -7,7 +7,8 @@ export type AuditServiceCode =
   | 'USERS'
   | 'EQUIPMENTS'
   | 'VEHICLES'
-  | 'DRIVERS';
+  | 'DRIVERS'
+  | 'EMAIL';
 
 export interface AuditLogRow {
   id: number;
@@ -40,6 +41,7 @@ export const AUDIT_ROUTE_SERVICE: Record<string, AuditServiceCode> = {
   equipments: 'EQUIPMENTS',
   vehicles: 'VEHICLES',
   drivers: 'DRIVERS',
+  email: 'EMAIL',
 };
 
 export const AUDIT_SERVICE_LABELS: Record<AuditServiceCode, string> = {
@@ -52,4 +54,5 @@ export const AUDIT_SERVICE_LABELS: Record<AuditServiceCode, string> = {
   EQUIPMENTS: 'Equipments',
   VEHICLES: 'Vehicles',
   DRIVERS: 'Drivers',
+  EMAIL: 'Email',
 };
