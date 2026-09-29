@@ -6,14 +6,9 @@ import org.lpu.dev.codes.model.data.VanReservation;
 import org.lpu.dev.codes.util.EmailTimeFormat;
 import org.lpu.dev.codes.util.ReservationEmailThreadUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 @PropertySource("classpath:application.properties")
@@ -23,8 +18,7 @@ public class VanEmailService {
     private static final String SERVICE_KEY = "van";
     private static final String SERVICE_LABEL = "University Van";
 
-    @Autowired private JavaMailSender mailSender;
-    @Value("${spring.mail.username}") private String fromAddress;
+    @Autowired private EmailDeliveryService emailDeliveryService;
 
     @Async
     public void sendReservationConfirmation(VanReservation r) {
@@ -213,30 +207,7 @@ public class VanEmailService {
             logger.warn("Skipping van email — blank recipient for subject: {}", subject);
             return false;
         }
-        try {
-            MimeMessage msg = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(msg, false, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-
-            String rootId = ReservationEmailThreadUtil.rootMessageId(SERVICE_KEY, reservationId);
-            if (threadRoot) {
-                msg.setHeader("Message-ID", rootId);
-            } else {
-                msg.setHeader("Message-ID", ReservationEmailThreadUtil.messageId(SERVICE_KEY, reservationId));
-                msg.setHeader("In-Reply-To", rootId);
-                msg.setHeader("References", rootId);
-            }
-            msg.setHeader("Thread-Topic", subject);
-
-            mailSender.send(msg);
-            logger.info("Van email sent to {} — {}", to, subject);
-            return true;
-        } catch (Exception e) {
-            logger.error("Failed to send van email to {}: {}", to, e.getMessage(), e);
-            return false;
-        }
+        return emailDeliveryService.sendReservationEmail(
+                to, subject, htmlBody, SERVICE_KEY, reservationId, threadRoot, "Van");
     }
 }

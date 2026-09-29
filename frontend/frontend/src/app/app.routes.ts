@@ -183,6 +183,13 @@ const superAdminRoutes: Routes = [
       import('./features/admin/audit/audit-logs').then((m) => m.AuditLogs),
     data: { service: 'VEHICLES' },
   },
+  {
+    path: 'audit/email',
+    canActivate: [superAdminGuard],
+    loadComponent: () =>
+      import('./features/admin/audit/audit-logs').then((m) => m.AuditLogs),
+    data: { service: 'EMAIL' },
+  },
 ];
 
 const facilitiesRoutes: Routes = [

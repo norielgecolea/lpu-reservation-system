@@ -45,7 +45,7 @@ const PAGE_SIZE = 25;
     <section class="animate-rise flex shrink-0 flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-xl font-black text-gray-900">{{ serviceLabel() }} Audit</h1>
-        <p class="mt-0.5 text-sm text-gray-500">Admin action history for {{ serviceLabel() }}</p>
+        <p class="mt-0.5 text-sm text-gray-500">{{ serviceDescription() }}</p>
       </div>
       <div class="text-sm text-gray-500">
         {{ totalCount() }} record{{ totalCount() === 1 ? '' : 's' }}
@@ -245,6 +245,12 @@ export class AuditLogs implements OnInit {
     () => AUDIT_SERVICE_LABELS[this.serviceCode()] ?? this.serviceCode(),
   );
 
+  protected readonly serviceDescription = computed(() =>
+    this.serviceCode() === 'EMAIL'
+      ? 'Delivery results for sent, failed, and retried email'
+      : `Admin action history for ${this.serviceLabel()}`,
+  );
+
   protected readonly totalPages = computed(() =>
     Math.max(1, Math.ceil(this.totalCount() / PAGE_SIZE)),
   );
@@ -303,17 +309,21 @@ export class AuditLogs implements OnInit {
     switch (actionType) {
       case 'APPROVE':
       case 'CREATE':
+      case 'EMAIL_SUCCESS':
         return `${base} bg-emerald-100 text-emerald-800`;
       case 'REJECTED':
       case 'REJECT':
       case 'DELETE':
+      case 'EMAIL_FAILED':
         return `${base} bg-red-100 text-red-800`;
       case 'RESCHEDULE':
       case 'COORDINATION_SET':
       case 'UPDATE':
+      case 'EMAIL_RETRY_SUCCESS':
         return `${base} bg-blue-100 text-blue-800`;
       case 'CANCELLED':
       case 'CANCEL':
+      case 'EMAIL_RETRY_FAILED':
         return `${base} bg-amber-100 text-amber-800`;
       default:
         return `${base} bg-gray-100 text-gray-700`;

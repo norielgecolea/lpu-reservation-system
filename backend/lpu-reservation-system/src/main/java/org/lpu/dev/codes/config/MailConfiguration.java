@@ -38,6 +38,9 @@ public class MailConfiguration {
         props.put("mail.smtp.starttls.enable", "true");
         props.put("mail.smtp.starttls.required", "true");
         props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.connectiontimeout", "20000");
+        props.put("mail.smtp.timeout", "20000");
+        props.put("mail.smtp.writetimeout", "20000");
 
         return sender;
     }

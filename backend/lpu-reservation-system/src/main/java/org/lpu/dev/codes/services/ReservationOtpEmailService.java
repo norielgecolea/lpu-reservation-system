@@ -1,23 +1,15 @@
 package org.lpu.dev.codes.services;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class ReservationOtpEmailService {
 
-    private static final Logger logger = LogManager.getLogger(ReservationOtpEmailService.class);
-
-    @Autowired private JavaMailSender mailSender;
-    @Value("${spring.mail.username}") private String fromAddress;
+    @Autowired private EmailDeliveryService emailDeliveryService;
 
     @Async
     public void sendOtpEmail(String toEmail, String contactPerson, String code) {
@@ -36,18 +28,8 @@ public class ReservationOtpEmailService {
                 + "<p style='color:#6b7280;font-size:13px;line-height:1.5;'>If you did not start a reservation, you can ignore this email.</p>"
                 + "</div></body></html>";
 
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(body, true);
-            mailSender.send(message);
-            logger.info("Reservation OTP email sent to {}", toEmail);
-        } catch (Exception e) {
-            logger.error("Failed to send reservation OTP email to {}", toEmail, e);
-        }
+        emailDeliveryService.sendPlainEmail(
+                toEmail, subject, body, "Reservation OTP", Duration.ofMinutes(10));
     }
 
     private static String escape(String value) {

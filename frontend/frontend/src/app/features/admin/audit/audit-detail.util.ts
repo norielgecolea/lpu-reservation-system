@@ -68,6 +68,14 @@ export function formatAuditDetails(actionType: string, detailsRaw: string | null
   if (d['username']) parts.push(`Username: ${d['username']}`);
   if (d['role']) parts.push(`Role: ${d['role']}`);
 
+  if (d['recipient']) parts.push(`To: ${d['recipient']}`);
+  if (d['attempt'] != null && String(actionType).startsWith('EMAIL_')) {
+    parts.push(`Attempt ${d['attempt']}`);
+  }
+  if (d['retried'] === true) parts.push('Retried');
+  if (d['nextRetryAt']) parts.push(`Next retry (UTC): ${d['nextRetryAt']}`);
+  if (d['error']) parts.push(`Error: ${d['error']}`);
+
   if (Array.isArray(d['conflictedIds']) && d['conflictedIds'].length) {
     parts.push(`Conflicted: #${(d['conflictedIds'] as unknown[]).join(', #')}`);
   }
@@ -83,6 +91,18 @@ export function formatAuditDetails(actionType: string, detailsRaw: string | null
 }
 
 export function formatAuditActionLabel(actionType: string): string {
+  switch (actionType) {
+    case 'EMAIL_SUCCESS':
+      return 'Success';
+    case 'EMAIL_FAILED':
+      return 'Failed';
+    case 'EMAIL_RETRY_SUCCESS':
+      return 'Retried — sent';
+    case 'EMAIL_RETRY_FAILED':
+      return 'Retried — failed';
+    default:
+      break;
+  }
   return actionType
     .toLowerCase()
     .split('_')

@@ -92,6 +92,7 @@ export class SideNav implements OnInit {
             { label: 'Users', icon: 'group', link: '/audit/users' },
             { label: 'Equipments', icon: 'inventory_2', link: '/audit/equipments' },
             { label: 'Vehicles', icon: 'directions_car', link: '/audit/vehicles' },
+            { label: 'Email', icon: 'mail', link: '/audit/email' },
           ],
         },
       ];

@@ -1,17 +1,10 @@
 package org.lpu.dev.codes.services;
 
-import jakarta.mail.internet.MimeMessage;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.EoReservation;
 import org.lpu.dev.codes.util.EmailTimeFormat;
 import org.lpu.dev.codes.util.ReservationEmailThreadUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -19,14 +12,10 @@ import org.springframework.stereotype.Service;
 @PropertySource("classpath:application.properties")
 public class EoEmailService {
 
-    private static final Logger logger = LogManager.getLogger(EoEmailService.class);
     private static final String SERVICE_KEY = "eo";
 
     @Autowired
-    private JavaMailSender mailSender;
-
-    @Value("${spring.mail.username}")
-    private String fromAddress;
+    private EmailDeliveryService emailDeliveryService;
 
     @Async
     public void sendConfirmation(EoReservation r) {
@@ -155,30 +144,7 @@ public class EoEmailService {
         if (to == null || to.isBlank()) {
             return false;
         }
-        try {
-            MimeMessage msg = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(msg, false, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-
-            String rootId = ReservationEmailThreadUtil.rootMessageId(SERVICE_KEY, reservationId);
-            if (threadRoot) {
-                msg.setHeader("Message-ID", rootId);
-            } else {
-                msg.setHeader("Message-ID", ReservationEmailThreadUtil.messageId(SERVICE_KEY, reservationId));
-                msg.setHeader("In-Reply-To", rootId);
-                msg.setHeader("References", rootId);
-            }
-            msg.setHeader("Thread-Topic", subject);
-
-            mailSender.send(msg);
-            logger.info("EO email sent to {} — {}", to, subject);
-            return true;
-        } catch (Exception e) {
-            logger.error("Failed to send EO email to {}: {}", to, e.getMessage(), e);
-            return false;
-        }
+        return emailDeliveryService.sendReservationEmail(
+                to, subject, htmlBody, SERVICE_KEY, reservationId, threadRoot, "EO");
     }
 }

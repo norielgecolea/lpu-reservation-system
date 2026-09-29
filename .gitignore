@@ -24,6 +24,10 @@ data/*
 data/tomcat/logs/**
 !data/tomcat/logs/.gitkeep
 
+# Tomcat runtime uploads (vehicle images, etc.)
+data/tomcat/webapps/uploads/
+data/tomcat/webapps/**/classes/uploads/
+
 # IDE / Eclipse
 .idea/
 *.iml

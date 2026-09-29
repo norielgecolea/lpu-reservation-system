@@ -1,25 +1,18 @@
 package org.lpu.dev.codes.services;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 @PropertySource("classpath:application.properties")
 public class PasswordResetEmailService {
 
-    private static final Logger logger = LogManager.getLogger(PasswordResetEmailService.class);
-
-    @Autowired private JavaMailSender mailSender;
-    @Value("${spring.mail.username}") private String fromAddress;
+    @Autowired private EmailDeliveryService emailDeliveryService;
     @Value("${app.frontend.url:https://reservation.lpulaguna.com}") private String frontendUrl;
 
     @Async
@@ -42,18 +35,8 @@ public class PasswordResetEmailService {
                 + "<p style='color:#9ca3af;font-size:12px;margin-top:24px;word-break:break-all;'>" + resetLink + "</p>"
                 + "</div></body></html>";
 
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(body, true);
-            mailSender.send(message);
-            logger.info("Password reset email sent to {}", toEmail);
-        } catch (Exception e) {
-            logger.error("Failed to send password reset email to {}", toEmail, e);
-        }
+        emailDeliveryService.sendPlainEmail(
+                toEmail, subject, body, "Password reset", Duration.ofHours(1));
     }
 
     private static String escape(String value) {
