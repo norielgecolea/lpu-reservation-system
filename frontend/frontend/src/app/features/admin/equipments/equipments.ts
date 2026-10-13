@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
+import { ServiceCode } from '../../../core/auth/auth.models';
+import { equipmentServices } from '../../../core/auth/roles';
 import {
   UiButton,
   UiIcon,
@@ -8,12 +11,17 @@ import {
   UiStatusBadge,
   UiToast,
 } from '../../../shared/ui';
+import { equipmentFacilityIdsForUser } from './equipment-facilities';
 import { EquipmentRow } from './equipments.models';
 import { EquipmentsService } from './equipments.service';
 
-const ADMIN_SERVICE_FILTERS = ['All', 'FLT', 'Gym', 'Boardroom', 'Nexus', 'Conference'] as const;
-const FACILITIES_SERVICE_FILTERS = ['All', 'FLT', 'Gym'] as const;
-type ServiceFilter = (typeof ADMIN_SERVICE_FILTERS)[number] | (typeof FACILITIES_SERVICE_FILTERS)[number];
+const EQUIPMENT_FILTERS: { service: ServiceCode; label: string }[] = [
+  { service: 'FLT', label: 'FLT' },
+  { service: 'GYMNASIUM', label: 'Gym' },
+  { service: 'BOARDROOM', label: 'Boardroom' },
+  { service: 'NEXUS', label: 'Nexus' },
+  { service: 'CONFERENCE', label: 'Conference' },
+];
 
 @Component({
   selector: 'app-equipments',
@@ -29,6 +37,7 @@ type ServiceFilter = (typeof ADMIN_SERVICE_FILTERS)[number] | (typeof FACILITIES
 })
 export class Equipments {
   private readonly api = inject(EquipmentsService);
+  private readonly auth = inject(AuthService);
 
   protected readonly equipments = signal<EquipmentRow[]>([]);
   protected readonly loading = signal(false);
@@ -37,21 +46,24 @@ export class Equipments {
   protected readonly showToast = signal(false);
   protected readonly toastMessage = signal('');
   protected readonly toastSuccess = signal(false);
-  protected readonly scope = this.api.scope();
   protected readonly listPath = this.api.listPath();
   protected readonly newPath = `${this.listPath}/new`;
-  protected readonly serviceFilters: ServiceFilter[] = this.scope === 'facilities'
-    ? [...FACILITIES_SERVICE_FILTERS]
-    : [...ADMIN_SERVICE_FILTERS];
-  protected readonly activeService = signal<ServiceFilter>('All');
+  protected readonly allowedFacilityIds = computed(() => equipmentFacilityIdsForUser(this.auth.user()));
+  protected readonly serviceFilters = computed(() => {
+    const assigned = new Set(equipmentServices(this.auth.user()));
+    const labels = EQUIPMENT_FILTERS.filter((item) => assigned.has(item.service)).map((item) => item.label);
+    return ['All', ...labels];
+  });
+  protected readonly activeService = signal('All');
   protected readonly sortField = signal<'name' | 'facilityName' | 'status'>('name');
   protected readonly sortDirection = signal<'asc' | 'desc'>('asc');
 
   protected readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
     const service = this.activeService().toLowerCase();
+    const allowed = this.allowedFacilityIds();
 
-    let rows = this.equipments();
+    let rows = this.equipments().filter((equipment) => allowed.has(equipment.facilityId));
 
     if (service !== 'all') {
       rows = rows.filter((equipment) =>
@@ -84,7 +96,7 @@ export class Equipments {
     return `${this.listPath}/${id}/edit`;
   }
 
-  protected selectService(service: ServiceFilter): void {
+  protected selectService(service: string): void {
     this.activeService.set(service);
   }
 

@@ -1,17 +1,34 @@
+import { AuthUser, ServiceCode } from '../../../core/auth/auth.models';
+import { effectiveServices } from '../../../core/auth/roles';
 import { UiSelectOption } from '../../../shared/ui';
 import { EquipmentRow, Facility } from './equipments.models';
-import { EquipmentScope } from './equipments.service';
 
 /** Facilities that don't host equipment and must be hidden from equipment dropdowns. */
 const EXCLUDED_FACILITIES = new Set(['van']);
 
-/** FLT and Gymnasium only — facilities admin equipment scope. */
-const FACILITIES_ADMIN_FACILITY_IDS = new Set([1, 3, 5]);
+/** Facility row id for each equipment-bearing service. Van has no equipment. */
+export const EQUIPMENT_FACILITY_ID: Partial<Record<ServiceCode, number>> = {
+  FLT: 1,
+  NEXUS: 3,
+  BOARDROOM: 4,
+  GYMNASIUM: 5,
+  CONFERENCE: 6,
+};
 
-/** Build distinct facility (service) options from facility or equipment rows. */
+/** Facility ids this role may manage equipment for. */
+export function equipmentFacilityIdsForUser(user: AuthUser | null | undefined): Set<number> {
+  const ids = new Set<number>();
+  for (const service of effectiveServices(user)) {
+    const id = EQUIPMENT_FACILITY_ID[service];
+    if (id != null) ids.add(id);
+  }
+  return ids;
+}
+
+/** Build facility options limited to services assigned to the current role. */
 export function toFacilityOptions(
   rows: Array<EquipmentRow | Facility>,
-  scope: EquipmentScope = 'admin',
+  allowedFacilityIds: ReadonlySet<number>,
 ): UiSelectOption[] {
   const seen = new Map<number, string>();
 
@@ -19,7 +36,7 @@ export function toFacilityOptions(
     const id = 'facilityId' in row ? row.facilityId : row.id;
     const name = row.facilityName?.trim();
 
-    if (scope === 'facilities' && !FACILITIES_ADMIN_FACILITY_IDS.has(id)) {
+    if (!allowedFacilityIds.has(id)) {
       continue;
     }
 

@@ -98,7 +98,13 @@ public class NexusReservationService {
 
     @Transactional(readOnly = true)
     public List<NexusReservationAdminDto> getAllReservations(String month, String fromDate, String toDate) {
-        List<Object[]> rows = gymRepository.findAllNative(month, fromDate, toDate);
+        return getAllReservations(month, fromDate, toDate, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<NexusReservationAdminDto> getAllReservations(
+            String month, String fromDate, String toDate, boolean pendingQueue) {
+        List<Object[]> rows = gymRepository.findAllNative(month, fromDate, toDate, pendingQueue);
         List<NexusReservationAdminDto> result = new ArrayList<>();
         for (Object[] row : rows) {
             NexusReservationAdminDto dto = new NexusReservationAdminDto();

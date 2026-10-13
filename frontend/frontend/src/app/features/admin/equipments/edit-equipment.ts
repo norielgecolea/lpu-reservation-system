@@ -2,8 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { AuthService } from '../../../core/auth/auth.service';
 import { UiButton, UiFormFeedback, UiIcon, UiInput, UiSelect, UiSelectOption } from '../../../shared/ui';
-import { toFacilityOptions } from './equipment-facilities';
+import { equipmentFacilityIdsForUser, toFacilityOptions } from './equipment-facilities';
 import { EQUIPMENT_STATUS_OPTIONS } from './equipment-status';
 import { EquipmentsService } from './equipments.service';
 
@@ -16,6 +17,7 @@ import { EquipmentsService } from './equipments.service';
 export class EditEquipment {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(EquipmentsService);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -74,14 +76,15 @@ export class EditEquipment {
         }
 
         const equipment = (equipments.equipment ?? []).find((row) => row.id === id);
+        const allowed = equipmentFacilityIdsForUser(this.auth.user());
 
-        if (!equipment) {
+        if (!equipment || !allowed.has(equipment.facilityId)) {
           this.error.set('Equipment not found');
           return;
         }
 
         this.currentStatus.set(equipment.status);
-        this.facilities.set(toFacilityOptions(facilities ?? [], this.api.scope()));
+        this.facilities.set(toFacilityOptions(facilities ?? [], allowed));
         this.form.setValue({
           name: equipment.name ?? '',
           facilityId: String(equipment.facilityId),

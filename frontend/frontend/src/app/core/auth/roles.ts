@@ -111,6 +111,21 @@ export function effectiveServices(user: AuthUser | null | undefined): ServiceCod
   return normalizeServices(user.services);
 }
 
+/** Services that have managed equipment. University Van does not. */
+const EQUIPMENT_SERVICE_CODES: ServiceCode[] = [
+  'FLT',
+  'GYMNASIUM',
+  'NEXUS',
+  'BOARDROOM',
+  'CONFERENCE',
+];
+
+/** Equipment-bearing services assigned to this role. */
+export function equipmentServices(user: AuthUser | null | undefined): ServiceCode[] {
+  const assigned = new Set(effectiveServices(user));
+  return EQUIPMENT_SERVICE_CODES.filter((code) => assigned.has(code));
+}
+
 /** True for facilities-shell roles (Facilities Admin or custom roles with /facilities home). */
 export function usesFacilitiesShell(user: AuthUser | null | undefined): boolean {
   if (!user) return false;

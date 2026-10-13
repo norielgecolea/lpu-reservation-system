@@ -1,6 +1,9 @@
 package org.lpu.dev.codes.services.facilities;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -24,10 +27,34 @@ public class FacilitiesEquipmentService {
 
     private static final Logger logger = LogManager.getLogger(FacilitiesEquipmentService.class);
 
-    private static final long FLT_FACILITY_ID = 1L;
-    private static final long GYM_FACILITY_ID = 5L;
-    private static final long NEXUS_FACILITY_ID = 3L;
-    private static final Set<Long> ALLOWED_FACILITY_IDS = Set.of(FLT_FACILITY_ID, GYM_FACILITY_ID, NEXUS_FACILITY_ID);
+    /** Facility ids that host equipment. Van (2) does not. */
+    public static Long facilityIdForService(String service) {
+        if (service == null) {
+            return null;
+        }
+        return switch (service.trim().toUpperCase(Locale.ROOT)) {
+            case "FLT" -> 1L;
+            case "NEXUS" -> 3L;
+            case "BOARDROOM" -> 4L;
+            case "GYMNASIUM" -> 5L;
+            case "CONFERENCE" -> 6L;
+            default -> null;
+        };
+    }
+
+    public static Set<Long> facilityIdsForServices(Collection<String> services) {
+        Set<Long> ids = new LinkedHashSet<>();
+        if (services == null) {
+            return ids;
+        }
+        for (String service : services) {
+            Long id = facilityIdForService(service);
+            if (id != null) {
+                ids.add(id);
+            }
+        }
+        return ids;
+    }
 
     @Autowired
     private EquipmentRepository equipmentRepository;
@@ -49,22 +76,22 @@ public class FacilitiesEquipmentService {
         }).toList();
     }
 
-    private boolean isAllowedFacility(Long facilityId) {
-        return facilityId != null && ALLOWED_FACILITY_IDS.contains(facilityId);
+    private boolean isAllowedFacility(Long facilityId, Set<Long> allowedFacilityIds) {
+        return facilityId != null && allowedFacilityIds != null && allowedFacilityIds.contains(facilityId);
     }
 
-    private boolean isManagedEquipment(Equipment equipment) {
+    private boolean isManagedEquipment(Equipment equipment, Set<Long> allowedFacilityIds) {
         return equipment != null
                 && equipment.getFacility() != null
-                && isAllowedFacility(equipment.getFacility().getId());
+                && isAllowedFacility(equipment.getFacility().getId(), allowedFacilityIds);
     }
 
     @Transactional(readOnly = true)
-    public PopulateEquipmentResponse getEquipment() {
+    public PopulateEquipmentResponse getEquipment(Set<Long> allowedFacilityIds) {
         PopulateEquipmentResponse response = new PopulateEquipmentResponse();
         try {
             List<Equipment> equipment = equipmentRepository.getEquipmentByFacilityIds(
-                    List.copyOf(ALLOWED_FACILITY_IDS));
+                    List.copyOf(allowedFacilityIds == null ? Set.of() : allowedFacilityIds));
             response.setSuccess(true);
             response.setMessage("Get Equipment Success");
             response.setEquipment(mappedEquipmentList(equipment));
@@ -78,18 +105,18 @@ public class FacilitiesEquipmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<Facility> getFacilities() {
+    public List<Facility> getFacilities(Set<Long> allowedFacilityIds) {
         return facilityService.getAllFacility().stream()
-                .filter(f -> isAllowedFacility(f.getId()))
+                .filter(f -> isAllowedFacility(f.getId(), allowedFacilityIds))
                 .toList();
     }
 
     @Transactional
-    public EquipmentResponse toggleEquipmentStatus(Long equipId, String performedBy) {
+    public EquipmentResponse toggleEquipmentStatus(Long equipId, String performedBy, Set<Long> allowedFacilityIds) {
         EquipmentResponse response = new EquipmentResponse();
         try {
             Equipment equipment = equipmentRepository.findById(equipId);
-            if (!isManagedEquipment(equipment)) {
+            if (!isManagedEquipment(equipment, allowedFacilityIds)) {
                 response.setSuccess(false);
                 response.setMessage("Equipment not found");
                 return response;
@@ -119,11 +146,11 @@ public class FacilitiesEquipmentService {
     }
 
     @Transactional
-    public EquipmentResponse deleteEquipment(Long equipId, String performedBy) {
+    public EquipmentResponse deleteEquipment(Long equipId, String performedBy, Set<Long> allowedFacilityIds) {
         EquipmentResponse response = new EquipmentResponse();
         try {
             Equipment equipment = equipmentRepository.findById(equipId);
-            if (!isManagedEquipment(equipment)) {
+            if (!isManagedEquipment(equipment, allowedFacilityIds)) {
                 response.setSuccess(false);
                 response.setMessage("Equipment not found");
                 return response;
@@ -146,12 +173,13 @@ public class FacilitiesEquipmentService {
     }
 
     @Transactional
-    public EquipmentResponse createEquipment(CreateEquipmentRequest equipmentForm, String performedBy) {
+    public EquipmentResponse createEquipment(
+            CreateEquipmentRequest equipmentForm, String performedBy, Set<Long> allowedFacilityIds) {
         EquipmentResponse response = new EquipmentResponse();
         try {
-            if (!isAllowedFacility(equipmentForm.getId())) {
+            if (!isAllowedFacility(equipmentForm.getId(), allowedFacilityIds)) {
                 response.setSuccess(false);
-                response.setMessage("Equipment can only be added for FLT or Gymnasium");
+                response.setMessage("You can only add equipment for services assigned to your role");
                 return response;
             }
 
@@ -187,19 +215,20 @@ public class FacilitiesEquipmentService {
     }
 
     @Transactional
-    public EquipmentResponse updateEquipment(UpdateEquipmentRequest equipmentForm, String performedBy) {
+    public EquipmentResponse updateEquipment(
+            UpdateEquipmentRequest equipmentForm, String performedBy, Set<Long> allowedFacilityIds) {
         EquipmentResponse response = new EquipmentResponse();
         try {
             Equipment equipment = equipmentRepository.findById(equipmentForm.getId());
-            if (!isManagedEquipment(equipment)) {
+            if (!isManagedEquipment(equipment, allowedFacilityIds)) {
                 response.setSuccess(false);
                 response.setMessage("Equipment not found");
                 return response;
             }
 
-            if (!isAllowedFacility(equipmentForm.getFacilityId())) {
+            if (!isAllowedFacility(equipmentForm.getFacilityId(), allowedFacilityIds)) {
                 response.setSuccess(false);
-                response.setMessage("Equipment can only be assigned to FLT or Gymnasium");
+                response.setMessage("You can only assign equipment to services assigned to your role");
                 return response;
             }
 
