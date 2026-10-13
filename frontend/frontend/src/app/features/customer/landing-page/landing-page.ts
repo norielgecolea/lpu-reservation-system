@@ -71,8 +71,7 @@ import { UiIcon, UiButton } from '../../../shared/ui';
         </div>
 
          -->
-        <!-- /customer/nexus-room -->
-        <a routerLink="" class="facility-card--disabled ">
+        <a routerLink="/customer/nexus-room" class="facility-card group">
           <span class="facility-card-icon" aria-hidden="true">
             <ui-icon name="co_present" class="text-3xl md:text-[80px] opacity-80 group-hover:opacity-100 transition-opacity" />
           </span>
