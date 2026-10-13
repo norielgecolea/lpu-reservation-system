@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
   effectiveServices,
+  equipmentServices,
   hasEoOfficeAccess,
   isEoAdmin,
   isEoService,
@@ -56,6 +57,7 @@ export class SideNav implements OnInit {
 
     const services = effectiveServices(user);
     const publicServices = services.filter((s) => !isEoService(s));
+    const canManageEquipment = equipmentServices(user).length > 0;
     const eoOfficeChild: NavChild = {
       label: 'EO Office',
       icon: 'meeting_room',
@@ -75,7 +77,9 @@ export class SideNav implements OnInit {
         { label: 'Dashboard', icon: 'grid_view', link: '/dashboard' },
         { label: 'Users', icon: 'group', link: '/users' },
         { label: 'Roles', icon: 'admin_panel_settings', link: '/roles' },
-        { label: 'Equipments', icon: 'inventory_2', link: '/equipments' },
+        ...(canManageEquipment
+          ? [{ label: 'Equipments', icon: 'inventory_2', link: '/equipments' }]
+          : []),
         { label: 'Vehicles', icon: 'directions_car', link: '/vehicles' },
         ...(reservationChildren.length
           ? [{ label: 'Reservation', icon: 'event_note', children: reservationChildren }]
@@ -110,7 +114,9 @@ export class SideNav implements OnInit {
       return [
         { label: 'Dashboard', icon: 'grid_view', link: '/facilities/dashboard' },
         { label: 'Users', icon: 'group', link: '/facilities/users' },
-        { label: 'Equipments', icon: 'inventory_2', link: '/facilities/equipments' },
+        ...(canManageEquipment
+          ? [{ label: 'Equipments', icon: 'inventory_2', link: '/facilities/equipments' }]
+          : []),
         { label: 'Vehicles', icon: 'directions_car', link: '/facilities/vehicles' },
         ...(schedulingChildren.length
           ? [{ label: 'Scheduling', icon: 'event_note', children: schedulingChildren }]

@@ -324,6 +324,8 @@ export class DashboardEventSummaryModal {
   readonly event = input.required<DashboardEvent>();
   readonly completing = input(false);
   readonly completeError = input<string | null>(null);
+  /** Nexus hub hides the facilities form download. Other screens keep it. */
+  readonly showDownload = input(true);
   readonly closed = output<void>();
   readonly printForm = output<void>();
   readonly setCoordination = output<void>();
@@ -346,6 +348,7 @@ export class DashboardEventSummaryModal {
   }
 
   protected canDownloadForm(): boolean {
+    if (!this.showDownload()) return false;
     const event = this.event();
     if (event.eventKind === 'maintenance') return false;
     if (event.status !== 'APPROVED') return false;

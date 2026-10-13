@@ -1,6 +1,7 @@
 package org.lpu.dev.codes.controller;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,6 +48,12 @@ public class FacilitiesEquipmentController {
                 && !"FLTTECH".equalsIgnoreCase(role);
     }
 
+    private Set<Long> allowedFacilityIds(String token) {
+        String role = jwtService.getRole(token);
+        return FacilitiesEquipmentService.facilityIdsForServices(
+                roleAccessService.getServicesForRole(role));
+    }
+
     private PopulateEquipmentResponse unauthorizedList() {
         PopulateEquipmentResponse res = new PopulateEquipmentResponse();
         res.setSuccess(false);
@@ -74,7 +81,7 @@ public class FacilitiesEquipmentController {
         if (!isAllowed(token)) {
             return unauthorizedList();
         }
-        return facilitiesEquipmentService.getEquipment();
+        return facilitiesEquipmentService.getEquipment(allowedFacilityIds(token));
     }
 
     @GetMapping("/facility")
@@ -83,7 +90,7 @@ public class FacilitiesEquipmentController {
         if (!isAllowed(token)) {
             return List.of();
         }
-        return facilitiesEquipmentService.getFacilities();
+        return facilitiesEquipmentService.getFacilities(allowedFacilityIds(token));
     }
 
     @PatchMapping("/toggleequipmentstat")
@@ -100,7 +107,8 @@ public class FacilitiesEquipmentController {
         if (!isAllowed(token)) {
             return unauthorizedAction();
         }
-        return facilitiesEquipmentService.toggleEquipmentStatus(id, jwtService.getUsername(token));
+        return facilitiesEquipmentService.toggleEquipmentStatus(
+                id, jwtService.getUsername(token), allowedFacilityIds(token));
     }
 
     @DeleteMapping("/deleteequipment")
@@ -111,7 +119,8 @@ public class FacilitiesEquipmentController {
         if (!isAllowed(token)) {
             return unauthorizedAction();
         }
-        return facilitiesEquipmentService.deleteEquipment(id, jwtService.getUsername(token));
+        return facilitiesEquipmentService.deleteEquipment(
+                id, jwtService.getUsername(token), allowedFacilityIds(token));
     }
 
     @PostMapping("/createequipment")
@@ -122,7 +131,8 @@ public class FacilitiesEquipmentController {
         if (!isAllowed(token)) {
             return unauthorizedAction();
         }
-        return facilitiesEquipmentService.createEquipment(equipment, jwtService.getUsername(token));
+        return facilitiesEquipmentService.createEquipment(
+                equipment, jwtService.getUsername(token), allowedFacilityIds(token));
     }
 
     @PutMapping("/updateequipment")
@@ -133,6 +143,7 @@ public class FacilitiesEquipmentController {
         if (!isAllowed(token)) {
             return unauthorizedAction();
         }
-        return facilitiesEquipmentService.updateEquipment(equipment, jwtService.getUsername(token));
+        return facilitiesEquipmentService.updateEquipment(
+                equipment, jwtService.getUsername(token), allowedFacilityIds(token));
     }
 }

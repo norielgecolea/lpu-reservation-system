@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { NexusRescheduleCalendar, NexusRescheduleEvent } from './nexus-reschedule-calendar';
 import { NexusCoordinationSlot, NexusCoordinationCalendar } from './nexus-coordination-calendar';
@@ -45,7 +45,6 @@ import { adminAddReservationPath } from '../admin-reservation-path.util';
 import { ApprovedReservationActionsMenu } from '../approved-reservation-actions-menu';
 import { ReservationApproverTableSkeleton } from '../reservation-approver-table-skeleton';
 import { ReservationApproverMobileSkeleton } from '../reservation-approver-mobile-skeleton';
-import { downloadNexusReservationForm } from './nexus-reservation-form-export.util';
 import { NexusEditDetailsModal } from './nexus-edit-details-modal';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { isSuperAdmin } from '../../../../core/auth/roles';
@@ -115,13 +114,15 @@ interface NexusReservationViewRow extends NexusReservationRecord {
         <app-reservation-approver-status-chips
           [chips]="statusChips()"
           [value]="statusFilter()"
-          (valueChange)="statusFilter.set($any($event))"
+          (valueChange)="onStatusChange($any($event))"
         />
       </section>
 
       <!-- Filters -->
       <section class="animate-rise flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
+        @if (statusFilter() !== 'PENDING') {
+          <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
+        }
         <ui-input-search
           placeholder="Search by event, department, contact..."
           (valueChange)="search.set($event)"
@@ -153,7 +154,9 @@ interface NexusReservationViewRow extends NexusReservationRecord {
               <ui-icon name="event_busy" class="text-3xl text-gray-300" />
             </div>
             <p class="text-sm font-semibold text-gray-600">No reservations found</p>
-            <p class="text-xs text-gray-400">Try another status, month, or search term</p>
+            <p class="text-xs text-gray-400">
+              {{ statusFilter() === 'PENDING' ? 'No pending reservations match your search' : 'Try another status, month, or search term' }}
+            </p>
           </div>
         } @else {
           @if (loading()) {
@@ -303,15 +306,6 @@ interface NexusReservationViewRow extends NexusReservationRecord {
                             Delete
                           </button>
                         }
-                        <button
-                          type="button"
-                          (click)="printForm(row)"
-                          [disabled]="acting() === row.id"
-                          class="flex items-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <ui-icon name="download" class="text-sm" />
-                          <span class="hidden sm:inline">Download Form</span>
-                        </button>
                         <button
                           type="button"
                           (click)="openCoordination(row)"
@@ -535,11 +529,6 @@ interface NexusReservationViewRow extends NexusReservationRecord {
                             Delete
                           </button>
                         }
-                        <button type="button" (click)="printForm(row)" [disabled]="acting() === row.id"
-                          class="flex items-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                          <ui-icon name="download" class="text-sm" />
-                          <span class="hidden sm:inline">Download Form</span>
-                        </button>
                         <button type="button" (click)="openCoordination(row)" [disabled]="acting() === row.id"
                           class="flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           [title]="row.coordinationDate ? 'Update coordination: ' + row.coordinationDate : 'Set coordination meeting'">
@@ -587,8 +576,8 @@ interface NexusReservationViewRow extends NexusReservationRecord {
         <app-dashboard-event-summary-modal
           [event]="event"
           [completing]="acting() === event.reservationId"
+          [showDownload]="false"
           (closed)="closeDetails()"
-          (printForm)="printFormFromDetails()"
           (markComplete)="completeFromDetails()"
         />
       }
@@ -765,6 +754,10 @@ export class NexusReservations implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly apiError = signal(false);
   readonly reservations = signal<NexusReservationRecord[]>([]);
+  /** Month slice used by calendars and non-pending status counts. */
+  readonly monthReservations = signal<NexusReservationRecord[]>([]);
+  /** Pending queue plus approved/completed rows, used to flag schedule conflicts. */
+  readonly scheduleRows = signal<NexusReservationRecord[]>([]);
   readonly search = signal('');
   readonly statusFilter = signal<StatusFilter>('PENDING');
   readonly activeMonth = signal(getCurrentYearMonth());
@@ -792,7 +785,7 @@ export class NexusReservations implements OnInit, OnDestroy {
 
   /** Approved events to show in the maintenance calendar (read-only context) */
   readonly maintenanceEvents = computed<ScheduledEvent[]>(() =>
-    this.reservations()
+    this.monthReservations()
       .filter(r => r.status === 'APPROVED' || r.status === 'COMPLETED')
       .flatMap((r): ScheduledEvent[] => {
         const events: ScheduledEvent[] = [];
@@ -818,7 +811,7 @@ export class NexusReservations implements OnInit, OnDestroy {
   readonly rescheduleApprovedEvents = computed<NexusRescheduleEvent[]>(() => {
     const target = this.rescheduleTarget();
     const events: NexusRescheduleEvent[] = [];
-    for (const r of this.reservations()) {
+    for (const r of this.monthReservations()) {
       if (r.id === target?.id) continue;
       if (r.status === 'PENDING') {
         try {
@@ -853,7 +846,7 @@ export class NexusReservations implements OnInit, OnDestroy {
 
   readonly coordinationCalendarEvents = computed<NexusRescheduleEvent[]>(() => {
     const target = this.coordinationTarget();
-    return this.reservations().flatMap((r): NexusRescheduleEvent[] => {
+    return this.monthReservations().flatMap((r): NexusRescheduleEvent[] => {
       const isTarget = !!target && r.id === target.id;
       if (!isTarget && r.status !== 'APPROVED' && r.status !== 'COMPLETED' && r.status !== 'PENDING') return [];
       const events: NexusRescheduleEvent[] = [];
@@ -897,15 +890,22 @@ export class NexusReservations implements OnInit, OnDestroy {
     return { date: row.coordinationDate, startTime: row.coordinationStartTime, endTime: row.coordinationEndTime };
   });
 
-  readonly statusChips = computed(() =>
-    buildApproverStatusChips(STATUS_FILTERS, this.reservations()),
-  );
+  readonly statusChips = computed(() => {
+    const chips = buildApproverStatusChips(STATUS_FILTERS, this.monthReservations());
+    if (this.statusFilter() !== 'PENDING') return chips;
+    const pendingCount = this.reservations().filter((row) => row.status === 'PENDING').length;
+    return chips.map((chip) =>
+      chip.value === 'PENDING' ? { ...chip, count: pendingCount } : chip,
+    );
+  });
 
   readonly filtered = computed((): NexusReservationViewRow[] => {
     const q = this.search().toLowerCase().trim();
     const status = this.statusFilter();
     const all = this.reservations();
-    const conflictIds = buildApprovedOverlapIds(all);
+    const conflictIds = buildApprovedOverlapIds(
+      status === 'PENDING' ? this.scheduleRows() : all,
+    );
     const rows = all.filter(r => {
       const matchStatus = reservationMatchesStatusFilter(status, r.status);
       const matchSearch = !q
@@ -948,6 +948,15 @@ export class NexusReservations implements OnInit, OnDestroy {
     this.pollSub?.unsubscribe();
   }
 
+  onStatusChange(status: StatusFilter): void {
+    const previous = this.statusFilter();
+    if (previous === status) return;
+    this.statusFilter.set(status);
+    if (previous === 'PENDING' || status === 'PENDING') {
+      this.load();
+    }
+  }
+
   onMonthChange(month: string): void {
     this.activeMonth.set(month);
     this.load();
@@ -956,11 +965,41 @@ export class NexusReservations implements OnInit, OnDestroy {
   load(opts?: { quiet?: boolean }): void {
     if (!opts?.quiet) this.loading.set(true);
     this.apiError.set(false);
-    this.svc.getAll({ month: this.activeMonth() }).subscribe({
+    const month = this.activeMonth();
+
+    if (this.statusFilter() === 'PENDING') {
+      forkJoin({
+        queue: this.svc.getAll({ queue: 'pending' }),
+        month: this.svc.getAll({ month }),
+      }).subscribe({
+        next: ({ queue, month: monthRes }) => {
+          if (queue.success && monthRes.success) {
+            const queueRows = queue.reservations ?? [];
+            const monthRows = monthRes.reservations ?? [];
+            this.scheduleRows.set(queueRows);
+            this.monthReservations.set(monthRows);
+            this.reservations.set(queueRows.filter((row) => row.status === 'PENDING'));
+            this.alerts.watchPending('NEXUS', queueRows);
+          } else {
+            this.apiError.set(true);
+          }
+          this.loading.set(false);
+        },
+        error: () => {
+          this.apiError.set(true);
+          this.loading.set(false);
+        },
+      });
+      return;
+    }
+
+    this.svc.getAll({ month }).subscribe({
       next: (res) => {
         if (res.success) {
           const rows = res.reservations ?? [];
           this.reservations.set(rows);
+          this.monthReservations.set(rows);
+          this.scheduleRows.set(rows);
           this.alerts.watchPending('NEXUS', rows);
         } else {
           this.apiError.set(true);
@@ -993,19 +1032,6 @@ export class NexusReservations implements OnInit, OnDestroy {
 
   openDetails(row: NexusReservationRecord): void { this.detailsTarget.set(row); }
   closeDetails(): void { this.detailsTarget.set(null); }
-
-  async printForm(row: NexusReservationRecord): Promise<void> {
-    try {
-      await downloadNexusReservationForm(row);
-    } catch {
-      this.toast.set('Failed to generate the facilities reservation form. Please try again.');
-    }
-  }
-
-  printFormFromDetails(): void {
-    const row = this.detailsTarget();
-    if (row) void this.printForm(row);
-  }
 
   executeAction(remarks?: string): void {
     const state = this.confirm();

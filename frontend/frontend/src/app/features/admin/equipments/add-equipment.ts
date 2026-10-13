@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
 import { UiButton, UiFormFeedback, UiIcon, UiInput, UiSelect, UiSelectOption } from '../../../shared/ui';
-import { toFacilityOptions } from './equipment-facilities';
+import { equipmentFacilityIdsForUser, toFacilityOptions } from './equipment-facilities';
 import { EQUIPMENT_STATUS_OPTIONS } from './equipment-status';
 import { EquipmentsService } from './equipments.service';
 
@@ -15,6 +16,7 @@ import { EquipmentsService } from './equipments.service';
 export class AddEquipment {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(EquipmentsService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
   protected readonly listPath = this.api.listPath();
@@ -32,7 +34,9 @@ export class AddEquipment {
   constructor() {
     this.api.listFacilities().subscribe({
       next: (facilities) => {
-        this.facilities.set(toFacilityOptions(facilities ?? [], this.api.scope()));
+        this.facilities.set(
+          toFacilityOptions(facilities ?? [], equipmentFacilityIdsForUser(this.auth.user())),
+        );
       },
       error: (err) => {
         this.error.set(err?.error?.message ?? 'Unable to load services');
