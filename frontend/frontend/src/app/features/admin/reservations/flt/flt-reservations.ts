@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Subscription, firstValueFrom } from 'rxjs';
+import { Subscription, firstValueFrom, forkJoin } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FltRescheduleCalendar, RescheduleEvent } from './flt-reschedule-calendar';
@@ -118,13 +118,15 @@ interface FltReservationViewRow extends FltReservationRecord {
         <app-reservation-approver-status-chips
           [chips]="statusChips()"
           [value]="statusFilter()"
-          (valueChange)="statusFilter.set($any($event))"
+          (valueChange)="onStatusChange($any($event))"
         />
       </section>
 
       <!-- Filters -->
       <section class="animate-rise flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
+        @if (statusFilter() !== 'PENDING') {
+          <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
+        }
         <ui-input-search
           placeholder="Search by event, department, contact..."
           (valueChange)="search.set($event)"
@@ -156,7 +158,9 @@ interface FltReservationViewRow extends FltReservationRecord {
               <ui-icon name="event_busy" class="text-3xl text-gray-300" />
             </div>
             <p class="text-sm font-semibold text-gray-600">No reservations found</p>
-            <p class="text-xs text-gray-400">Try another status, month, or search term</p>
+            <p class="text-xs text-gray-400">
+              {{ statusFilter() === 'PENDING' ? 'No pending reservations match your search' : 'Try another status, month, or search term' }}
+            </p>
           </div>
         } @else {
           @if (loading()) {
@@ -832,6 +836,8 @@ export class FltReservations implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly apiError = signal(false);
   readonly reservations = signal<FltReservationRecord[]>([]);
+  readonly monthReservations = signal<FltReservationRecord[]>([]);
+  readonly scheduleRows = signal<FltReservationRecord[]>([]);
   readonly search = signal('');
   readonly statusFilter = signal<StatusFilter>(
     isFltTech(this.auth.user()?.role) ? 'APPROVED' : 'PENDING',
@@ -861,7 +867,7 @@ export class FltReservations implements OnInit, OnDestroy {
 
   /** Approved events to show in the maintenance calendar (read-only context) */
   readonly maintenanceEvents = computed<ScheduledEvent[]>(() =>
-    this.reservations()
+    this.monthReservations()
       .filter(r => r.status === 'APPROVED' || r.status === 'COMPLETED')
       .flatMap((r): ScheduledEvent[] => {
         const events: ScheduledEvent[] = [];
@@ -890,7 +896,7 @@ export class FltReservations implements OnInit, OnDestroy {
   readonly rescheduleApprovedEvents = computed<RescheduleEvent[]>(() => {
     const target = this.rescheduleTarget();
     const events: RescheduleEvent[] = [];
-    for (const r of this.reservations()) {
+    for (const r of this.monthReservations()) {
       if (r.id === target?.id) continue; // skip self
       if (r.status === 'PENDING') {
         try {
@@ -927,7 +933,7 @@ export class FltReservations implements OnInit, OnDestroy {
   /** Events shown inside the coordination calendar (exclude the coordination meeting of the target reservation) */
   readonly coordinationCalendarEvents = computed<RescheduleEvent[]>(() => {
     const target = this.coordinationTarget();
-    return this.reservations().flatMap((r): RescheduleEvent[] => {
+    return this.monthReservations().flatMap((r): RescheduleEvent[] => {
       const isTarget = !!target && r.id === target.id;
       if (!isTarget && r.status !== 'APPROVED' && r.status !== 'COMPLETED' && r.status !== 'PENDING') return [];
       const events: RescheduleEvent[] = [];
@@ -974,17 +980,25 @@ export class FltReservations implements OnInit, OnDestroy {
 
   readonly statusChips = computed(() => {
     const filters = this.isFltTechRole() ? FLT_TECH_STATUS_FILTERS : STATUS_FILTERS;
+    const source = this.monthReservations();
     const rows = this.isFltTechRole()
-      ? this.reservations().filter(r => r.status !== 'PENDING' && r.status !== 'CONFLICT')
-      : this.reservations();
-    return buildApproverStatusChips(filters, rows);
+      ? source.filter(r => r.status !== 'PENDING' && r.status !== 'CONFLICT')
+      : source;
+    const chips = buildApproverStatusChips(filters, rows);
+    if (this.isFltTechRole() || this.statusFilter() !== 'PENDING') return chips;
+    const pendingCount = this.reservations().filter((row) => row.status === 'PENDING').length;
+    return chips.map((chip) =>
+      chip.value === 'PENDING' ? { ...chip, count: pendingCount } : chip,
+    );
   });
 
   readonly filtered = computed((): FltReservationViewRow[] => {
     const q = this.search().toLowerCase().trim();
     const status = this.statusFilter();
     const all = this.reservations();
-    const conflictIds = buildApprovedOverlapIds(all);
+    const conflictIds = buildApprovedOverlapIds(
+      status === 'PENDING' ? this.scheduleRows() : all,
+    );
     const rows = all.filter(r => {
       if (this.isFltTechRole() && (r.status === 'PENDING' || r.status === 'CONFLICT')) {
         return false;
@@ -1036,6 +1050,15 @@ export class FltReservations implements OnInit, OnDestroy {
     this.pollSub?.unsubscribe();
   }
 
+  onStatusChange(status: StatusFilter): void {
+    const previous = this.statusFilter();
+    if (previous === status) return;
+    this.statusFilter.set(status);
+    if (previous === 'PENDING' || status === 'PENDING') {
+      this.load();
+    }
+  }
+
   onMonthChange(month: string): void {
     this.activeMonth.set(month);
     this.load();
@@ -1044,11 +1067,41 @@ export class FltReservations implements OnInit, OnDestroy {
   load(opts?: { quiet?: boolean }): void {
     if (!opts?.quiet) this.loading.set(true);
     this.apiError.set(false);
-    this.svc.getAll({ month: this.activeMonth() }).subscribe({
+    const month = this.activeMonth();
+
+    if (this.statusFilter() === 'PENDING') {
+      forkJoin({
+        queue: this.svc.getAll({ queue: 'pending' }),
+        month: this.svc.getAll({ month }),
+      }).subscribe({
+        next: ({ queue, month: monthRes }) => {
+          if (queue.success && monthRes.success) {
+            const queueRows = queue.reservations ?? [];
+            const monthRows = monthRes.reservations ?? [];
+            this.scheduleRows.set(queueRows);
+            this.monthReservations.set(monthRows);
+            this.reservations.set(queueRows.filter((row) => row.status === 'PENDING'));
+            this.alerts.watchPending('FLT', queueRows);
+          } else {
+            this.apiError.set(true);
+          }
+          this.loading.set(false);
+        },
+        error: () => {
+          this.apiError.set(true);
+          this.loading.set(false);
+        },
+      });
+      return;
+    }
+
+    this.svc.getAll({ month }).subscribe({
       next: (res) => {
         if (res.success) {
           const rows = res.reservations ?? [];
           this.reservations.set(rows);
+          this.monthReservations.set(rows);
+          this.scheduleRows.set(rows);
           this.alerts.watchPending('FLT', rows);
         } else {
           this.apiError.set(true);

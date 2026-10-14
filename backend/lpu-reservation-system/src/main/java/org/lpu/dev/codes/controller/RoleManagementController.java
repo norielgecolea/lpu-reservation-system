@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/admin/roles")
-@CrossOrigin("*")
+@CrossOrigin(origins = "*", methods = {
+        RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS
+})
 public class RoleManagementController {
 
     private static final Logger logger = LogManager.getLogger(RoleManagementController.class);
@@ -119,7 +122,10 @@ public class RoleManagementController {
         } catch (Exception e) {
             logger.error("Failed to delete role {}", code, e);
             res.setSuccess(false);
-            res.setMessage("Failed to delete role");
+            String detail = e.getMessage();
+            res.setMessage(detail == null || detail.isBlank()
+                    ? "Failed to delete role"
+                    : "Failed to delete role: " + detail);
         }
         return ResponseEntity.ok(res);
     }

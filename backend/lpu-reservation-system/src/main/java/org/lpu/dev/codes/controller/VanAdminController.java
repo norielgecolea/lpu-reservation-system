@@ -53,7 +53,8 @@ public class VanAdminController {
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(required = false) String month,
             @RequestParam(required = false) String fromDate,
-            @RequestParam(required = false) String toDate) {
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) String queue) {
         VanReservationResponse res = new VanReservationResponse();
         String token = tok(authHeader);
         if (!auth.userActive(jwtService.getUsername(token))) {
@@ -64,8 +65,9 @@ public class VanAdminController {
         }
         try {
             ReservationListQuery query = ReservationListQuery.of(month, fromDate, toDate);
+            boolean pendingQueue = "pending".equalsIgnoreCase(queue);
             List<VanReservationAdminDto> reservations = vanService.getAllReservations(
-                    query.month(), query.fromDate(), query.toDate());
+                    query.month(), query.fromDate(), query.toDate(), pendingQueue);
             res.setSuccess(true);
             res.setMessage("Reservations fetched successfully");
             res.setReservations(reservations);

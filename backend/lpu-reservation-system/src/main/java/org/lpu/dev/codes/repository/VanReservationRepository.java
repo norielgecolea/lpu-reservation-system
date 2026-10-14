@@ -70,11 +70,11 @@ public class VanReservationRepository {
     }
 
     /**
-     * List admin rows scoped by month (YYYY-MM) or inclusive date span (fromDate/toDate).
-     * Range takes precedence. If neither is provided, returns an empty list (never SELECT all).
+     * List admin rows scoped by month (YYYY-MM), inclusive date span, or the pending queue.
+     * Range takes precedence. If none of these scopes is set, returns an empty list.
      */
     @SuppressWarnings("unchecked")
-    public List<Object[]> findAllNative(String month, String fromDate, String toDate) {
+    public List<Object[]> findAllNative(String month, String fromDate, String toDate, boolean pendingQueue) {
         StringBuilder sql = new StringBuilder(
                 "SELECT r.id, r.department, r.organization, r.travel_destination, r.passenger_names, "
                         + "r.number_of_passengers, r.return_time, r.contact_person, r.contact_email, r.contact_number, "
@@ -94,13 +94,16 @@ public class VanReservationRepository {
                         + "FROM van_reservations r");
 
         boolean useRange = isPresent(fromDate) && isPresent(toDate);
-        boolean useMonth = !useRange && isPresent(month);
+        boolean usePendingQueue = !useRange && pendingQueue;
+        boolean useMonth = !useRange && !usePendingQueue && isPresent(month);
 
-        if (!useRange && !useMonth) {
+        if (!useRange && !useMonth && !usePendingQueue) {
             return List.of();
         }
 
-        if (useRange) {
+        if (usePendingQueue) {
+            sql.append(" WHERE r.status IN ('PENDING', 'APPROVED', 'COMPLETED')");
+        } else if (useRange) {
             sql.append(" WHERE (")
                     .append(" EXISTS (SELECT 1 FROM jsonb_array_elements(r.reserved_dates) e")
                     .append(" WHERE (e->>'date') >= :fromDate AND (e->>'date') <= :toDate)")
@@ -123,7 +126,7 @@ public class VanReservationRepository {
         if (useRange) {
             query.setParameter("fromDate", fromDate.trim());
             query.setParameter("toDate", toDate.trim());
-        } else {
+        } else if (useMonth) {
             String trimmed = month.trim();
             query.setParameter("month", trimmed);
             query.setParameter("monthPattern", trimmed + "%");

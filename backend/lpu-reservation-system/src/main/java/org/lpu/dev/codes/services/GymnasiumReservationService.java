@@ -99,7 +99,13 @@ public class GymnasiumReservationService {
 
     @Transactional(readOnly = true)
     public List<GymnasiumReservationAdminDto> getAllReservations(String month, String fromDate, String toDate) {
-        List<Object[]> rows = gymRepository.findAllNative(month, fromDate, toDate);
+        return getAllReservations(month, fromDate, toDate, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GymnasiumReservationAdminDto> getAllReservations(
+            String month, String fromDate, String toDate, boolean pendingQueue) {
+        List<Object[]> rows = gymRepository.findAllNative(month, fromDate, toDate, pendingQueue);
         List<GymnasiumReservationAdminDto> result = new ArrayList<>();
         for (Object[] row : rows) {
             GymnasiumReservationAdminDto dto = new GymnasiumReservationAdminDto();

@@ -134,12 +134,10 @@
                       <button uiButton variant="secondary" type="button" (click)="cancelEdit()">Cancel</button>
                     } @else {
                       <button uiButton variant="secondary" type="button" (click)="startEdit(role)">Edit</button>
-                      @if (!role.system) {
+                      @if (canDelete(role)) {
                         <button
-                          uiButton
-                          variant="secondary"
                           type="button"
-                          class="!text-red-700"
+                          class="inline-flex cursor-pointer items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] font-semibold leading-none text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
                           [disabled]="saving()"
                           (click)="deleteRole(role)"
                         >
@@ -157,6 +155,46 @@
     }
   </div>
 </section>
+
+@if (deleteTarget(); as role) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+    (click)="cancelDelete()"
+  >
+    <div
+      class="flex w-full max-w-sm flex-col gap-4 rounded-2xl bg-white p-6 shadow-2xl"
+      (click)="$event.stopPropagation()"
+    >
+      <div>
+        <h2 class="text-lg font-black text-gray-900">Delete role</h2>
+        @if (role.userCount > 0) {
+          <p class="mt-1 text-sm text-gray-600">
+            {{ role.userCount }} user(s) are still assigned to {{ role.label }}. Reassign them before deleting this role.
+          </p>
+        } @else {
+          <p class="mt-1 text-sm text-gray-600">
+            Delete {{ role.label }} ({{ role.code }})? This cannot be undone.
+          </p>
+        }
+      </div>
+      <div class="flex justify-end gap-2">
+        <button uiButton variant="secondary" type="button" [disabled]="saving()" (click)="cancelDelete()">
+          {{ role.userCount > 0 ? 'Close' : 'Cancel' }}
+        </button>
+        @if (role.userCount === 0) {
+          <button
+            type="button"
+            class="inline-flex cursor-pointer items-center justify-center rounded-lg border border-red-600 bg-red-600 px-4 py-2.5 text-[13px] font-semibold leading-none text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+            [disabled]="saving()"
+            (click)="confirmDelete()"
+          >
+            Delete
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}
 
 @if (showToast()) {
   <ui-toast

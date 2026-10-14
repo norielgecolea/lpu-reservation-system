@@ -16,6 +16,7 @@ export interface ReservationListQuery {
   month?: string;
   fromDate?: string;
   toDate?: string;
+  queue?: 'pending';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -67,6 +68,9 @@ function toHttpParams(query?: string | ReservationListQuery): HttpParams {
     return month ? params.set('month', month) : params;
   }
   if (!query) return params;
+  if (query.queue === 'pending') {
+    return params.set('queue', 'pending');
+  }
   const fromDate = query.fromDate?.trim();
   const toDate = query.toDate?.trim();
   if (fromDate && toDate) {

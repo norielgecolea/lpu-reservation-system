@@ -22,6 +22,7 @@ export class RolesPage {
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly editingCode = signal<string | null>(null);
+  protected readonly deleteTarget = signal<AppRoleRow | null>(null);
   protected readonly showCreate = signal(false);
   protected readonly showToast = signal(false);
   protected readonly toastMessage = signal('');
@@ -181,16 +182,25 @@ export class RolesPage {
     });
   }
 
+  protected canDelete(role: AppRoleRow): boolean {
+    return role.code !== 'SUPERADMIN' && role.code !== 'FLTTECH';
+  }
+
   protected deleteRole(role: AppRoleRow): void {
-    if (role.system || role.code === 'SUPERADMIN' || role.code === 'FLTTECH') {
+    if (!this.canDelete(role)) {
       this.flash('Cannot delete system role', false);
       return;
     }
-    if (role.userCount > 0) {
-      this.flash(`Cannot delete: ${role.userCount} user(s) still assigned`, false);
-      return;
-    }
-    if (!confirm(`Delete role ${role.code}?`)) return;
+    this.deleteTarget.set(role);
+  }
+
+  protected cancelDelete(): void {
+    this.deleteTarget.set(null);
+  }
+
+  protected confirmDelete(): void {
+    const role = this.deleteTarget();
+    if (!role || role.userCount > 0) return;
     this.saving.set(true);
     this.api.remove(role.code).subscribe({
       next: (res) => {
@@ -198,6 +208,7 @@ export class RolesPage {
         if (res?.success) {
           this.roles.set(res.roles ?? []);
           if (this.editingCode() === role.code) this.editingCode.set(null);
+          this.deleteTarget.set(null);
           this.flash(res.message || 'Role deleted', true);
         } else {
           this.flash(res?.message ?? 'Failed to delete role', false);
