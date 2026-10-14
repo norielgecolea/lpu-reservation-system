@@ -17,7 +17,7 @@ export class VanReservationsService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/admin/van`;
 
-  getAll(query?: string | { month?: string; fromDate?: string; toDate?: string }) {
+  getAll(query?: string | { month?: string; fromDate?: string; toDate?: string; queue?: 'pending' }) {
     return this.http.get<VanAdminListResponse>(`${this.base}/reservations`, {
       params: toHttpParams(query),
     });
@@ -79,13 +79,16 @@ export class VanReservationsService {
   }
 }
 
-function toHttpParams(query?: string | { month?: string; fromDate?: string; toDate?: string }): HttpParams {
+function toHttpParams(query?: string | { month?: string; fromDate?: string; toDate?: string; queue?: 'pending' }): HttpParams {
   let params = new HttpParams();
   if (typeof query === 'string') {
     const month = query.trim();
     return month ? params.set('month', month) : params;
   }
   if (!query) return params;
+  if (query.queue === 'pending') {
+    return params.set('queue', 'pending');
+  }
   const fromDate = query.fromDate?.trim();
   const toDate = query.toDate?.trim();
   if (fromDate && toDate) {

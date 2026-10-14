@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { GymnasiumRescheduleCalendar, GymRescheduleEvent } from './gymnasium-reschedule-calendar';
 import { GymCoordinationSlot, GymnasiumCoordinationCalendar } from './gymnasium-coordination-calendar';
@@ -115,13 +115,15 @@ interface GymReservationViewRow extends GymReservationRecord {
         <app-reservation-approver-status-chips
           [chips]="statusChips()"
           [value]="statusFilter()"
-          (valueChange)="statusFilter.set($any($event))"
+          (valueChange)="onStatusChange($any($event))"
         />
       </section>
 
       <!-- Filters -->
       <section class="animate-rise flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
+        @if (statusFilter() !== 'PENDING') {
+          <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
+        }
         <ui-input-search
           placeholder="Search by event, department, contact..."
           (valueChange)="search.set($event)"
@@ -153,7 +155,9 @@ interface GymReservationViewRow extends GymReservationRecord {
               <ui-icon name="event_busy" class="text-3xl text-gray-300" />
             </div>
             <p class="text-sm font-semibold text-gray-600">No reservations found</p>
-            <p class="text-xs text-gray-400">Try another status, month, or search term</p>
+            <p class="text-xs text-gray-400">
+              {{ statusFilter() === 'PENDING' ? 'No pending reservations match your search' : 'Try another status, month, or search term' }}
+            </p>
           </div>
         } @else {
           @if (loading()) {
@@ -766,6 +770,8 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly apiError = signal(false);
   readonly reservations = signal<GymReservationRecord[]>([]);
+  readonly monthReservations = signal<GymReservationRecord[]>([]);
+  readonly scheduleRows = signal<GymReservationRecord[]>([]);
   readonly search = signal('');
   readonly statusFilter = signal<StatusFilter>('PENDING');
   readonly activeMonth = signal(getCurrentYearMonth());
@@ -793,7 +799,7 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
 
   /** Approved events to show in the maintenance calendar (read-only context) */
   readonly maintenanceEvents = computed<ScheduledEvent[]>(() =>
-    this.reservations()
+    this.monthReservations()
       .filter(r => r.status === 'APPROVED' || r.status === 'COMPLETED')
       .flatMap((r): ScheduledEvent[] => {
         const events: ScheduledEvent[] = [];
@@ -819,7 +825,7 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
   readonly rescheduleApprovedEvents = computed<GymRescheduleEvent[]>(() => {
     const target = this.rescheduleTarget();
     const events: GymRescheduleEvent[] = [];
-    for (const r of this.reservations()) {
+    for (const r of this.monthReservations()) {
       if (r.id === target?.id) continue;
       if (r.status === 'PENDING') {
         try {
@@ -854,7 +860,7 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
 
   readonly coordinationCalendarEvents = computed<GymRescheduleEvent[]>(() => {
     const target = this.coordinationTarget();
-    return this.reservations().flatMap((r): GymRescheduleEvent[] => {
+    return this.monthReservations().flatMap((r): GymRescheduleEvent[] => {
       const isTarget = !!target && r.id === target.id;
       if (!isTarget && r.status !== 'APPROVED' && r.status !== 'COMPLETED' && r.status !== 'PENDING') return [];
       const events: GymRescheduleEvent[] = [];
@@ -898,15 +904,22 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
     return { date: row.coordinationDate, startTime: row.coordinationStartTime, endTime: row.coordinationEndTime };
   });
 
-  readonly statusChips = computed(() =>
-    buildApproverStatusChips(STATUS_FILTERS, this.reservations()),
-  );
+  readonly statusChips = computed(() => {
+    const chips = buildApproverStatusChips(STATUS_FILTERS, this.monthReservations());
+    if (this.statusFilter() !== 'PENDING') return chips;
+    const pendingCount = this.reservations().filter((row) => row.status === 'PENDING').length;
+    return chips.map((chip) =>
+      chip.value === 'PENDING' ? { ...chip, count: pendingCount } : chip,
+    );
+  });
 
   readonly filtered = computed((): GymReservationViewRow[] => {
     const q = this.search().toLowerCase().trim();
     const status = this.statusFilter();
     const all = this.reservations();
-    const conflictIds = buildApprovedOverlapIds(all);
+    const conflictIds = buildApprovedOverlapIds(
+      status === 'PENDING' ? this.scheduleRows() : all,
+    );
     const rows = all.filter(r => {
       const matchStatus = reservationMatchesStatusFilter(status, r.status);
       const matchSearch = !q
@@ -949,6 +962,15 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
     this.pollSub?.unsubscribe();
   }
 
+  onStatusChange(status: StatusFilter): void {
+    const previous = this.statusFilter();
+    if (previous === status) return;
+    this.statusFilter.set(status);
+    if (previous === 'PENDING' || status === 'PENDING') {
+      this.load();
+    }
+  }
+
   onMonthChange(month: string): void {
     this.activeMonth.set(month);
     this.load();
@@ -957,11 +979,41 @@ export class GymnasiumReservations implements OnInit, OnDestroy {
   load(opts?: { quiet?: boolean }): void {
     if (!opts?.quiet) this.loading.set(true);
     this.apiError.set(false);
-    this.svc.getAll({ month: this.activeMonth() }).subscribe({
+    const month = this.activeMonth();
+
+    if (this.statusFilter() === 'PENDING') {
+      forkJoin({
+        queue: this.svc.getAll({ queue: 'pending' }),
+        month: this.svc.getAll({ month }),
+      }).subscribe({
+        next: ({ queue, month: monthRes }) => {
+          if (queue.success && monthRes.success) {
+            const queueRows = queue.reservations ?? [];
+            const monthRows = monthRes.reservations ?? [];
+            this.scheduleRows.set(queueRows);
+            this.monthReservations.set(monthRows);
+            this.reservations.set(queueRows.filter((row) => row.status === 'PENDING'));
+            this.alerts.watchPending('GYMNASIUM', queueRows);
+          } else {
+            this.apiError.set(true);
+          }
+          this.loading.set(false);
+        },
+        error: () => {
+          this.apiError.set(true);
+          this.loading.set(false);
+        },
+      });
+      return;
+    }
+
+    this.svc.getAll({ month }).subscribe({
       next: (res) => {
         if (res.success) {
           const rows = res.reservations ?? [];
           this.reservations.set(rows);
+          this.monthReservations.set(rows);
+          this.scheduleRows.set(rows);
           this.alerts.watchPending('GYMNASIUM', rows);
         } else {
           this.apiError.set(true);

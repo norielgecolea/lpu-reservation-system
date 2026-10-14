@@ -54,7 +54,8 @@ public class FltAdminController {
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(required = false) String month,
             @RequestParam(required = false) String fromDate,
-            @RequestParam(required = false) String toDate) {
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) String queue) {
         FltReservationResponse res = new FltReservationResponse();
         String token = authHeader.replace("LpuL ", "");
 
@@ -73,8 +74,9 @@ public class FltAdminController {
 
         try {
             ReservationListQuery query = ReservationListQuery.of(month, fromDate, toDate);
+            boolean pendingQueue = "pending".equalsIgnoreCase(queue);
             List<FltReservationAdminDto> reservations = fltReservationService.getAllReservations(
-                    query.month(), query.fromDate(), query.toDate());
+                    query.month(), query.fromDate(), query.toDate(), pendingQueue);
             res.setSuccess(true);
             res.setMessage("Reservations fetched successfully");
             res.setReservations(reservations);

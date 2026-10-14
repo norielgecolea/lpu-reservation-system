@@ -94,12 +94,14 @@ interface VanReservationViewRow extends VanReservationRow {
         <app-reservation-approver-status-chips
           [chips]="statusChips()"
           [value]="statusFilter()"
-          (valueChange)="statusFilter.set($any($event))"
+          (valueChange)="onStatusChange($any($event))"
         />
       </section>
 
       <section class="animate-rise flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
+        @if (statusFilter() !== 'PENDING') {
+          <ui-date-selector [value]="activeMonth()" (valueChange)="onMonthChange($event)" />
+        }
         <ui-input-search
           placeholder="Search by destination, department, contact, passengers..."
           (valueChange)="search.set($event)"
@@ -130,7 +132,9 @@ interface VanReservationViewRow extends VanReservationRow {
               <ui-icon name="event_busy" class="text-3xl text-gray-300" />
             </div>
             <p class="text-sm font-semibold text-gray-600">No reservations found</p>
-            <p class="text-xs text-gray-400">Try another status, month, or search term</p>
+            <p class="text-xs text-gray-400">
+              {{ statusFilter() === 'PENDING' ? 'No pending reservations match your search' : 'Try another status, month, or search term' }}
+            </p>
           </div>
         } @else {
           @if (loading()) {
@@ -636,6 +640,7 @@ export class VanReservations implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly apiError = signal(false);
   readonly reservations = signal<VanReservationRow[]>([]);
+  readonly monthReservations = signal<VanReservationRow[]>([]);
   readonly search = signal('');
   readonly statusFilter = signal<StatusFilter>('PENDING');
   readonly activeMonth = signal(getCurrentYearMonth());
@@ -667,7 +672,7 @@ export class VanReservations implements OnInit, OnDestroy {
   readonly rescheduleApprovedEvents = computed<VanRescheduleEvent[]>(() => {
     const target = this.rescheduleTarget();
     const pending: VanRescheduleEvent[] = [];
-    for (const r of this.reservations()) {
+    for (const r of this.monthReservations()) {
       if (r.status !== 'PENDING' || r.id === target?.id) continue;
       try {
         const slots: ReservedDateSlot[] = JSON.parse(r.reservedDates);
@@ -697,9 +702,14 @@ export class VanReservations implements OnInit, OnDestroy {
     try { return JSON.parse(row.reservedDates); } catch { return []; }
   });
 
-  readonly statusChips = computed(() =>
-    buildApproverStatusChips(STATUS_FILTERS, this.reservations()),
-  );
+  readonly statusChips = computed(() => {
+    const chips = buildApproverStatusChips(STATUS_FILTERS, this.monthReservations());
+    if (this.statusFilter() !== 'PENDING') return chips;
+    const pendingCount = this.reservations().filter((row) => row.status === 'PENDING').length;
+    return chips.map((chip) =>
+      chip.value === 'PENDING' ? { ...chip, count: pendingCount } : chip,
+    );
+  });
 
   readonly filtered = computed((): VanReservationViewRow[] => {
     const q = this.search().toLowerCase().trim();
@@ -745,6 +755,15 @@ export class VanReservations implements OnInit, OnDestroy {
     this.rescheduleScheduleSub?.unsubscribe();
   }
 
+  onStatusChange(status: StatusFilter): void {
+    const previous = this.statusFilter();
+    if (previous === status) return;
+    this.statusFilter.set(status);
+    if (previous === 'PENDING' || status === 'PENDING') {
+      this.load();
+    }
+  }
+
   onMonthChange(month: string): void {
     this.activeMonth.set(month);
     this.load();
@@ -753,11 +772,38 @@ export class VanReservations implements OnInit, OnDestroy {
   load(opts?: { quiet?: boolean }): void {
     if (!opts?.quiet) this.loading.set(true);
     this.apiError.set(false);
-    this.svc.getAll({ month: this.activeMonth() }).subscribe({
+    const month = this.activeMonth();
+
+    if (this.statusFilter() === 'PENDING') {
+      forkJoin({
+        queue: this.svc.getAll({ queue: 'pending' }),
+        month: this.svc.getAll({ month }),
+      }).subscribe({
+        next: ({ queue, month: monthRes }) => {
+          if (queue.success && monthRes.success) {
+            const queueRows = queue.reservations ?? [];
+            this.monthReservations.set(monthRes.reservations ?? []);
+            this.reservations.set(queueRows.filter((row) => row.status === 'PENDING'));
+            this.alerts.watchPending('VAN', queueRows);
+          } else {
+            this.apiError.set(true);
+          }
+          this.loading.set(false);
+        },
+        error: () => {
+          this.apiError.set(true);
+          this.loading.set(false);
+        },
+      });
+      return;
+    }
+
+    this.svc.getAll({ month }).subscribe({
       next: (res) => {
         if (res.success) {
           const rows = res.reservations ?? [];
           this.reservations.set(rows);
+          this.monthReservations.set(rows);
           this.alerts.watchPending('VAN', rows);
         } else {
           this.apiError.set(true);

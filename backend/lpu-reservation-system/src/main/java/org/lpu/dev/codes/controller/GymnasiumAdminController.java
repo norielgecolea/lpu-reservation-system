@@ -53,7 +53,8 @@ public class GymnasiumAdminController {
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(required = false) String month,
             @RequestParam(required = false) String fromDate,
-            @RequestParam(required = false) String toDate) {
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) String queue) {
         GymnasiumReservationResponse res = new GymnasiumReservationResponse();
         String token = tok(authHeader);
         if (!auth.userActive(jwtService.getUsername(token))) {
@@ -64,8 +65,9 @@ public class GymnasiumAdminController {
         }
         try {
             ReservationListQuery query = ReservationListQuery.of(month, fromDate, toDate);
+            boolean pendingQueue = "pending".equalsIgnoreCase(queue);
             List<GymnasiumReservationAdminDto> reservations = gymService.getAllReservations(
-                    query.month(), query.fromDate(), query.toDate());
+                    query.month(), query.fromDate(), query.toDate(), pendingQueue);
             res.setSuccess(true);
             res.setMessage("Reservations fetched successfully");
             res.setReservations(reservations);

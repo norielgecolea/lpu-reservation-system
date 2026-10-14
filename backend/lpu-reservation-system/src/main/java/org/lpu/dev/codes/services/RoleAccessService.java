@@ -20,6 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 @Service
 public class RoleAccessService {
 
@@ -53,6 +56,9 @@ public class RoleAccessService {
 
     @Autowired private AppRoleRepository appRoleRepository;
     @Autowired private RoleServiceAccessRepository roleServiceAccessRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Transactional
     public void ensureDefaults() {
@@ -177,17 +183,28 @@ public class RoleAccessService {
     public void deleteRole(String codeRaw) {
         ensureDefaultsLazy();
         String code = normalizeRole(codeRaw);
-        AppRole role = appRoleRepository.findByCode(code)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + code));
-        if (role.isSystem() || LOCKED_SYSTEM_ROLES.contains(code)) {
+        if (appRoleRepository.findByCode(code).isEmpty()) {
+            throw new IllegalArgumentException("Role not found: " + code);
+        }
+        if (LOCKED_SYSTEM_ROLES.contains(code)) {
             throw new IllegalArgumentException("Cannot delete system role: " + code);
         }
         long users = appRoleRepository.countUsersWithRole(code);
         if (users > 0) {
             throw new IllegalArgumentException("Cannot delete role while " + users + " user(s) are assigned");
         }
-        roleServiceAccessRepository.deleteByRole(code);
-        appRoleRepository.delete(role);
+        // Drop managed copies first. A bulk delete while these rows are still
+        // in the persistence context reinserts them and the role delete fails.
+        entityManager.clear();
+        entityManager.createNativeQuery("DELETE FROM role_service_access WHERE role_code = :role")
+                .setParameter("role", code)
+                .executeUpdate();
+        int removed = entityManager.createNativeQuery("DELETE FROM app_roles WHERE code = :role")
+                .setParameter("role", code)
+                .executeUpdate();
+        if (removed == 0) {
+            throw new IllegalArgumentException("Role not found: " + code);
+        }
     }
 
     private void ensureDefaultsLazy() {
