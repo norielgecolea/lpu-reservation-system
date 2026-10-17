@@ -35,8 +35,8 @@ interface CalendarCell {
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const TIME_SLOTS = Array.from({ length: 15 }, (_, i) => {
-  const hour = i + 7;
+const TIME_SLOTS = Array.from({ length: 23 }, (_, i) => {
+  const hour = i + 1; // 1:00 AM through 11:00 PM
   const label = hour > 12 ? `${hour - 12}:00 PM` : hour === 12 ? '12:00 PM' : `${hour}:00 AM`;
   const value = `${String(hour).padStart(2, '0')}:00`;
   return { value, label };
