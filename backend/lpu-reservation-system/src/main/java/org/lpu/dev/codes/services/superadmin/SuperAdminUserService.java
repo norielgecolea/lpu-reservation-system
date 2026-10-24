@@ -52,6 +52,12 @@ public class SuperAdminUserService {
 				return;
 			}
 
+			String initialPassword = System.getenv("SUPERADMIN_INITIAL_PASSWORD");
+			if (initialPassword == null || initialPassword.isBlank()) {
+				logger.warn("No SUPERADMIN account exists and SUPERADMIN_INITIAL_PASSWORD is not set. Skipping creation.");
+				return;
+			}
+
 			logger.warn("No SUPERADMIN account found. Creating default SUPERADMIN...");
 
 			Users superAdmin = new Users();
@@ -62,7 +68,7 @@ public class SuperAdminUserService {
 			superAdmin.setEmail("superadmin@lpu.edu.ph");
 			superAdmin.setEmployeeId("SUPER001");
 			superAdmin.setStatus("ACTIVE");
-			superAdmin.setPasswordHash("$2a$10$GFDhdtkDkYctEUZjLrd5te1SROXu9MmWNJHfebcTOLsyWEBvuSIzK");
+			superAdmin.setPasswordHash(passwordEncoder.encode(initialPassword));
 
 			userRepository.save(superAdmin);
 
@@ -429,7 +435,13 @@ public class SuperAdminUserService {
 				response.setMessage("Invalid role. Choose a role from Role Management.");
 				return response;
 			}
-			user.setRole(org.lpu.dev.codes.services.RoleAccessService.normalizeRole(request.getRole()));
+			String newRole = org.lpu.dev.codes.services.RoleAccessService.normalizeRole(request.getRole());
+			boolean roleChanged = !newRole.equals(
+					org.lpu.dev.codes.services.RoleAccessService.normalizeRole(user.getRole()));
+			user.setRole(newRole);
+			if (roleChanged) {
+				user.setSessionInvalidBeforeMs(System.currentTimeMillis());
+			}
 
 			userRepository.save(user);
 
@@ -486,6 +498,7 @@ public class SuperAdminUserService {
 			}
 
 			user.setPasswordHash(passwordEncoder.encode(newPassword));
+			user.setSessionInvalidBeforeMs(System.currentTimeMillis());
 			userRepository.save(user);
 
 			logger.info("Password reset for employee ID: {}", targetEmpId);

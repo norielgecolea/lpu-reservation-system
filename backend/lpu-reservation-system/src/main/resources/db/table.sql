@@ -8,35 +8,8 @@ VALUES
 (5, 'Gymnasium', 'University Gymnasium'),
 (6, 'Conference', 'Executive Office Conference Room');
 
-INSERT INTO users (
-    id,
-    username,
-    fullname,
-    role,
-    email,
-    employee_id,
-    password_hash,
-    status,
-    created_at,
-    updated_at,
-    reset_token,
-    reset_token_expires_at
-)
-VALUES
-(
-    1,
-    'superadmin',
-    'Admin',
-    'SUPERADMIN',
-    'superadmin@lpu.edu.ph',
-    'SUPER001',
-    '$2a$10$GFDhdtkDkYctEUZjLrd5te1SROXu9MmWNJHfebcTOLsyWEBvuSIzK',
-    'ACTIVE',
-    '2026-06-11 07:28:34.259463',
-    '2026-06-11 07:28:34.259463',
-    '8a49d271-0a7d-4c74-ab98-d029d6b76f38',
-    '2026-07-16 10:28:48.538937'
-);
+-- The default SUPERADMIN account is created on startup only when
+-- SUPERADMIN_INITIAL_PASSWORD is set and no SUPERADMIN exists yet.
 
 
 
@@ -56,6 +29,7 @@ CREATE TABLE users (
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS session_invalid_before_ms BIGINT;
 
 CREATE TABLE facilities (
     id BIGSERIAL PRIMARY KEY,

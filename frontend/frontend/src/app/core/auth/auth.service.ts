@@ -97,6 +97,13 @@ export class AuthService {
 
   private applyUserUpdate(res: AuthResponse) {
     this.user.set(toUser(res));
+    if (!res.token || !this.isBrowser) return;
+    this.token.set(res.token);
+    if (localStorage.getItem(TOKEN_KEY)) {
+      localStorage.setItem(TOKEN_KEY, res.token);
+    } else {
+      sessionStorage.setItem(TOKEN_KEY, res.token);
+    }
   }
 
   private readToken(): string | null {

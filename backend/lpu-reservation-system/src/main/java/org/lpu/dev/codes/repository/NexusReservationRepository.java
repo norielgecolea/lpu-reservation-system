@@ -182,7 +182,7 @@ public class NexusReservationRepository {
 
     public void updateRating(Long id, int rating) {
         entityManager.createNativeQuery(
-                "UPDATE nexus_reservations SET satisfaction_rating = :rating WHERE id = :id")
+                "UPDATE nexus_reservations SET satisfaction_rating = :rating WHERE id = :id AND satisfaction_rating IS NULL")
                 .setParameter("rating", rating)
                 .setParameter("id", id)
                 .executeUpdate();

@@ -69,8 +69,7 @@ public class AuthenticationService {
 
 			response.setSuccess(false);
 			response.setMessage("Invalid username or password");
-			logger.warn(String.format("Invalid Username: %s or Password: %s ", request.getUsername(),
-					request.getPassword()));
+			logger.warn("Login failed for username: {}", request.getUsername());
 			return response;
 		}
 
@@ -90,7 +89,7 @@ public class AuthenticationService {
 
 		response.setSuccess(true);
 		response.setMessage("Login Successfull");
-		logger.info(String.format("Login Successfull username: %s token %s", request.getUsername(), token));
+		logger.info("Login successful for username: {}", request.getUsername());
 
 		response.setEmail(user.getEmail());
 		response.setFullname(user.getFullname());
@@ -112,7 +111,7 @@ public class AuthenticationService {
 		String token = authHeader.replace("LpuL ", "");
 
 		String username = jwtService.getUsername(token);
-		logger.info(String.format("Validating token: %s", token));
+		logger.info("Validating session");
 		if (username == null) {
 			LoginResponse response = new LoginResponse();
 			response.setSuccess(false);
@@ -201,6 +200,7 @@ public class AuthenticationService {
 				userRepository.updateEmail(userId, newEmail);
 			}
 
+			boolean passwordChanged = false;
 			if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
 				if (request.getNewPassword().length() < 6) {
 					response.setSuccess(false);
@@ -214,6 +214,7 @@ public class AuthenticationService {
 					return ResponseEntity.badRequest().body(response);
 				}
 				userRepository.updatePasswordHash(userId, passwordEncoder.encode(request.getNewPassword()));
+				passwordChanged = true;
 			}
 
 			profileOpt = userRepository.findProfileRowByUsername(currentUsername);
@@ -226,7 +227,15 @@ public class AuthenticationService {
 
 			response.setSuccess(true);
 			response.setMessage("Profile updated successfully");
-			response.setToken(token);
+			String responseToken = token;
+			if (passwordChanged) {
+				userRepository.invalidateSessions(userId);
+				responseToken = jwtUtil.generateToken(
+						(String) row[1],
+						(String) row[5],
+						jwtUtil.isRememberMe(token));
+			}
+			response.setToken(responseToken);
 			response.setUsername((String) row[1]);
 			response.setRole((String) row[5]);
 			response.setEmail((String) row[3]);
@@ -299,6 +308,7 @@ public class AuthenticationService {
 		user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
 		user.setResetToken(null);
 		user.setResetTokenExpiresAt(null);
+		user.setSessionInvalidBeforeMs(System.currentTimeMillis());
 		userRepository.save(user);
 
 		response.setSuccess(true);

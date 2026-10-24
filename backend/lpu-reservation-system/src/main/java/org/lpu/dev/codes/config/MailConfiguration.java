@@ -22,16 +22,20 @@ public class MailConfiguration {
     @Value("${spring.mail.username}")
     private String username;
 
-    @Value("${spring.mail.password}")
+    @Value("${spring.mail.password:}")
     private String password;
 
     @Bean
     public JavaMailSender javaMailSender() {
+        String mailPassword = firstNonBlank(System.getenv("MAIL_PASSWORD"), password);
+        if (mailPassword == null) {
+            throw new IllegalStateException("Set MAIL_PASSWORD for the notification mailbox");
+        }
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
         sender.setHost(host);
         sender.setPort(port);
         sender.setUsername(username);
-        sender.setPassword(password);
+        sender.setPassword(mailPassword);
 
         Properties props = sender.getJavaMailProperties();
         props.put("mail.smtp.auth", "true");
@@ -43,5 +47,17 @@ public class MailConfiguration {
         props.put("mail.smtp.writetimeout", "20000");
 
         return sender;
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank() && !value.startsWith("${")) {
+                return value;
+            }
+        }
+        return null;
     }
 }

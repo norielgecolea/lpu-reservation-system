@@ -389,9 +389,11 @@ public class FltReservationService {
     @Transactional
     public boolean saveRating(Long id, int rating) {
         try {
-            fltReservationRepository.updateRating(id, rating);
-            logger.info("Satisfaction rating {} saved for FLT reservation {}", rating, id);
-            return true;
+            boolean updated = fltReservationRepository.updateRating(id, rating);
+            if (updated) {
+                logger.info("Satisfaction rating {} saved for FLT reservation {}", rating, id);
+            }
+            return updated;
         } catch (Exception e) {
             logger.error("Failed to save satisfaction rating for FLT reservation {}", id, e);
             return false;

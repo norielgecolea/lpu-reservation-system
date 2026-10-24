@@ -73,6 +73,32 @@ public class RateLimitFilter extends OncePerRequestFilter {
 		}
 
 		String path = request.getServletPath();
+		if (isCredentialEndpoint(path)) {
+			if (shouldCacheBody(request)) {
+				CachedBodyHttpServletRequest cached = new CachedBodyHttpServletRequest(request);
+				downstream = cached;
+				String key = credentialKey(path, cached);
+				RateLimitService.Result account = rateLimitService.tryConsume(
+						key, credentialCapacity(path), credentialRefill(path));
+				if (!account.allowed()) {
+					LOGGER.warn("Rate limited credential endpoint {}", path);
+					reject(response, account.retryAfterSeconds());
+					return;
+				}
+			}
+			RateLimitService.Result authIp = rateLimitService.tryConsume(
+					"auth-ip:" + clientIp(request),
+					RateLimitService.AUTH_IP_CAPACITY,
+					RateLimitService.AUTH_IP_REFILL_PER_SEC);
+			if (!authIp.allowed()) {
+				LOGGER.warn("Rate limited credential IP");
+				reject(response, authIp.retryAfterSeconds());
+				return;
+			}
+			filterChain.doFilter(downstream, response);
+			return;
+		}
+
 		if (!path.startsWith("/api/public/")) {
 			filterChain.doFilter(downstream, response);
 			return;
@@ -106,6 +132,47 @@ public class RateLimitFilter extends OncePerRequestFilter {
 		}
 
 		filterChain.doFilter(downstream, response);
+	}
+
+	private static boolean isCredentialEndpoint(String path) {
+		return "/api/auth/login".equals(path)
+				|| "/api/auth/forgot-password".equals(path)
+				|| "/api/auth/reset-password".equals(path);
+	}
+
+	private String credentialKey(String path, CachedBodyHttpServletRequest request) {
+		String field = "/api/auth/login".equals(path) ? "username"
+				: "/api/auth/forgot-password".equals(path) ? "email" : "token";
+		String value = "";
+		byte[] body = request.getCachedBody();
+		if (body != null && body.length > 0 && body.length <= MAX_CACHED_BODY_BYTES) {
+			try {
+				JsonNode root = MAPPER.readTree(body);
+				if (root != null && root.isObject()) {
+					value = text(root, field).toLowerCase();
+				}
+			} catch (Exception ignored) {
+				value = "";
+			}
+		}
+		if (value.isEmpty()) {
+			value = clientIp(request);
+		}
+		String prefix = "/api/auth/login".equals(path) ? "login:"
+				: "/api/auth/forgot-password".equals(path) ? "forgot:" : "reset:";
+		return rateLimitService.hashed(prefix, value);
+	}
+
+	private static double credentialCapacity(String path) {
+		if ("/api/auth/login".equals(path)) return RateLimitService.LOGIN_CAPACITY;
+		if ("/api/auth/forgot-password".equals(path)) return RateLimitService.FORGOT_CAPACITY;
+		return RateLimitService.RESET_CAPACITY;
+	}
+
+	private static double credentialRefill(String path) {
+		if ("/api/auth/login".equals(path)) return RateLimitService.LOGIN_REFILL_PER_SEC;
+		if ("/api/auth/forgot-password".equals(path)) return RateLimitService.FORGOT_REFILL_PER_SEC;
+		return RateLimitService.RESET_REFILL_PER_SEC;
 	}
 
 	private static String bearerToken(HttpServletRequest request) {

@@ -3,6 +3,7 @@ package org.lpu.dev.codes.services;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lpu.dev.codes.model.data.GymnasiumReservation;
+import org.lpu.dev.codes.security.JWTUtil;
 import org.lpu.dev.codes.util.EmailTimeFormat;
 import org.lpu.dev.codes.util.ExternalEventNoticeUtil;
 import org.lpu.dev.codes.util.ReservationEmailThreadUtil;
@@ -22,6 +23,9 @@ public class GymnasiumEmailService {
 
     @Autowired
     private EmailDeliveryService emailDeliveryService;
+
+    @Autowired
+    private JWTUtil jwtUtil;
 
     @Value("${app.base-url:http://localhost:8080/lpu-reservation-system}")
     private String baseUrl;
@@ -153,7 +157,8 @@ public class GymnasiumEmailService {
         StringBuilder sb = new StringBuilder();
         sb.append("<table role='presentation' cellpadding='0' cellspacing='0' border='0' style='margin:0 auto;'><tr>");
         for (int i = 1; i <= 5; i++) {
-            String url = baseUrl + "/api/gymnasium/survey?id=" + id + "&rating=" + i;
+            String url = baseUrl + "/api/gymnasium/survey?id=" + id + "&rating=" + i
+                    + "&token=" + jwtUtil.signSurvey("gymnasium", id, i);
             sb.append("<td style='padding:4px;text-align:center;'>")
               .append("<a href='").append(url).append("' ")
               .append("style='display:inline-block;text-decoration:none;background:").append(colors[i-1]).append(";")

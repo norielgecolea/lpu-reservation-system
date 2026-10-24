@@ -35,6 +35,10 @@ public class Users {
 	@Column(name = "reset_token_expires_at")
 	private java.time.LocalDateTime resetTokenExpiresAt;
 
+	/** Epoch millis. Tokens issued before this time are rejected. */
+	@Column(name = "session_invalid_before_ms")
+	private Long sessionInvalidBeforeMs;
+
 	private String status;
 
 	public Long getId() {
@@ -99,6 +103,11 @@ public class Users {
 	public java.time.LocalDateTime getResetTokenExpiresAt() { return resetTokenExpiresAt; }
 	public void setResetTokenExpiresAt(java.time.LocalDateTime resetTokenExpiresAt) {
 		this.resetTokenExpiresAt = resetTokenExpiresAt;
+	}
+
+	public Long getSessionInvalidBeforeMs() { return sessionInvalidBeforeMs; }
+	public void setSessionInvalidBeforeMs(Long sessionInvalidBeforeMs) {
+		this.sessionInvalidBeforeMs = sessionInvalidBeforeMs;
 	}
 
 	public String getStatus() {

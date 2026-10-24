@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.lpu.dev.codes.security.JWTUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +26,7 @@ public class ReservationOtpService {
     private final ConcurrentHashMap<String, TokenEntry> tokens = new ConcurrentHashMap<>();
 
     @Autowired private ReservationOtpEmailService emailService;
-    @Autowired private JWTUtil jwtUtil;
+    @Autowired private JWTService jwtService;
     @Autowired private AuthenticationService authService;
     @Autowired private RoleAccessService roleAccessService;
 
@@ -98,13 +97,11 @@ public class ReservationOtpService {
      */
     public boolean isStaffBypass(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("LpuL ")) return false;
-        String token = authHeader.substring(5);
-        if (!jwtUtil.validateToken(token)) return false;
-        String role = jwtUtil.getRole(token);
-        if (!roleAccessService.roleHasAnyService(role)) {
+        String role = jwtService.getRole(authHeader);
+        if (role == null || !roleAccessService.roleHasAnyService(role)) {
             return false;
         }
-        String username = jwtUtil.getUsername(token);
+        String username = jwtService.getUsername(authHeader);
         return username != null && authService.userActive(username);
     }
 

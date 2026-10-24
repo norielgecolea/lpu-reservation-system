@@ -35,6 +35,12 @@ services:
     environment:
       TZ: UTC
       JAVA_TOOL_OPTIONS: -Duser.timezone=UTC
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-lpu_reservation}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SUPERADMIN_INITIAL_PASSWORD: ${SUPERADMIN_INITIAL_PASSWORD:-}
     ports:
       - "8080:8080"
     volumes:
