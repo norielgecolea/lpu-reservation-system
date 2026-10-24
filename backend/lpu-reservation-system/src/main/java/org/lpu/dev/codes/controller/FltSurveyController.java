@@ -2,6 +2,7 @@ package org.lpu.dev.codes.controller;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.lpu.dev.codes.security.JWTUtil;
 import org.lpu.dev.codes.services.FltReservationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -25,13 +26,20 @@ public class FltSurveyController {
     @Autowired
     private FltReservationService fltReservationService;
 
+    @Autowired
+    private JWTUtil jwtUtil;
+
     @GetMapping(value = "/survey", produces = MediaType.TEXT_HTML_VALUE)
     public String submitSurvey(
             @RequestParam Long id,
-            @RequestParam int rating) {
+            @RequestParam int rating,
+            @RequestParam(required = false) String token) {
 
         if (rating < 1 || rating > 5) {
             return errorPage("Invalid rating value. Please use a value between 1 and 5.");
+        }
+        if (!jwtUtil.verifySurvey("flt", id, rating, token)) {
+            return errorPage("This survey link is invalid.");
         }
 
         boolean saved = fltReservationService.saveRating(id, rating);

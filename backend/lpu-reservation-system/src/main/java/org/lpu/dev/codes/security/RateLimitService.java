@@ -31,6 +31,22 @@ public class RateLimitService {
 	public static final double IP_CAPACITY = 60;
 	public static final double IP_REFILL_PER_SEC = 10.0;
 
+	/** Login attempts for one username: burst 8, then about 6/min. */
+	public static final double LOGIN_CAPACITY = 8;
+	public static final double LOGIN_REFILL_PER_SEC = 0.1;
+
+	/** Password-reset emails for one address: burst 5, then 1/min. */
+	public static final double FORGOT_CAPACITY = 5;
+	public static final double FORGOT_REFILL_PER_SEC = 1.0 / 60.0;
+
+	/** Reset-token submissions: burst 10, then 12/min. */
+	public static final double RESET_CAPACITY = 10;
+	public static final double RESET_REFILL_PER_SEC = 0.2;
+
+	/** Shared-NAT ceiling for login and reset. Burst 120, then 2/sec. */
+	public static final double AUTH_IP_CAPACITY = 120;
+	public static final double AUTH_IP_REFILL_PER_SEC = 2.0;
+
 	private static final long IDLE_EVICT_NANOS = 2L * 60 * 1_000_000_000L;
 
 	public record Result(boolean allowed, int retryAfterSeconds) {

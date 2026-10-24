@@ -175,7 +175,7 @@ public class VanReservationRepository {
     }
 
     public void updateRating(Long id, int rating) {
-        entityManager.createNativeQuery("UPDATE van_reservations SET satisfaction_rating = :rating WHERE id = :id")
+        entityManager.createNativeQuery("UPDATE van_reservations SET satisfaction_rating = :rating WHERE id = :id AND satisfaction_rating IS NULL")
                 .setParameter("rating", rating)
                 .setParameter("id", id)
                 .executeUpdate();

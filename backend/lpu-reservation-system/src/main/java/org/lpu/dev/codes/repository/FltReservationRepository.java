@@ -192,12 +192,13 @@ public class FltReservationRepository {
                 .executeUpdate();
     }
 
-    public void updateRating(Long id, int rating) {
-        entityManager.createNativeQuery(
-                "UPDATE flt_reservations SET satisfaction_rating = :rating WHERE id = :id")
+    public boolean updateRating(Long id, int rating) {
+        int updated = entityManager.createNativeQuery(
+                "UPDATE flt_reservations SET satisfaction_rating = :rating WHERE id = :id AND satisfaction_rating IS NULL")
                 .setParameter("rating", rating)
                 .setParameter("id", id)
                 .executeUpdate();
+        return updated > 0;
     }
 
     /** APPROVED reservations that include the given reserved date (YYYY-MM-DD). */

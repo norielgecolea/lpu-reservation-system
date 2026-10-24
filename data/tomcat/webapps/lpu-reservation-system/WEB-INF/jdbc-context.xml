@@ -1,24 +1,28 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:context="http://www.springframework.org/schema/context"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-                        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+                        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+                        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:property-placeholder ignore-unresolvable="false"/>
 
     <!-- Create lpu_reservation if missing (before pool / Hibernate start). -->
     <bean id="postgresDatabaseInitializer" class="org.lpu.dev.codes.config.PostgresDatabaseInitializer">
         <property name="adminJdbcUrl" value="jdbc:postgresql://reservation-postgres:5432/postgres" />
-        <property name="user" value="postgres" />
-        <property name="password" value="Lpu-1234" />
-        <property name="databaseName" value="lpu_reservation" />
+        <property name="user" value="${POSTGRES_USER:postgres}" />
+        <property name="password" value="${POSTGRES_PASSWORD}" />
+        <property name="databaseName" value="${POSTGRES_DB:lpu_reservation}" />
         <property name="driverClass" value="org.postgresql.Driver" />
     </bean>
 
     <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close"
           depends-on="postgresDatabaseInitializer">
         <property name="driverClass" value="org.postgresql.Driver" />
-        <property name="jdbcUrl" value="jdbc:postgresql://reservation-postgres:5432/lpu_reservation" />
-        <property name="user" value="postgres" />
-        <property name="password" value="Lpu-1234" />
+        <property name="jdbcUrl" value="jdbc:postgresql://reservation-postgres:5432/${POSTGRES_DB:lpu_reservation}" />
+        <property name="user" value="${POSTGRES_USER:postgres}" />
+        <property name="password" value="${POSTGRES_PASSWORD}" />
         <property name="minPoolSize" value="5" />
         <property name="maxPoolSize" value="20" />
     </bean>
@@ -29,7 +33,7 @@
         <property name="packagesToScan" value="org.lpu.dev.codes.model" />
         <property name="jpaVendorAdapter">
             <bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
-                <property name="showSql" value="true" />
+                <property name="showSql" value="false" />
             </bean>
         </property>
         <property name="jpaProperties">

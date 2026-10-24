@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,8 +22,8 @@ public class DefaultDataSeeder implements ApplicationListener<ContextRefreshedEv
     private static final Logger log = LoggerFactory.getLogger(DefaultDataSeeder.class);
 
     private static final String SUPERADMIN_USERNAME = "superadmin";
-    private static final String SUPERADMIN_PASSWORD_HASH =
-            "$2a$10$GFDhdtkDkYctEUZjLrd5te1SROXu9MmWNJHfebcTOLsyWEBvuSIzK";
+    /** Reset token previously shipped in source. Cleared on startup if it is still present. */
+    private static final String LEAKED_RESET_TOKEN = "8a49d271-0a7d-4c74-ab98-d029d6b76f38";
 
     private boolean seeded;
 
@@ -32,6 +33,9 @@ public class DefaultDataSeeder implements ApplicationListener<ContextRefreshedEv
     @Autowired
     private RoleAccessService roleAccessService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Override
     @Transactional
     public void onApplicationEvent(ContextRefreshedEvent event) {
@@ -40,7 +44,18 @@ public class DefaultDataSeeder implements ApplicationListener<ContextRefreshedEv
         }
         seeded = true;
         roleAccessService.ensureDefaults();
+        clearLeakedResetToken();
         ensureSuperAdmin();
+    }
+
+    private void clearLeakedResetToken() {
+        int cleared = entityManager.createNativeQuery(
+                "UPDATE users SET reset_token = NULL, reset_token_expires_at = NULL WHERE reset_token = :token")
+                .setParameter("token", LEAKED_RESET_TOKEN)
+                .executeUpdate();
+        if (cleared > 0) {
+            log.info("Cleared a reset token that had been shipped in source");
+        }
     }
 
     private void ensureSuperAdmin() {
@@ -51,6 +66,12 @@ public class DefaultDataSeeder implements ApplicationListener<ContextRefreshedEv
 
         if (count.longValue() > 0) {
             log.info("SUPERADMIN already present — skip preload");
+            return;
+        }
+
+        String initialPassword = System.getenv("SUPERADMIN_INITIAL_PASSWORD");
+        if (initialPassword == null || initialPassword.isBlank()) {
+            log.warn("No SUPERADMIN account exists and SUPERADMIN_INITIAL_PASSWORD is not set. Skipping seed.");
             return;
         }
 
@@ -74,11 +95,11 @@ public class DefaultDataSeeder implements ApplicationListener<ContextRefreshedEv
                     'SUPER001',
                     :passwordHash,
                     'ACTIVE',
-                    '8a49d271-0a7d-4c74-ab98-d029d6b76f38',
-                    TIMESTAMP '2026-07-16 10:28:48.538937'
+                    NULL,
+                    NULL
                 )
                 """)
-                .setParameter("passwordHash", SUPERADMIN_PASSWORD_HASH)
+                .setParameter("passwordHash", passwordEncoder.encode(initialPassword))
                 .executeUpdate();
 
         if (inserted > 0) {

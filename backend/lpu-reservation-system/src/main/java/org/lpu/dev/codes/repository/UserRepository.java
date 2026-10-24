@@ -49,6 +49,19 @@ public class UserRepository {
         entityManager.flush();
     }
 
+    /** Reject JWTs issued before now. Call after the user row is saved. */
+    public void invalidateSessions(Long id) {
+        if (id == null) {
+            return;
+        }
+        entityManager.createNativeQuery(
+                "UPDATE users SET session_invalid_before_ms = :ts WHERE id = :id")
+                .setParameter("ts", System.currentTimeMillis())
+                .setParameter("id", id)
+                .executeUpdate();
+        entityManager.flush();
+    }
+
     @SuppressWarnings("unchecked")
     public java.util.Optional<Object[]> findProfileRowByUsername(String username) {
         if (username == null || username.isBlank()) {
